@@ -57,7 +57,7 @@ def build(config):
         idx = np.random.choice(np.arange(len(part_ids)), size=n_particles, replace=False)
     else:
         raise IndexError('n_particles > len(part_ids)')
-
+    
     partmc_population = ParticlePopulation(
         species=species_list,
         spec_masses=[],

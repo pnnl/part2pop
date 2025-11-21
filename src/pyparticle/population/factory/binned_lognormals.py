@@ -33,10 +33,11 @@ def build(config):
     
     # todo: right now, N_sigmas same for all modes; could be per-mode if needed
     N_sigmas = float(config.get('N_sigmas', 5))  # used to set bin ranges for each mode
-
+    
     # If the user provides global D_min/D_max, use them for all modes. Otherwise compute per-mode edges.
     global_D_min = config.get('D_min', None)
     global_D_max = config.get('D_max', None)
+    
     if (global_D_min is not None) ^ (global_D_max is not None):
         raise ValueError("Provide both D_min and D_max, or neither.")
     if global_D_min is not None:
