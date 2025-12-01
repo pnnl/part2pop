@@ -42,7 +42,7 @@ def build(config):
     )
     spec_masses = np.array(currnc.variables['aero_particle_mass'][:])
     part_ids = np.array([one_id for one_id in currnc.variables['aero_id'][:]], dtype=int)
-
+    
     if 'aero_num_conc' in currnc.variables.keys():
         num_concs = currnc.variables['aero_num_conc'][:]
     else:
@@ -84,9 +84,9 @@ def build(config):
 def map_camp_specs(camp_spec_names):
     spec_names = []
     for spec_name in camp_spec_names:
-        # split_specs = spec_name.split('.')
-        # spec_names.append(split_specs[-1])
-        spec_names.append(spec_name)
+        split_specs = spec_name.split('.')
+        spec_names.append(split_specs[-1])
+        # spec_names.append(spec_name)
     # print(spec_names)
     return spec_names
 

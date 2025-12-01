@@ -32,6 +32,7 @@ def build(config):
         N_bins_list = [N_bins_val]*len(GMD_list)
     
     # todo: right now, N_sigmas same for all modes; could be per-mode if needed
+    
     N_sigmas = float(config.get('N_sigmas', 5))  # used to set bin ranges for each mode
     
     # If the user provides global D_min/D_max, use them for all modes. Otherwise compute per-mode edges.
@@ -116,4 +117,6 @@ def build(config):
             part_id += 1
             lognormals_population.set_particle(
                 particle, part_id, N_per_bin)
+            
     return lognormals_population
+    
