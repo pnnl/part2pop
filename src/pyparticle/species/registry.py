@@ -7,7 +7,8 @@ reads `datasets/species_data/aero_data.dat` for default species.
 
 import copy
 from .base import AerosolSpecies
-from ..data import species_open
+# from ..data import species_open
+from ..data import open_dataset
 import os
 
 
@@ -58,20 +59,19 @@ def extend_species(species: AerosolSpecies):
     _registry.extend(species)
 
 def _iter_aero_data_lines(): 
-    with species_open("aero_data.dat") as fh:
+    
+    with open_dataset('species_data/aero_data.dat') as fh:
+        # "species_data/aero_data.dat") as fh:
         for line in fh:
             yield line
 
-
-def retrieve_one_species(name, specdata_path=None, spec_modifications={}):
+def retrieve_one_species(name, spec_modifications={}):
     """Retrieve a species from data file and apply optional modifications.
 
     Parameters
     ----------
     name : str
         Species name to lookup (case-insensitive).
-    specdata_path : pathlib.Path
-        Directory containing `aero_data.dat`.
     spec_modifications : dict
         Optional overrides for species properties (kappa, density, etc.).
 
@@ -81,6 +81,7 @@ def retrieve_one_species(name, specdata_path=None, spec_modifications={}):
         Constructed species dataclass.
     """
     for line in _iter_aero_data_lines():
+        
         if line.strip().startswith("#"):
             continue
         if line.upper().startswith(name.upper()):
@@ -88,7 +89,8 @@ def retrieve_one_species(name, specdata_path=None, spec_modifications={}):
             if len(parts) < 5:
                 continue
             name_in_file, density, ions_in_solution, molar_mass, kappa = parts[:5]
-
+            
+            # Apply modifications if provided
             kappa = spec_modifications.get('kappa', kappa)
             density = spec_modifications.get('density', density)
             surface_tension = spec_modifications.get('surface_tension', 0.072)

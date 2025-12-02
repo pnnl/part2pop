@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="author" content="Laura Fierce" />
+  <meta name="author" content="Payton Beeler" />
+  <title>PyParticle: modular tool to build and analyze aerosol particle populations</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+    /* CSS for citations */
+    div.csl-bib-body { }
+    div.csl-entry {
+      clear: both;
+    }
+    .hanging-indent div.csl-entry {
+      margin-left:2em;
+      text-indent:-2em;
+    }
+    div.csl-left-margin {
+      min-width:2em;
+      float:left;
+    }
+    div.csl-right-inline {
+      margin-left:2em;
+      padding-left:1em;
+    }
+    div.csl-indent {
+      margin-left: 2em;
+    }  </style>
+  .author, .title, .date { display:block  }
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">PyParticle: modular tool to build and analyze aerosol
+particle populations</h1>
+<p class="author">Laura Fierce</p>
+<p class="author">Payton Beeler</p>
+</header>
+<h1 id="summary">Summary</h1>
+<p><strong>PyParticle</strong> is a lightweight Python library for
+describing and analyzing aerosol particle populations. The package
+includes modular builders for aerosol species, particle populations, and
+particle morphologies, which interface with existing models for derived
+aerosol properties, such as cloud condensation nuclei (CCN) activity,
+ice-nucleating particle (INP) potential, and optical properties. Its
+<strong>builder/registry</strong> design allows new aerosol species,
+population types, and morphologies to be added by adding small modules
+to the appropriate <code>factory/</code> folders without modifying code
+API. This modular, reproducible framework facilitates process-level
+investigations, sensitivity analyses, and intercomparison studies across
+diverse model and observational datasets.</p>
+<p>The core components include:</p>
+<ul>
+<li><p><strong>AerosolSpecies</strong>,
+<strong>AerosolParticle</strong>, <strong>ParticlePopulation</strong>
+classes that provide a standardized representation of aerosol particles
+from diverse data sources.</p></li>
+<li><p><strong>Species builder</strong> that supplies physical
+properties (e.g., density, hygroscopicity parameter, refractive index)
+for aerosol species, with optional per-species overrides.</p></li>
+<li><p><strong>Population builders</strong> for parametric and
+model-derived populations (e.g., <em>binned lognormal</em>,
+<em>monodisperse</em>, and loaders for <em>MAM4</em> and <em>PartMC</em>
+simulation output).</p></li>
+<li><p><strong>Optical particle builders</strong> that compute
+wavelength- and RH-dependent optical properties for different particle
+morphologies (e.g., <em>homogeneous</em>, <em>core–shell</em>,
+<em>fractal</em>) using existing libraries</p></li>
+<li><p><strong>Freezing particle builders</strong> that estimate
+INP-relevant metrics from particle composition and size.</p></li>
+<li><p>An <strong>analysis module</strong> that calculates particle- and
+population-level variables from PyParticle populations.</p></li>
+<li><p>A <strong>viz</strong> package to generate figures from
+PyParticle populations.</p></li>
+</ul>
+<p>Example scripts demonstrate (i) optical properties for lognormal
+mixtures, (ii) optical properties for lognormal mixtures with different
+morphologies (iii) comparisons of CCN activity between MAM4- and
+PartMC-derived populations, and (iv) freezing-oriented calculations on
+common temperature/RH grids.</p>
+<h1 id="statement-of-need">Statement of need</h1>
+<p>The physical properties of aerosols must be well quantified for a
+variety of atmospheric, air quality, and industrial applications. A wide
+range of tools have been developed to simulate <span class="citation"
+data-cites="Riemer2009_JGR_PartMC Liu2016_GMD_MAM4 Bauer2008_ACP_MATRIX Zaveri2008_JGR_MOSAIC">(e.g.,
+<a href="#ref-Riemer2009_JGR_PartMC" role="doc-biblioref">Riemer et al.
+2009</a>; <a href="#ref-Liu2016_GMD_MAM4" role="doc-biblioref">Liu et
+al. 2016</a>; <a href="#ref-Bauer2008_ACP_MATRIX"
+role="doc-biblioref">Bauer et al. 2008</a>; <a
+href="#ref-Zaveri2008_JGR_MOSAIC" role="doc-biblioref">Zaveri et al.
+2008</a>)</span> and observe <span class="citation"
+data-cites="Jayne2000_AST_AMS DeCarlo2006_AnalChem_HRToFAMS Knutson1975_JAS_DMA Wang1990_AST_SEMS Schwarz2006_JGR_SP2 Schwarz2008_JGR_SP2 Zelenyuk2015_JASMS_miniSPLAT">(e.g.,
+<a href="#ref-Jayne2000_AST_AMS" role="doc-biblioref">Jayne et al.
+2000</a>; <a href="#ref-DeCarlo2006_AnalChem_HRToFAMS"
+role="doc-biblioref">DeCarlo et al. 2006</a>; <a
+href="#ref-Knutson1975_JAS_DMA" role="doc-biblioref">Knutson and Whitby
+1975</a>; <a href="#ref-Wang1990_AST_SEMS" role="doc-biblioref">Wang and
+Flagan 1990</a>; <a href="#ref-Schwarz2006_JGR_SP2"
+role="doc-biblioref">Schwarz et al. 2006</a>, <a
+href="#ref-Schwarz2008_JGR_SP2" role="doc-biblioref">2008</a>; <a
+href="#ref-Zelenyuk2015_JASMS_miniSPLAT" role="doc-biblioref">Zelenyuk
+et al. 2015</a>)</span> aerosol particle populations, producing varied
+aerosol data that is often difficult to compare directly.
+<strong>PyParticle</strong> provides a standardized description of
+aerosol particle populations and facilitates evaluation of derived
+aerosol properties.</p>
+<p><strong>Leveraging existing models.</strong> PyParticle is designed
+to interoperate with established aerosol-property models rather than
+reimplementing them. The current implementation focuses on aerosol
+effects relevant for the atmosphere, with many functions adapted from
+previous studies of CCN activity <span class="citation"
+data-cites="Fierce2013_JGR Fierce2017_JGR Fierce2024_JAS">(<a
+href="#ref-Fierce2013_JGR" role="doc-biblioref">Fierce et al. 2013</a>,
+<a href="#ref-Fierce2024_JAS" role="doc-biblioref">2024</a>; <a
+href="#ref-Fierce2017_JGR" role="doc-biblioref">Fierce and McGraw
+2017</a>)</span>, optical properties <span class="citation"
+data-cites="Fierce2016_NatComm Fierce2020_PNAS">(<a
+href="#ref-Fierce2016_NatComm" role="doc-biblioref">Fierce et al.
+2016</a>, <a href="#ref-Fierce2020_PNAS"
+role="doc-biblioref">2020</a>)</span>, mixing state approximations <span
+class="citation"
+data-cites="Fierce2015_ACP Fierce2017_BAMS_mixing_state Fierce2024_JAS">(<a
+href="#ref-Fierce2015_ACP" role="doc-biblioref">Fierce et al. 2015</a>,
+<a href="#ref-Fierce2017_BAMS_mixing_state"
+role="doc-biblioref">2017</a>, <a href="#ref-Fierce2024_JAS"
+role="doc-biblioref">2024</a>)</span>, and heterogeneous ice nucleation
+<span class="citation" data-cites="AlpertKnopf2016_ACP">(<a
+href="#ref-AlpertKnopf2016_ACP" role="doc-biblioref">Alpert and Knopf
+2016</a>)</span>. For optical calculations, PyParticle can call external
+packages such as PyMieScatt <span class="citation"
+data-cites="PyMieScatt">(<a href="#ref-PyMieScatt"
+role="doc-biblioref">Sumlin et al. 2018</a>)</span> and pyBCabs <span
+class="citation" data-cites="beeler2022acp">(<a
+href="#ref-beeler2022acp" role="doc-biblioref">Beeler and Chakrabarty
+2022</a>)</span>. For hygroscopicity and CCN-relevant calculations it
+follows the kappa-Köhler framework <span class="citation"
+data-cites="Petters2007_ACP">(<a href="#ref-Petters2007_ACP"
+role="doc-biblioref">Petters and Kreidenweis 2007</a>)</span>, treating
+kappa as a per-species property that can be supplied by the species
+registry or overridden at runtime. Immersion freezing is represented
+using the stochastic immersion freezing model <span class="citation"
+data-cites="KnopfAlpert2013_Faraday AlpertKnopf2016_ACP">(<a
+href="#ref-KnopfAlpert2013_Faraday" role="doc-biblioref">Knopf and
+Alpert 2013</a>; <a href="#ref-AlpertKnopf2016_ACP"
+role="doc-biblioref">Alpert and Knopf 2016</a>)</span>. Model loaders
+(e.g., MAM4, PartMC) convert model outputs to the PyParticle internal
+representation so downstream analyses (CCN, optics, freezing) can use
+the same utilities. Where third-party packages are optional (e.g.,
+<code>netCDF4</code> for NetCDF I/O or PyMieScatt for optics
+calculations), PyParticle raises explicit errors with clear remediation
+so analyses are deterministic and reproducible.</p>
+<p><strong>Modular structure.</strong> The codebase follows a strict
+builder/registry pattern so new capabilities are added by dropping a
+single module into a <code>factory/</code> folder. Modules for particle
+populations (<code>population/factory/</code>), optics morphologies
+(<code>optics/factory/</code>), freezing models
+(<code>freezing/factory/</code>), and aerosol species
+(<code>species/</code>) expose a small, well-documented
+<code>build(...)</code> function (or use a decorator-based registry). At
+runtime, discovery maps the config <code>type</code> string to the
+appropriate builder. This keeps the public API small while enabling
+application-specific extensions without changing core code.</p>
+<p><strong>Implication for practice.</strong> The same downstream
+computations (e.g., CCN spectra, optical coefficients, freezing
+propensity) can be applied to many descriptions of aerosol particle
+populations. The current implementation includes modules for
+representing populations from PartMC, MAM4, or parameterized
+distributions, each defined with identical configurations. Because
+species properties and morphologies are provided through modular
+factories, sensitivity studies (e.g., refractive indices, mixing rules,
+or kappa values) become simple configuration changes rather than code
+modifications. This encourages transparent, process-level benchmarking
+across diverse datasets.</p>
+<h1 id="software-description">Software description</h1>
+<h2 id="design-architecture">Design &amp; architecture</h2>
+<p>The repository is organized around clear extension points:</p>
+<ul>
+<li><strong><code>species/</code></strong> — The species registry
+provides canonical physical properties (e.g., density [kg m⁻³], kappa
+[–], molar mass [kg mol⁻¹], surface tension [N m⁻¹]) and a file/registry
+fallback. Public helpers include <code>register_species(...)</code>,
+<code>get_species(name, **mods)</code>, <code>list_species()</code>, and
+<code>retrieve_one_species(...)</code>. Resolution order is (1) the
+environment override
+<code>PYPARTICLE_DATA_PATH/species_data/aero_data.dat</code>, (2)
+packaged data in
+<code>PyParticle/datasets/species_data/aero_data.dat</code>, then (3) a
+user-specified <code>specdata_path</code>. Per-species overrides (e.g.,
+<code>{"SO4": {"kappa": 0.6}}</code>) apply at load time.</li>
+</ul>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> PyParticle.species.registry <span class="im">import</span> get_species</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>so4 <span class="op">=</span> get_species(<span class="st">&quot;SO4&quot;</span>, kappa<span class="op">=</span><span class="fl">0.6</span>)</span></code></pre></div>
+<ul>
+<li><strong><code>aerosol_particle</code></strong> — Defines the
+<code>Particle</code> class and helpers to build particles from species
+names, mass fractions, and diameters. A <code>Particle</code> stores
+per-species masses, dry/wet diameters, effective kappa, and basic
+metadata. Helpers provide kappa-Köhler growth and CCN activity <span
+class="citation" data-cites="Petters2007_ACP">(<a
+href="#ref-Petters2007_ACP" role="doc-biblioref">Petters and Kreidenweis
+2007</a>)</span>. By default, CCN is treated with the homogeneous-sphere
+assumption and water surface tension.</li>
+</ul>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> PyParticle.aerosol_particle <span class="im">import</span> make_particle</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>p <span class="op">=</span> make_particle(D<span class="op">=</span><span class="fl">100e-9</span>, aero_spec_names<span class="op">=</span>[<span class="st">&quot;SO4&quot;</span>], aero_spec_frac<span class="op">=</span>[<span class="fl">1.0</span>], D_is_wet<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(p.get_Ddry(), p.get_tkappa())</span></code></pre></div>
+<ul>
+<li><strong><code>population/</code></strong> — Exposes
+<code>build_population(config)</code> and a discovery system mapping
+<code>config["type"]</code> to a module in
+<code>population/factory/</code>. The config settings are specific to
+the population type. For example, the <code>binned_lognormals</code>
+builder requires <code>"N"</code>, <code>"GMD"</code> (m),
+<code>"GSD"</code>, <code>"aero_spec_names"</code>,
+<code>"aero_spec_fracs"</code>, and binning parameters. The
+<code>partmc</code> builder, on the other hand, requires specification
+of the directory where simulation data is located and the simulation
+timestep. Each population-builder produces a standardized particle
+population, defined by a list of constituent
+<code>aerosol_species</code>, an array of <code>species_masses</code>
+that provide the mass [kg] of each species in each particle, an array of
+<code>num_conc</code> that describe the number concentration [m⁻3]
+associated with each computational particle, and a list of ids for each
+particle. An individual <code>Particle</code> is added to or extracted
+from the <code>ParticlePopulation</code> using the attached
+<code>add_particle</code> and <code>get_particle</code> functions,
+respectively.</li>
+</ul>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> PyParticle.population <span class="im">import</span> build_population</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>pop <span class="op">=</span> build_population({<span class="st">&quot;type&quot;</span>: <span class="st">&quot;binned_lognormals&quot;</span>, <span class="st">&quot;N&quot;</span>: [<span class="fl">1e7</span>], <span class="st">&quot;GMD&quot;</span>: [<span class="fl">100e-9</span>],</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>                        <span class="st">&quot;GSD&quot;</span>: [<span class="fl">1.6</span>], <span class="st">&quot;aero_spec_names&quot;</span>: [[<span class="st">&quot;SO4&quot;</span>]],</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>                        <span class="st">&quot;aero_spec_fracs&quot;</span>: [[<span class="fl">1.0</span>]], <span class="st">&quot;N_bins&quot;</span>: <span class="dv">120</span>})</span></code></pre></div>
+<ul>
+<li><strong><code>optics/</code></strong> —
+<code>build_optical_population(pop, config)</code> attaches per-particle
+optical properties over <code>wvl_grid</code> (m) and
+<code>rh_grid</code> (default <code>[0.0]</code>). Morphologies
+(<code>homogeneous</code>, <code>core_shell</code>,
+<code>fractal</code>) compute per-particle scattering, absorption, and
+extinction cross-sections and asymmetry parameter <code>g</code>. The
+resulting <code>OpticalPopulation</code> aggregates to population-level
+coefficients (m⁻¹).</li>
+</ul>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> PyParticle.optics <span class="im">import</span> build_optical_population</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>opt_pop <span class="op">=</span> build_optical_population(pop, {<span class="st">&quot;type&quot;</span>: <span class="st">&quot;homogeneous&quot;</span>, <span class="st">&quot;wvl_grid&quot;</span>: [<span class="fl">550e-9</span>], <span class="st">&quot;rh_grid&quot;</span>: [<span class="fl">0.0</span>]})</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(opt_pop.get_optical_coeff(<span class="st">&quot;b_scat&quot;</span>, rh<span class="op">=</span><span class="fl">0.0</span>, wvl<span class="op">=</span><span class="fl">550e-9</span>))</span></code></pre></div>
+<ul>
+<li><strong><code>freezing/</code></strong> — Contains routines for
+assessing the potential for immersion freezing. The freezing module uses
+particle composition and surface area to calculate freezing proxies and
+exposes a builder pattern so new parameterizations can be added. Accepts
+<code>Particle</code> or <code>ParticlePopulation</code> inputs and
+returns particle-level and population metrics (e.g., activated fraction
+vs. T for a given cooling rate).</li>
+</ul>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> PyParticle.freezing <span class="im">import</span> build_freezing_population</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>freezing_pop <span class="op">=</span> build_freezing_population(pop, {<span class="st">&quot;morphology&quot;</span>: <span class="st">&quot;homogeneous&quot;</span>, <span class="st">&quot;T_grid&quot;</span>: [<span class="op">-</span><span class="dv">100</span>,<span class="op">-</span><span class="dv">80</span>,<span class="op">-</span><span class="dv">60</span>,<span class="op">-</span><span class="dv">40</span>,<span class="op">-</span><span class="dv">20</span>,<span class="dv">0</span>], <span class="st">&quot;T_units&quot;</span>: <span class="st">&quot;C&quot;</span>})</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>freezing_pop.get_frozen_fraction(<span class="op">-</span><span class="fl">1.0</span>) <span class="co"># specified cooling rate in K/s or C/s</span></span></code></pre></div>
+<ul>
+<li><p><strong><code>analysis/</code></strong> — Provides utilities for
+size distributions (<code>dN/dlnD</code>), moments, mass/volume
+fractions, hygroscopic growth factors, and CCN spectra. Returns NumPy
+arrays or lightweight dataclasses for plotting and statistics.</p></li>
+<li><p><strong><code>viz/</code></strong> — Provides plotter builders,
+style management, and grid helpers for consistent visualization of
+population outputs.</p></li>
+</ul>
+<p><em>Implementation notes.</em> The codebase uses SI units internally
+(meters for diameters/wavelengths) and defaults <code>rh_grid</code> to
+<code>[0.0]</code>. Optional dependencies such as <code>netCDF4</code>
+or <code>PyMieScatt</code> are imported only where needed; in their
+absence the code raises <code>ModuleNotFoundError</code> with an
+actionable message rather than silently substituting mock data.</p>
+<h1 id="acknowledgements">Acknowledgements</h1>
+<p>The PyParticle package was originally developed under the Integrated
+Cloud, Land-surface, and Aerosol System Study (ICLASS), a Science Focus
+Area of the U.S. Department of Energy’s Atmospheric System Research
+program at Pacific Northwest National Laboratory (PNNL). Optics modules
+and links to the PartMC and MAM4 modules was supported by PNNL’s
+Laboratory Direct Research and Development program. PNNL is a
+multi-program national laboratory operated for the U.S. Department of
+Energy by Battelle Memorial Institute under Contract
+No. DE-AC05-76RL01830.</p>
+<h1 class="unnumbered" id="references">References</h1>
+<div id="refs" class="references csl-bib-body hanging-indent"
+role="list">
+<div id="ref-AlpertKnopf2016_ACP" class="csl-entry" role="listitem">
+Alpert, Peter A., and Daniel A. Knopf. 2016. <span>“Analysis of
+Isothermal and Cooling-Rate-Dependent Immersion Freezing by a Unifying
+Stochastic Ice Nucleation Model.”</span> <em>Atmospheric Chemistry and
+Physics</em> 16: 2083–107. <a
+href="https://doi.org/10.5194/acp-16-2083-2016">https://doi.org/10.5194/acp-16-2083-2016</a>.
+</div>
+<div id="ref-Bauer2008_ACP_MATRIX" class="csl-entry" role="listitem">
+Bauer, Susanne E., Douglas L. Wright, Dorothy Koch, et al. 2008.
+<span>“<span>MATRIX</span> (Multiconfiguration Aerosol
+<span>TR</span>acker of m<span>IX</span>ing State): An Aerosol
+Microphysical Module for Global Atmospheric Models.”</span>
+<em>Atmospheric Chemistry and Physics</em> 8: 6003–35. <a
+href="https://doi.org/10.5194/acp-8-6003-2008">https://doi.org/10.5194/acp-8-6003-2008</a>.
+</div>
+<div id="ref-beeler2022acp" class="csl-entry" role="listitem">
+Beeler, Payton, and Rajan K Chakrabarty. 2022. <span>“Constraining the
+Particle-Scale Diversity of Black Carbon Light Absorption Using a
+Unified Framework.”</span> <em>Atmospheric Chemistry and Physics</em> 22
+(22): 14825–36.
+</div>
+<div id="ref-DeCarlo2006_AnalChem_HRToFAMS" class="csl-entry"
+role="listitem">
+DeCarlo, Peter F., Jay R. Kimmel, Andrew Trimborn, et al. 2006.
+<span>“Field-Deployable, High-Resolution, Time-of-Flight Aerosol Mass
+Spectrometer.”</span> <em>Analytical Chemistry</em> 78 (24): 8281–89. <a
+href="https://doi.org/10.1021/ac061249n">https://doi.org/10.1021/ac061249n</a>.
+</div>
+<div id="ref-Fierce2016_NatComm" class="csl-entry" role="listitem">
+Fierce, Laura, Tami C. Bond, Susanne E. Bauer, Francisco Mena, and
+Nicole Riemer. 2016. <span>“Black Carbon Absorption at the Global Scale
+Is Affected by Particle-Scale Diversity in Composition.”</span>
+<em>Nature Communications</em> 7: 12361. <a
+href="https://doi.org/10.1038/ncomms12361">https://doi.org/10.1038/ncomms12361</a>.
+</div>
+<div id="ref-Fierce2017_JGR" class="csl-entry" role="listitem">
+Fierce, Laura, and Robert L. McGraw. 2017. <span>“Multivariate
+Quadrature for Representing Cloud Condensation Nuclei Activity of
+Aerosol Populations.”</span> <em>Journal of Geophysical Research:
+Atmospheres</em> 122 (18): 9867–78. <a
+href="https://doi.org/10.1002/2016JD026335">https://doi.org/10.1002/2016JD026335</a>.
+</div>
+<div id="ref-Fierce2020_PNAS" class="csl-entry" role="listitem">
+Fierce, Laura, Timothy B. Onasch, Christopher D. Cappa, et al. 2020.
+<span>“Radiative Absorption Enhancements by Black Carbon Controlled by
+Particle-to-Particle Heterogeneity in Composition.”</span>
+<em>Proceedings of the National Academy of Sciences</em> 117 (10):
+5196–203. <a
+href="https://doi.org/10.1073/pnas.1919723117">https://doi.org/10.1073/pnas.1919723117</a>.
+</div>
+<div id="ref-Fierce2017_BAMS_mixing_state" class="csl-entry"
+role="listitem">
+Fierce, Laura, Nicole Riemer, and Tami C Bond. 2017. <span>“Toward
+Reduced Representation of Mixing State for Simulating Aerosol Effects on
+Climate.”</span> <em>Bulletin of the American Meteorological
+Society</em> 98 (5): 971–80.
+</div>
+<div id="ref-Fierce2013_JGR" class="csl-entry" role="listitem">
+Fierce, Laura, Nicole Riemer, and Tami C. Bond. 2013. <span>“When Is
+Cloud Condensation Nuclei Activity Sensitive to Particle Mixing
+State?”</span> <em>Journal of Geophysical Research: Atmospheres</em> 118
+(24): 13476–88. <a
+href="https://doi.org/10.1002/2013JD020608">https://doi.org/10.1002/2013JD020608</a>.
+</div>
+<div id="ref-Fierce2015_ACP" class="csl-entry" role="listitem">
+Fierce, Laura, Nicole Riemer, Tami C. Bond, Susanne E. Bauer, Francisco
+Mena, and Matthew West. 2015. <span>“Explaining Variance in Black
+Carbon’s Aging Timescale and Its Implications for Absorption
+Enhancement: A Particle-Resolved Modeling Study.”</span> <em>Atmospheric
+Chemistry and Physics</em> 15: 3173–91. <a
+href="https://doi.org/10.5194/acp-15-3173-2015">https://doi.org/10.5194/acp-15-3173-2015</a>.
+</div>
+<div id="ref-Fierce2024_JAS" class="csl-entry" role="listitem">
+Fierce, Laura, Yu Yao, Richard C. Easter, et al. 2024.
+<span>“Quantifying Structural Errors in Cloud Condensation Nuclei
+Activity from Reduced Representation of Aerosol Size
+Distributions.”</span> <em>Journal of Aerosol Science</em> 181: 106388.
+<a
+href="https://doi.org/10.1016/j.jaerosci.2024.106388">https://doi.org/10.1016/j.jaerosci.2024.106388</a>.
+</div>
+<div id="ref-Jayne2000_AST_AMS" class="csl-entry" role="listitem">
+Jayne, John T., Danna C. Leard, Xuefeng Zhang, et al. 2000.
+<span>“Development of an Aerosol Mass Spectrometer for Size and
+Composition Analysis of Submicron Particles.”</span> <em>Aerosol Science
+and Technology</em> 33 (1-2): 49–70. <a
+href="https://doi.org/10.1080/027868200410840">https://doi.org/10.1080/027868200410840</a>.
+</div>
+<div id="ref-KnopfAlpert2013_Faraday" class="csl-entry" role="listitem">
+Knopf, Daniel A., and Peter A. Alpert. 2013. <span>“A Water Activity
+Based Model of Heterogeneous Ice Nucleation Kinetics for Freezing of
+Water and Aqueous Solution Droplets.”</span> <em>Faraday
+Discussions</em> 165: 513–34. <a
+href="https://doi.org/10.1039/C3FD00035D">https://doi.org/10.1039/C3FD00035D</a>.
+</div>
+<div id="ref-Knutson1975_JAS_DMA" class="csl-entry" role="listitem">
+Knutson, E. O., and K. T. Whitby. 1975. <span>“Aerosol Classification by
+Electric Mobility: Apparatus, Theory, and Applications.”</span>
+<em>Journal of Aerosol Science</em> 6 (6): 443–51. <a
+href="https://doi.org/10.1016/0021-8502(75)90060-9">https://doi.org/10.1016/0021-8502(75)90060-9</a>.
+</div>
+<div id="ref-Liu2016_GMD_MAM4" class="csl-entry" role="listitem">
+Liu, X., P.-L. Ma, H. Wang, et al. 2016. <span>“Description and
+Evaluation of a New Four-Mode Version of the Modal Aerosol Module (MAM4)
+Within Version 5.3 of the Community Atmosphere Model.”</span>
+<em>Geoscientific Model Development</em> 9: 505–22. <a
+href="https://doi.org/10.5194/gmd-9-505-2016">https://doi.org/10.5194/gmd-9-505-2016</a>.
+</div>
+<div id="ref-McGraw1997_AST_QMOM" class="csl-entry" role="listitem">
+McGraw, Robert. 1997. <span>“Description of Aerosol Dynamics by the
+Quadrature Method of Moments.”</span> <em>Aerosol Science and
+Technology</em> 27 (2): 255–65. <a
+href="https://doi.org/10.1080/02786829708965471">https://doi.org/10.1080/02786829708965471</a>.
+</div>
+<div id="ref-Petters2007_ACP" class="csl-entry" role="listitem">
+Petters, Markus D., and Sonia M. Kreidenweis. 2007. <span>“A Single
+Parameter Representation of Hygroscopic Growth and Cloud Condensation
+Nucleus Activity.”</span> <em>Atmospheric Chemistry and Physics</em> 7
+(8): 1961–71. <a
+href="https://doi.org/10.5194/acp-7-1961-2007">https://doi.org/10.5194/acp-7-1961-2007</a>.
+</div>
+<div id="ref-Riemer2009_JGR_PartMC" class="csl-entry" role="listitem">
+Riemer, Nicole, Matthew West, Rahul A. Zaveri, and Richard C. Easter.
+2009. <span>“Simulating the Evolution of Soot Mixing State with a
+Particle-Resolved Aerosol Model.”</span> <em>Journal of Geophysical
+Research: Atmospheres</em> 114: D09202. <a
+href="https://doi.org/10.1029/2008JD011073">https://doi.org/10.1029/2008JD011073</a>.
+</div>
+<div id="ref-Schwarz2006_JGR_SP2" class="csl-entry" role="listitem">
+Schwarz, Joshua P., R.-S. Gao, David W. Fahey, et al. 2006.
+<span>“Single-Particle Measurements of Midlatitude Black Carbon and
+Light-Scattering Aerosols from the Boundary Layer to the Lower
+Stratosphere.”</span> <em>Journal of Geophysical Research:
+Atmospheres</em> 111: D16207. <a
+href="https://doi.org/10.1029/2006JD007076">https://doi.org/10.1029/2006JD007076</a>.
+</div>
+<div id="ref-Schwarz2008_JGR_SP2" class="csl-entry" role="listitem">
+Schwarz, Joshua P., Jamie R. Spackman, David W. Fahey, et al. 2008.
+<span>“Coatings and Their Enhancement of Black Carbon Light Absorption
+in the Tropical Atmosphere.”</span> <em>Journal of Geophysical Research:
+Atmospheres</em> 113: D03203. <a
+href="https://doi.org/10.1029/2007JD009042">https://doi.org/10.1029/2007JD009042</a>.
+</div>
+<div id="ref-PyMieScatt" class="csl-entry" role="listitem">
+Sumlin, Benjamin J., William R. Heinson, and Rajan K. Chakrabarty. 2018.
+<span>“Retrieving the Aerosol Complex Refractive Index Using PyMieScatt:
+A Mie Computational Package with Visualization Capabilities.”</span>
+<em>Journal of Quantitative Spectroscopy and Radiative Transfer</em>
+205: 127–34. <a
+href="https://doi.org/10.1016/j.jqsrt.2017.10.012">https://doi.org/10.1016/j.jqsrt.2017.10.012</a>.
+</div>
+<div id="ref-Tilmes2023_GMD_CARMA" class="csl-entry" role="listitem">
+Tilmes, Simone, Michael J. Mills, Yunqian Zhu, et al. 2023.
+<span>“Description and Performance of a Sectional Aerosol Microphysical
+Model in the Community Earth System Model (CESM2).”</span>
+<em>Geoscientific Model Development</em> 16: 6087–117. <a
+href="https://doi.org/10.5194/gmd-16-6087-2023">https://doi.org/10.5194/gmd-16-6087-2023</a>.
+</div>
+<div id="ref-Wang1990_AST_SEMS" class="csl-entry" role="listitem">
+Wang, S.-C., and Richard C. Flagan. 1990. <span>“Scanning Electrical
+Mobility Spectrometer.”</span> <em>Aerosol Science and Technology</em>
+13 (2): 230–40. <a
+href="https://doi.org/10.1080/02786829008959441">https://doi.org/10.1080/02786829008959441</a>.
+</div>
+<div id="ref-Zheng2022_ACP_mixing_state" class="csl-entry"
+role="listitem">
+Yao, Yixuan, Jeffrey H. Curtis, Jason Ching, Zhonghua Zheng, and Nicole
+Riemer. 2022. <span>“Quantifying the Effects of Mixing State on Aerosol
+Optical Properties.”</span> <em>Atmospheric Chemistry and Physics</em>
+22: 9265–82. <a
+href="https://doi.org/10.5194/acp-22-9265-2022">https://doi.org/10.5194/acp-22-9265-2022</a>.
+</div>
+<div id="ref-Zaveri2008_JGR_MOSAIC" class="csl-entry" role="listitem">
+Zaveri, Rahul A., Richard C. Easter, Jerome D. Fast, and Leonid K.
+Peters. 2008. <span>“Model for Simulating Aerosol Interactions and
+Chemistry (MOSAIC).”</span> <em>Journal of Geophysical Research:
+Atmospheres</em> 113: D13204. <a
+href="https://doi.org/10.1029/2007JD008782">https://doi.org/10.1029/2007JD008782</a>.
+</div>
+<div id="ref-Zelenyuk2015_JASMS_miniSPLAT" class="csl-entry"
+role="listitem">
+Zelenyuk, Alla, Dan Imre, Jacqueline M. Wilson, Zhiyuan Zhang, Jun Wang,
+and Klaus Mueller. 2015. <span>“Airborne Single Particle Mass
+Spectrometers (SPLAT II &amp; miniSPLAT) and New Software for Data
+Visualization and Analysis in a Geo-Spatial Context.”</span> <em>Journal
+of the American Society for Mass Spectrometry</em> 26 (2): 257–70. <a
+href="https://doi.org/10.1007/s13361-014-1043-4">https://doi.org/10.1007/s13361-014-1043-4</a>.
+</div>
+</div>
+</body>
+</html>

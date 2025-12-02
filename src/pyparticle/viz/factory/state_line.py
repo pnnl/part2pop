@@ -62,14 +62,19 @@ class StateLinePlotter(Plotter):
             "xscale": xvar.meta.scale, "yscale": yvar.meta.scale,
         }
 
-    def plot(self, population, ax, **kwargs):
+    def plot(self, population, ax, add_ylabel=True, add_xlabel=True, **kwargs):
         pd = self.prep(population)
         style = {**self.config.get("style", {}), **kwargs}
         if pd["x"] is None:
             ax.plot(pd["y"], **style)
         else:
             ax.plot(pd["x"], pd["y"], **style)
-        ax.set_xlabel(pd["xlabel"]); ax.set_ylabel(pd["ylabel"])
+        if add_xlabel:
+            ax.set_xlabel(pd["xlabel"]); 
+        
+        if add_ylabel:
+            ax.set_ylabel(pd["ylabel"])
+        
         ax.set_xscale(pd["xscale"]); ax.set_yscale(pd["yscale"])
         
         # fixme: should this be in here or elsewhere?

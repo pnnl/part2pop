@@ -6,7 +6,7 @@ optical objects and aggregate them into an `OpticalPopulation`.
 
 from .factory.registry import discover_morphology_types
 from .base import OpticalPopulation
-from .. import data_path
+# from .. import data_path
 
 
 class OpticalParticleBuilder:
@@ -67,7 +67,8 @@ def build_optical_population(base_population, config):
     if species_mods is None:
         species_mods = {}
     # (no debug printing)
-    specdata_path = config.get('specdata_path', None) or data_path / 'species_data'
+    # specdata_path = config.get('specdata_path', None) or data_path / 'species_data'
+    specdata_path = '../species/species_data'
     # Import here to avoid circular imports at module import time
     from .refractive_index import build_refractive_index
 

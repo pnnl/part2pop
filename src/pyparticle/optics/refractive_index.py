@@ -5,7 +5,8 @@ from functools import lru_cache
 
 import numpy as np
 from scipy import interpolate
-from ..data import species_open
+from ..data import open_dataset
+# from ..data_old import species_open
 
 import re
 
@@ -69,7 +70,7 @@ def _to_float(s: str) -> float:
 @lru_cache(maxsize=1)
 def _load_water_ri(specdata_dir=None):
     wl = []; n = []; k = []
-    with species_open("ri_water.csv") as fh:
+    with open_dataset("species_data/ri_water.csv") as fh:
         for line in fh:
             if 'Wavelength' in line: 
                 continue

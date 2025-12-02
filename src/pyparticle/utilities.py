@@ -1,6 +1,4 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""Small numeric utilities used by PyParticle.
+"""Small utilities used by pyparticle.
 
 This module provides helpers for parsing numeric strings and computing
 power moments of lognormal size distributions used by population builders

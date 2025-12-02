@@ -59,7 +59,7 @@ def build(config):
     species_modifications = config.get('species_modifications', {})
     surface_tension = config.get('surface_tension', 0.072)
     D_is_wet = config.get('D_is_wet', False)
-    specdata_path = config.get('specdata_path', None)
+    # specdata_path = config.get('specdata_path', None)
     
     # Build master species list for the *population*, preserving order
     pop_species_names = []
@@ -113,7 +113,8 @@ def build(config):
                 pop_species_list,
                 pop_aligned_fracs.copy(),
                 species_modifications=species_modifications,
-                D_is_wet=D_is_wet, specdata_path=specdata_path)
+                D_is_wet=D_is_wet#, specdata_path=specdata_path
+                )
             part_id += 1
             lognormals_population.set_particle(
                 particle, part_id, N_per_bin)

@@ -31,30 +31,9 @@ def build(config):
         N_parts_val = config.get('N_parts',100)
         N_parts_list = [N_parts_val]*len(GMD_list)
     
-    # # todo: right now, N_sigmas same for all modes; could be per-mode if needed
-    # N_sigmas = float(config.get('N_sigmas', 5))  # used to set bin ranges for each mode
-
-    #fixme: N_sigmas in binned_lognormals isn't being used
-    # If the user provides global D_min/D_max, use them for all modes. Otherwise compute per-mode edges.
-    # global_D_min = config.get('D_min', None)
-    # global_D_max = config.get('D_max', None)
-    # if (global_D_min is not None) or (global_D_max is not None):
-    #     raise ValueError("Provide both D_min and D_max, or neither.")
-    # if global_D_min is not None:
-    #     try:
-    #         global_D_min = float(global_D_min)
-    #         global_D_max = float(global_D_max)
-    #     except Exception:
-    #         raise ValueError("D_min/D_max must be numeric (meters).")
-    #     if not (global_D_min > 0 and global_D_max > 0 and global_D_min < global_D_max):
-    #         raise ValueError("D_min and D_max must be positive and D_min < D_max.")
-    
     aero_spec_names_list = config['aero_spec_names']
     aero_spec_fracs_list = config['aero_spec_fracs']
-    # Support compound-like species names (e.g., NaCl, (NH4)2SO4)
-    # aero_spec_names_list, aero_spec_fracs_list = expand_compounds_for_population(
-    #     aero_spec_names_list, aero_spec_fracs_list
-    # )
+    
     species_modifications = config.get('species_modifications', {})
     surface_tension = config.get('surface_tension', 0.072)
     D_is_wet = config.get('D_is_wet', False)
