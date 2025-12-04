@@ -68,7 +68,7 @@ def build_optical_population(base_population, config):
         species_mods = {}
     # (no debug printing)
     # specdata_path = config.get('specdata_path', None) or data_path / 'species_data'
-    specdata_path = '../species/species_data'
+    # specdata_path = '../species/species_data'
     # Import here to avoid circular imports at module import time
     from .refractive_index import build_refractive_index
 
@@ -90,7 +90,7 @@ def build_optical_population(base_population, config):
         except Exception:
             skip = False
         if not skip:
-            build_refractive_index(spec, wvl_grid, modifications=mods, specdata_path=specdata_path)
+            build_refractive_index(spec, wvl_grid, modifications=mods)
 
     # Pass the base population so OpticalPopulation can inherit ids/num_concs/etc.
     optical_population = OpticalPopulation(base_population, rh_grid, wvl_grid)

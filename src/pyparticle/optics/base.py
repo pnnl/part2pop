@@ -36,8 +36,6 @@ class OpticalParticle(Particle):
         self.wvl_grid = np.asarray(config.get("wvl_grid", [550e-9]), dtype=float)
         self.temp = float(config.get("temp", 293.15))
 
-        # Options
-        self.specdata_path = '../species/species_data' #config.get("specdata_path", data_path / "species_data")
         # store species_modifications for possible per-morphology overrides
         self.species_modifications = config.get("species_modifications", {}) or {}
 
@@ -82,7 +80,6 @@ class OpticalParticle(Particle):
                 spec,
                 self.wvl_grid,
                 modifications=mods,
-                specdata_path=self.specdata_path,
             )
 
     # --- abstract compute hook ---

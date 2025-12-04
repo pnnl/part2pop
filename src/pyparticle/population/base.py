@@ -1,9 +1,4 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Base class for particle populations.
-@author: Laura Fierce
-"""
+# src/pyparticle/population/base.py
 
 from dataclasses import dataclass, field
 from typing import Tuple, Dict
@@ -119,7 +114,8 @@ class ParticlePopulation:
     def get_mass_conc(self,spec_name):
         idx, = np.where([spec.name == spec_name for spec in self.species])
         return np.sum(self.num_concs*self.spec_masses[:,idx[0]])
-
+    
+    # FIXME: double-check this method
     def reduce_mixing_state(self, mixing_state='part_res', 
                             RH=None, T=None, 
                             sigma_h2o=0.072, rho_h2o=1000., MW_h2o=18e-3):
@@ -132,7 +128,7 @@ class ParticlePopulation:
             avg_these = np.arange(self.spec_masses.shape[0]) 
         elif mixing_state == 'part_res':
             avg_these = np.array([]) # unit test to make sure nothing happens
-
+        
         if mixing_state.endswith('sameDryMass'):
             mixing_factor = np.sum(self.spec_masses[idx_not_h2o,avg_these],axis=1)/np.sum(np.sum(self.spec_masses[idx_not_h2o,avg_these]))
             normalized_by = np.sum(self.spec_masses[idx_not_h2o,avg_these],axis=0)

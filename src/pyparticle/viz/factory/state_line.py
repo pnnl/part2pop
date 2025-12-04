@@ -77,7 +77,7 @@ class StateLinePlotter(Plotter):
         
         ax.set_xscale(pd["xscale"]); ax.set_yscale(pd["yscale"])
         
-        # fixme: should this be in here or elsewhere?
+        # FIXME: should this be in here or elsewhere?
         ax.set_xlim(pd["x"].min(), pd["x"].max())
         return ax
 
