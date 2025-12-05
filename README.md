@@ -1,6 +1,6 @@
-# pyparticle
+# part2pop
 
-% [![CI](https://github.com/pnnl/pyparticle/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/pnnl/pyparticle/actions/workflows/ci.yml)
+[![CI](https://github.com/pnnl/pyparticle/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/pnnl/pyparticle/actions/workflows/ci.yml)
 
 A Python library for constructing aerosol particle populations, attaching species-level physical properties, building per-particle morphologies, and aggregating to population-level aerosol properties. The package uses factory/builder discovery, so new population types, aerosol species, and morphologies can be added by dropping small modules into `factory/` folders.
 
