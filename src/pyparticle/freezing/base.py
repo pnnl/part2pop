@@ -10,7 +10,8 @@ import numpy as np
 # Adjust imports to your tree
 from ..aerosol_particle import Particle
 from ..population.base import ParticlePopulation
-from ..data import species_open
+# from ..data_old import species_open
+from ..data import open_dataset
 from scipy.integrate import trapezoid
 
 
@@ -46,14 +47,14 @@ class FreezingPopulation(ParticlePopulation):
         self.T_grid = T_grid
         self.Jhet = np.zeros((len(T_grid), N_part), dtype=float)
         self.INSA = np.zeros((len(T_grid), N_part), dtype=float)
-
+    
     def add_freezing_particle(self, freezing_particle, part_id, T, **kwargs):
         idx = self.find_particle(part_id)
         if idx >= len(self.ids) or self.ids[idx] != part_id:
             raise ValueError(f"part_id {part_id} not found in OpticalPopulation ids.")
         self.Jhet[:,idx] = freezing_particle.get_Jhet(T)
         self.INSA[:,idx] = freezing_particle.INSA
-        
+    
     def get_avg_Jhet(self):
         weights = np.tile(self.num_concs, (len(self.T_grid), 1))
         return np.average(self.Jhet, weights=weights, axis=1)
@@ -89,12 +90,12 @@ class FreezingPopulation(ParticlePopulation):
         
 
 
-def retrieve_Jhet_val(name, specdata_path=None, spec_modifications={}):
+def retrieve_Jhet_val(name, spec_modifications={}):
     # 'specdata_path' kept for backwards compatibility but ignored
     
     # todo: do we want to add Jhets to the species? Make "FreezingSpecies" class under base and update building?
     
-    with species_open('freezing_data.dat') as fh:
+    with open_dataset('species_data/freezing_data.dat') as fh:
         for line in fh:
             if line.strip().startswith("#"):
                 continue

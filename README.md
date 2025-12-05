@@ -1,4 +1,4 @@
-# part2pop
+# pyparticle
 
 [![CI](https://github.com/pnnl/pyparticle/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/pnnl/pyparticle/actions/workflows/ci.yml)
 

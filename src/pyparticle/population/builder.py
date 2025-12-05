@@ -1,3 +1,5 @@
+# src/pyparticle/population/builder.py
+
 """Population builder wrapper used to construct particle populations from configs.
 
 Supports discovery of population types via a registry and instantiates the

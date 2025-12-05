@@ -125,3 +125,8 @@ class CoreShellParticle(OpticalParticle):
                     self.g[rr, ww]    = out["g"]
             else:
                 raise ImportError("PyMieScatt is required for core-shell optics calculations.")
+            
+
+def build(base_particle, config):
+    """Optional fallback factory callable for discovery."""
+    return CoreShellParticle(base_particle, config)

@@ -3,6 +3,8 @@ from .registry import register
 from ..base import Plotter
 from ...analysis import build_variable
 
+
+# FIXME: in progress
 @register("state_scatter")
 class StateScatterPlotter(Plotter):
     """

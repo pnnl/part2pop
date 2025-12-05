@@ -36,6 +36,7 @@ class BScatVar(PopulationVariable):
             "species_modifications": cfg.get("species_modifications", {}),
         }
         optical_pop = build_optical_population(population, ocfg)
+        print(optical_pop.get_particle(1).get_refractive_index(550))
         arr = optical_pop.get_optical_coeff("b_scat", rh=None, wvl=None)
         if as_dict:
             return {"rh_grid": np.asarray(cfg["rh_grid"]), "wvl_grid": np.asarray(ocfg["wvl_grid"]), "b_scat": arr}

@@ -32,6 +32,7 @@ def build(config):
         N_bins_list = [N_bins_val]*len(GMD_list)
     
     # todo: right now, N_sigmas same for all modes; could be per-mode if needed
+    
     N_sigmas = float(config.get('N_sigmas', 5))  # used to set bin ranges for each mode
     
     # If the user provides global D_min/D_max, use them for all modes. Otherwise compute per-mode edges.
@@ -58,7 +59,7 @@ def build(config):
     species_modifications = config.get('species_modifications', {})
     surface_tension = config.get('surface_tension', 0.072)
     D_is_wet = config.get('D_is_wet', False)
-    specdata_path = config.get('specdata_path', None)
+    # specdata_path = config.get('specdata_path', None)
     
     # Build master species list for the *population*, preserving order
     pop_species_names = []
@@ -112,8 +113,11 @@ def build(config):
                 pop_species_list,
                 pop_aligned_fracs.copy(),
                 species_modifications=species_modifications,
-                D_is_wet=D_is_wet, specdata_path=specdata_path)
+                D_is_wet=D_is_wet#, specdata_path=specdata_path
+                )
             part_id += 1
             lognormals_population.set_particle(
                 particle, part_id, N_per_bin)
+            
     return lognormals_population
+    

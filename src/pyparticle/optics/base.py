@@ -10,7 +10,7 @@ import numpy as np
 
 from ..aerosol_particle import Particle
 from ..population.base import ParticlePopulation
-from .. import data_path
+# from .. import data_path
 
 # NEW: use the refactored RI helper
 from .refractive_index import build_refractive_index
@@ -36,8 +36,7 @@ class OpticalParticle(Particle):
         self.wvl_grid = np.asarray(config.get("wvl_grid", [550e-9]), dtype=float)
         self.temp = float(config.get("temp", 293.15))
 
-        # Options
-        self.specdata_path = config.get("specdata_path", data_path / "species_data")
+        # FIXME: include this in config or make species_modification an optional input?
         # store species_modifications for possible per-morphology overrides
         self.species_modifications = config.get("species_modifications", {}) or {}
 
@@ -82,7 +81,6 @@ class OpticalParticle(Particle):
                 spec,
                 self.wvl_grid,
                 modifications=mods,
-                specdata_path=self.specdata_path,
             )
 
     # --- abstract compute hook ---

@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Core aerosol particle data structures and helpers.
 
 This module defines the `Particle` dataclass which represents an
@@ -14,7 +12,7 @@ Note: functions use NumPy and SciPy for numerical operations.
 
 from .species.base import AerosolSpecies
 from .species.registry import get_species, retrieve_one_species
-from . import data_path
+# from . import data_path
 from dataclasses import dataclass
 from typing import Tuple, Optional
 import numpy as np
@@ -333,7 +331,7 @@ class Particle:
     
 def make_particle(
         D, aero_spec_names, aero_spec_frac,
-        specdata_path= data_path / 'species_data',
+        # specdata_path= data_path / 'species_data',
         species_modifications={},
         D_is_wet=True):
 
@@ -371,7 +369,7 @@ def make_particle(
 
 def make_particle_from_masses(
         aero_spec_names, spec_masses,
-        specdata_path= data_path / 'species_data',
+        # specdata_path= data_path / 'species_data',
         species_modifications = {}):
     AeroSpecs = []
     for name in aero_spec_names:
@@ -379,7 +377,9 @@ def make_particle_from_masses(
             spec_modifications = species_modifications[name]
         else:
             spec_modifications = {}
-        AeroSpecs.append(retrieve_one_species(name, specdata_path=specdata_path, spec_modifications=spec_modifications))
+        AeroSpecs.append(retrieve_one_species(
+            name, #specdata_path=specdata_path, 
+            spec_modifications=spec_modifications))
     return Particle(species=AeroSpecs,masses=spec_masses)
     
 
