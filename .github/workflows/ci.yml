@@ -2,65 +2,50 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: ["main", "master"]
   pull_request:
-    branches: [main]
+    branches: ["main", "master"]
 
 jobs:
-  test:
+  tests:
     runs-on: ubuntu-latest
+
     strategy:
       matrix:
         python-version: ["3.9", "3.10", "3.11", "3.12"]
 
     steps:
-      - name: Check out
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install package + test deps (robust)
+      - name: Install build dependencies
         run: |
           python -m pip install --upgrade pip
-          # Try dev extras; if not defined, fall back to base + pytest deps
-          pip install -e .[dev] || (pip install -e . && pip install pytest pytest-cov)
-    
+          python -m pip install build
 
-      - name: Run tests with coverage (xml + terminal)
+      - name: Build package
         run: |
-          python -m pytest -q --cov=pyparticle --cov-report=xml:coverage.xml --cov-report=term-missing
+          python -m build
 
-      # Optional: enforce a minimum coverage (set MIN_COVERAGE to a % or leave 0 to disable)
-      - name: Enforce minimum coverage
-        env:
-          MIN_COVERAGE: "0"
+      - name: Install package (from wheel)
         run: |
-          python - <<'PY'
-          import os, sys, xml.etree.ElementTree as ET
-          rate = float(ET.parse('coverage.xml').getroot().get('line-rate') or 0.0) * 100
-          thresh = float(os.environ.get('MIN_COVERAGE','0'))
-          print(f"Coverage: {rate:.2f}% (min {thresh:.2f}%)")
-          if (summary := os.environ.get('GITHUB_STEP_SUMMARY')):
-              with open(summary,'a') as f:
-                  f.write(f"## Test coverage\n\n- **Line coverage:** {rate:.2f}%\n- **Threshold:** {thresh:.2f}%\n")
-          if rate < thresh:
-              sys.exit(1)
-          PY
+          python -m pip install dist/*.whl
+          python -m pip install pytest pytest-cov
 
-      - name: Build HTML coverage report
+      - name: Run tests with coverage
         run: |
-          # coverage is already present via pytest-cov; this ensures CLI is available
-          python -c "import coverage" || python -m pip install coverage
-          coverage html -i -d htmlcov
+          pytest --cov=part2pop --cov-report=xml --cov-report=term
 
-      - name: Upload coverage artifacts
-        uses: actions/upload-artifact@v4
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
         with:
-          name: coverage-artifacts
-          path: |
-            coverage.xml
-            htmlcov/
-          retention-days: 7
+          files: ./coverage.xml
+          flags: unittests
+          verbose: true
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
