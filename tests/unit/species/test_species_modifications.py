@@ -2,8 +2,8 @@
 
 import numpy as np
 
-from pyparticle.aerosol_particle import make_particle
-from pyparticle.species.registry import get_species
+from part2pop.aerosol_particle import make_particle
+from part2pop.species.registry import get_species
 
 
 def test_species_modifications_override_density_and_kappa_in_particle():

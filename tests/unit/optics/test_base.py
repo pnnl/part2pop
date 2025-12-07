@@ -3,9 +3,9 @@
 import numpy as np
 import pytest
 
-from pyparticle.optics.base import OpticalParticle, OpticalPopulation
-from pyparticle.population.builder import build_population
-from pyparticle.population.base import ParticlePopulation
+from part2pop.optics.base import OpticalParticle, OpticalPopulation
+from part2pop.population.builder import build_population
+from part2pop.population.base import ParticlePopulation
 
 
 def _make_monodisperse_population():

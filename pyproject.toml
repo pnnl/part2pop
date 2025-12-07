@@ -1,63 +1,71 @@
 [build-system]
-requires = ["setuptools>=69", "wheel", "setuptools-scm[toml]>=8"]
+requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pyparticle"
-description = "Describing and analyzing aerosol particles and particle populations"
-readme = "README.md"
+name = "part2pop"
+version = "0.1.0"
+description = "Core tools for particles, species, populations, and aerosol optics."
+readme = "src/part2pop/README.md"
 requires-python = ">=3.9"
 license = { file = "LICENSE" }
-authors = [{ name = "Laura Fierce" }]
-# Runtime deps only (no test tools here)
-dependencies = [
-  "numpy>=1.24",
-  "scipy>=1.10",
-  "PyYAML>=6.0",
-  "pymiescatt",
-  "netCDF4",
-]
-version = "0.1.5"
-#dynamic = ["version"]
 
-keywords = ["aerosol", "atmospheric", "optics", "modeling"]
+authors = [
+  { name = "Battelle Memorial Institute, LLC" }
+]
+
 classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
   "License :: OSI Approved :: MIT License",
-  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
-  "Intended Audience :: Science/Research",
   "Topic :: Scientific/Engineering",
+  "Topic :: Scientific/Engineering :: Atmospheric Science",
+]
+
+# Hard runtime deps inferred from imports in src/part2pop
+dependencies = [
+  "numpy",
+  "scipy",
+  "PyMieScatt",
+  "netCDF4",
+  "matplotlib",
+  "importlib-resources",
+  "pyBCabs",
 ]
 
 [project.optional-dependencies]
-dev = [
-  "ruff>=0.5",
-  "mypy>=1.8",
-  "pytest>=7.0",
-  "pytest-cov>=4.0",
-  "pyrcel>=0.4",
+test = [
+  "pytest",
+  "pytest-cov",
 ]
 
 [project.urls]
-Repository = "https://github.com/pnnl/pyparticle"
+Homepage = "https://github.com/pnnl/part2pop"
+Source = "https://github.com/pnnl/part2pop"
+Issues = "https://github.com/pnnl/part2pop/issues"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["pyparticle*"]
+include = ["part2pop*"]
 
+# Ensure packaged data files used via importlib_resources are included
 [tool.setuptools.package-data]
-# Ship the tiny runtime tables inside the wheel
-pyparticle = ["species/data/*"]
+"part2pop" = [
+  "data/species_data/*",
+]
 
-[tool.setuptools]
-include-package-data = true
-
-[tool.setuptools-scm]
-# Use tags for versions; if absent, fall back cleanly
-local_scheme = "no-local-version"
-fallback_version = "0.0.0"
-# Optional but nice: write a version file for runtime introspection
-write_to = "src/pyparticle/_version.py"
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra"
+testpaths = [
+  "tests",
+]

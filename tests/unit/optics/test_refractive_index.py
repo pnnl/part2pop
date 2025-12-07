@@ -2,8 +2,8 @@
 
 import numpy as np
 
-from pyparticle import AerosolSpecies
-from pyparticle.optics.refractive_index import (
+from part2pop import AerosolSpecies
+from part2pop.optics.refractive_index import (
     build_refractive_index,
     RefractiveIndex,
 )

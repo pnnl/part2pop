@@ -7,7 +7,7 @@ from pathlib import Path
 # Try importing PARTMC factory & netCDF4; if unavailable, skip the tests.
 try:
     import netCDF4  # noqa: F401
-    from pyparticle.population.factory.partmc import build as build_partmc
+    from part2pop.population.factory.partmc import build as build_partmc
     HAS_NETCDF4 = True
 except Exception:
     HAS_NETCDF4 = False
@@ -96,7 +96,7 @@ from pathlib import Path
 # Try importing PARTMC factory & netCDF4; if unavailable, skip the tests.
 try:
     import netCDF4  # noqa: F401
-    from pyparticle.population.factory.partmc import build as build_partmc, get_ncfile
+    from part2pop.population.factory.partmc import build as build_partmc, get_ncfile
     HAS_NETCDF4 = True
 except Exception:
     HAS_NETCDF4 = False

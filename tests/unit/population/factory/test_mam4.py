@@ -4,18 +4,18 @@ import shutil
 import numpy as np
 import pytest
 
-from pyparticle.constants import (
+from part2pop.constants import (
     MOLAR_MASS_DRY_AIR,
     DENSITY_LIQUID_WATER,
     R,
 )
-from pyparticle.utilities import power_moments_from_lognormal
+from part2pop.utilities import power_moments_from_lognormal
 
 # Try importing the mam4 factory and netCDF4; if that fails, skip all tests here.
 try:
     import netCDF4  # noqa: F401
     from netCDF4 import Dataset
-    from pyparticle.population.factory.mam4 import build as build_mam4
+    from part2pop.population.factory.mam4 import build as build_mam4
     HAS_MAM4 = True
 except Exception:
     HAS_MAM4 = False
@@ -74,7 +74,7 @@ def _compute_mode_totals_from_mam_raw(
 ):
     """
     Compute mode-wise totals in physical units (per m^3) from raw MAM arrays
-    using the same formulas as pyparticle.population.factory.mam4.build.
+    using the same formulas as part2pop.population.factory.mam4.build.
     """
     rho_dry_air = MOLAR_MASS_DRY_AIR * p / (R * T)  # [kg/m^3]
 
@@ -236,7 +236,7 @@ def test_mam4_build_conserves_number_and_composition(tmp_path):
     # 4. Totals from population
     N_pop, totals_by_species = _totals_from_population(pop)
 
-    # Species keys: adjust these to match your actual species names in pyparticle.
+    # Species keys: adjust these to match your actual species names in part2pop.
     so4_pop = totals_by_species.get("SO4", 0.0)
     # For organics, you might use "SOA" or "OC" (MAM → OC mapping).
     soa_pop = totals_by_species.get("SOA", totals_by_species.get("OC", 0.0))

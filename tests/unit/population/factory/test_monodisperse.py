@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from pyparticle import build_population, ParticlePopulation
+from part2pop import build_population, ParticlePopulation
 
 
 def test_monodisperse_single_particle_basic_properties():

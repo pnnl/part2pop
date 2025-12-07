@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from pyparticle import build_population
+from part2pop import build_population
 
 
 def test_sampled_lognormals_population_size_and_total_number():

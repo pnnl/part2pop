@@ -1,6 +1,6 @@
 # tests/unit/freezing/factory/test_registry.py
 
-from pyparticle.freezing.factory.registry import discover_morphology_types
+from part2pop.freezing.factory.registry import discover_morphology_types
 
 
 def test_discover_morphology_types_returns_callables():

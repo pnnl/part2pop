@@ -2,7 +2,7 @@
 
 import pytest
 
-from pyparticle.analysis import global_registry as gr
+from part2pop.analysis import global_registry as gr
 
 
 def test_build_full_variable_name_population():

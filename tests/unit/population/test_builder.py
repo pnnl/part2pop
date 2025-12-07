@@ -2,8 +2,8 @@
 
 import pytest
 
-from pyparticle import ParticlePopulation
-from pyparticle.population.builder import PopulationBuilder, build_population
+from part2pop import ParticlePopulation
+from part2pop.population.builder import PopulationBuilder, build_population
 
 
 def test_population_builder_missing_type_raises():

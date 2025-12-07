@@ -3,8 +3,8 @@
 import numpy as np
 import pytest
 
-from pyparticle.population.builder import build_population
-from pyparticle.optics.factory.core_shell import CoreShellParticle, build, _PMS_ERR
+from part2pop.population.builder import build_population
+from part2pop.optics.factory.core_shell import CoreShellParticle, build, _PMS_ERR
 
 
 @pytest.mark.skipif(_PMS_ERR is not None, reason=f"PyMieScatt not available: {_PMS_ERR}")

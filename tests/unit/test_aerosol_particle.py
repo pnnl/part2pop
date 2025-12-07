@@ -2,8 +2,8 @@
 
 import numpy as np
 
-from pyparticle.aerosol_particle import make_particle, make_particle_from_masses, Particle
-from pyparticle.species.registry import get_species
+from part2pop.aerosol_particle import make_particle, make_particle_from_masses, Particle
+from part2pop.species.registry import get_species
 
 
 def test_make_particle_basic_properties():

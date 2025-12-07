@@ -3,13 +3,13 @@
 import numpy as np
 import pytest
 
-from pyparticle.optics.utils import (
+from part2pop.optics.utils import (
     OPTICS_TYPE_MAP,
     m_to_nm,
     get_cross_section_array_from_population,
 )
-from pyparticle.population.builder import build_population
-from pyparticle.optics.builder import build_optical_population
+from part2pop.population.builder import build_population
+from part2pop.optics.builder import build_optical_population
 
 
 def _make_monodisperse_population():

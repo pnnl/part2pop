@@ -3,9 +3,9 @@
 import numpy as np
 import pytest
 
-from pyparticle.population.builder import build_population
-from pyparticle.population.base import ParticlePopulation
-from pyparticle.optics.builder import (
+from part2pop.population.builder import build_population
+from part2pop.population.base import ParticlePopulation
+from part2pop.optics.builder import (
     build_optical_particle,
     build_optical_population,
 )

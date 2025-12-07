@@ -2,8 +2,8 @@
 
 import numpy as np
 
-from pyparticle.population.builder import build_population
-from pyparticle.optics.factory.homogeneous import HomogeneousParticle, build
+from part2pop.population.builder import build_population
+from part2pop.optics.factory.homogeneous import HomogeneousParticle, build
 
 
 def _make_monodisperse_population():

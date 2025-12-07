@@ -2,9 +2,9 @@
 
 import pytest
 
-from pyparticle.analysis.builder import VariableBuilder, build_variable
-from pyparticle.analysis.population.factory.registry import UnknownVariableError
-from pyparticle.analysis.particle.factory.registry import UnknownParticleVariableError
+from part2pop.analysis.builder import VariableBuilder, build_variable
+from part2pop.analysis.population.factory.registry import UnknownVariableError
+from part2pop.analysis.particle.factory.registry import UnknownParticleVariableError
 
 
 def test_variable_builder_unknown_population_var_raises():

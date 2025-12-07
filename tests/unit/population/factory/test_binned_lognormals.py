@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from pyparticle import build_population
+from part2pop import build_population
 
 
 def test_binned_lognormals_single_mode_total_number_and_bins():

@@ -2,7 +2,7 @@
 
 import pytest
 
-from pyparticle.species.base import AerosolSpecies
+from part2pop.species.base import AerosolSpecies
 
 
 def test_aerosol_species_defaults_and_basic_fields():

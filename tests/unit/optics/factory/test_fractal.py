@@ -3,8 +3,8 @@
 import numpy as np
 import pytest
 
-from pyparticle.population.builder import build_population
-from pyparticle.optics.factory.fractal import FractalParticle, build
+from part2pop.population.builder import build_population
+from part2pop.optics.factory.fractal import FractalParticle, build
 
 
 def _make_bc_rich_population():

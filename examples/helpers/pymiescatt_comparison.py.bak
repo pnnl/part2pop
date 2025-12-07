@@ -4,7 +4,7 @@ from scipy.stats import norm
 
 # Compatibility: patch PyMieScatt if the project provides a patch hook
 try:
-    from PyParticle._patch import patch_pymiescatt
+    from part2pop._patch import patch_pymiescatt
     patch_pymiescatt()
     from PyMieScatt import AutoMieQ, Mie_Lognormal, Mie_SD, MieQ, MieQCoreShell
 except Exception as exc:  # pragma: no cover - visible in runtime only
@@ -194,7 +194,7 @@ _CM3_to_M3 = 1e6
 # import warnings
 
 # try:
-#     from PyParticle._patch import patch_pymiescatt
+#     from part2pop._patch import patch_pymiescatt
 #     patch_pymiescatt()
 #     #import PyMieScatt as PMS
 #     from PyMieScatt import Mie_Lognormal
@@ -208,7 +208,7 @@ _CM3_to_M3 = 1e6
 # def pymiescatt_lognormal_optics(pop_cfg, var_cfg) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
 #     """
 #     Compute Mie optics for a (possibly multi-modal) lognormal aerosol using PyMieScatt,
-#     returning units that match the rest of PyParticle.
+#     returning units that match the rest of part2pop.
 
 #     Parameters
 #     ----------
@@ -217,7 +217,7 @@ _CM3_to_M3 = 1e6
 #         (refractive index, modes, etc.). It assumes you've already built the parameters
 #         needed for PyMieScatt internally.
 #     var_cfg : dict
-#         Must include 'wvl_grid' **in meters** (SI), as used across PyParticle.
+#         Must include 'wvl_grid' **in meters** (SI), as used across part2pop.
 
 #     Returns
 #     -------
@@ -408,7 +408,7 @@ import numpy as np
 import warnings
 
 try:
-    from PyParticle._patch import patch_pymiescatt
+    from part2pop._patch import patch_pymiescatt
     patch_pymiescatt()
     #import PyMieScatt as PMS
     from PyMieScatt import Mie_Lognormal
@@ -422,7 +422,7 @@ M_TO_NM = 1e9                 # meters -> nanometers (for PyMieScatt interface)
 def pymiescatt_lognormal_optics(pop_cfg, var_cfg) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Compute Mie optics for a (possibly multi-modal) lognormal aerosol using PyMieScatt,
-    returning units that match the rest of PyParticle.
+    returning units that match the rest of part2pop.
 
     Parameters
     ----------
@@ -431,7 +431,7 @@ def pymiescatt_lognormal_optics(pop_cfg, var_cfg) -> Tuple[np.ndarray, np.ndarra
         (refractive index, modes, etc.). It assumes you've already built the parameters
         needed for PyMieScatt internally.
     var_cfg : dict
-        Must include 'wvl_grid' **in meters** (SI), as used across PyParticle.
+        Must include 'wvl_grid' **in meters** (SI), as used across part2pop.
 
     Returns
     -------

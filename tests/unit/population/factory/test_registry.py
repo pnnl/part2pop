@@ -2,14 +2,14 @@
 
 import pkgutil
 
-from pyparticle.population.factory import registry as factory_registry
-from pyparticle.population import factory as factory_pkg
+from part2pop.population.factory import registry as factory_registry
+from part2pop.population import factory as factory_pkg
 
 
 def test_discover_population_types_covers_all_factory_modules():
     """
     Ensure that discover_population_types finds a build function for every
-    population factory module under pyparticle.population.factory except
+    population factory module under part2pop.population.factory except
     the registry module itself.
 
     This guarantees that adding a new <module>.py with a build() function
@@ -20,7 +20,7 @@ def test_discover_population_types_covers_all_factory_modules():
     for name, fn in types.items():
         assert callable(fn)
 
-    # All .py modules under pyparticle.population.factory except "registry"
+    # All .py modules under part2pop.population.factory except "registry"
     module_names = {
         name
         for _, name, _ in pkgutil.iter_modules(factory_pkg.__path__)

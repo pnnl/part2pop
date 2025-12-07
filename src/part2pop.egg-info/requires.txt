@@ -1,0 +1,11 @@
+numpy
+scipy
+PyMieScatt
+netCDF4
+matplotlib
+importlib-resources
+pyBCabs
+
+[test]
+pytest
+pytest-cov

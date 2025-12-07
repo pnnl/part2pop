@@ -1,7 +1,7 @@
 # tests/unit/species/test_registry.py
 
-from pyparticle.species.base import AerosolSpecies
-from pyparticle.species.registry import (
+from part2pop.species.base import AerosolSpecies
+from part2pop.species.registry import (
     get_species,
     register_species,
     list_species,

@@ -2,9 +2,9 @@
 
 import numpy as np
 
-from pyparticle import AerosolSpecies
-from pyparticle.aerosol_particle import Particle
-from pyparticle.freezing.factory.homogeneous import HomogeneousParticle, build
+from part2pop import AerosolSpecies
+from part2pop.aerosol_particle import Particle
+from part2pop.freezing.factory.homogeneous import HomogeneousParticle, build
 
 
 def _make_droplet_with_insolute():

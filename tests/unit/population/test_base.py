@@ -3,9 +3,9 @@
 import numpy as np
 import pytest
 
-from pyparticle.population.base import ParticlePopulation
-from pyparticle.aerosol_particle import make_particle
-from pyparticle.species.registry import get_species
+from part2pop.population.base import ParticlePopulation
+from part2pop.aerosol_particle import make_particle
+from part2pop.species.registry import get_species
 
 
 def _empty_population():

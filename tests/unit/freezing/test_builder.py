@@ -3,8 +3,8 @@
 import numpy as np
 import pytest
 
-from pyparticle.population.builder import build_population
-from pyparticle.freezing.builder import (
+from part2pop.population.builder import build_population
+from part2pop.freezing.builder import (
     build_freezing_particle,
     build_freezing_population,
 )

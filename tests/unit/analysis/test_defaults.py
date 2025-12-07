@@ -1,6 +1,6 @@
 # tests/unit/analysis/test_defaults.py
 
-from pyparticle.analysis.defaults import get_defaults_for_variable, all_defaults
+from part2pop.analysis.defaults import get_defaults_for_variable, all_defaults
 
 
 def test_get_defaults_for_known_variable():

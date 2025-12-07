@@ -2,7 +2,7 @@
 
 import pytest
 
-from pyparticle.analysis.base import VariableMeta, Variable
+from part2pop.analysis.base import VariableMeta, Variable
 
 
 def test_variable_meta_fields():

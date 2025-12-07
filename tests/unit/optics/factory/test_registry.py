@@ -1,6 +1,6 @@
 # tests/unit/optics/factory/test_registry.py
 
-from pyparticle.optics.factory.registry import discover_morphology_types
+from part2pop.optics.factory.registry import discover_morphology_types
 
 
 def test_discover_morphology_types_returns_callables():
