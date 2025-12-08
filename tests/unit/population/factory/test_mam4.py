@@ -10,6 +10,7 @@ from part2pop.constants import (
     R,
 )
 from part2pop.utilities import power_moments_from_lognormal
+from part2pop.population.factory import mam4
 
 # Try importing the mam4 factory and netCDF4; if that fails, skip all tests here.
 try:
@@ -30,6 +31,19 @@ pytestmark = pytest.mark.skipif(
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+def test_get_mam_input_reads_value(tmp_path):
+    content = "numc1 = 3.5,\nother = 1.0,\n"
+    fname = tmp_path / "namelist"
+    fname.write_text(content)
+
+    val = mam4.get_mam_input("numc1", fname)
+    assert val == 3.5
+
+    # missing variable returns 0.0 (no error)
+    missing = mam4.get_mam_input("not_here", fname)
+    assert missing == 0.0
+
 
 def _parse_p_T_from_namelist(namelist_path):
     """

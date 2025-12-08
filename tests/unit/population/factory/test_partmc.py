@@ -8,11 +8,9 @@ from pathlib import Path
 try:
     import netCDF4  # noqa: F401
     from part2pop.population.factory.partmc import build as build_partmc
-
     HAS_NETCDF4 = True
 except Exception:
     HAS_NETCDF4 = False
-
 
 pytestmark = pytest.mark.skipif(
     not HAS_NETCDF4, reason="netCDF4 or PARTMC factory not available"
@@ -35,7 +33,7 @@ def _find_repo_root(start: Path) -> Path:
     return start
 
 
-def test_partmc_build_real_data_rescales_to_requested_Ntot():
+def test_partmc_build_real_data_rescales_to_requested_Ntot(monkeypatch):
     """
     Use the real PARTMC example data (if present) to test that:
 
@@ -58,33 +56,54 @@ def test_partmc_build_real_data_rescales_to_requested_Ntot():
 
     # Choose a single snapshot file; in the original repo this was
     # typically something like 'partmc_output.nc'.
-    nc_files = sorted(partmc_dir.glob("*.nc"))
+    nc_files = sorted(partmc_dir.glob("out/*.nc"))
     if not nc_files:
         pytest.skip(f"No PARTMC netCDF files found under: {partmc_dir}")
-
+    
     infile = nc_files[0]
+
+    # Load raw data for later comparison
+    import netCDF4
+    with netCDF4.Dataset(infile, "r") as ds:
+        raw_masses = np.array(ds.variables["aero_particle_mass"][:])  # (nspec, npart)
+        raw_ids = np.array(ds.variables["aero_id"][:], dtype=int)
 
     # Target total number concentration [m^-3] and requested number of particles
     N_tot_target = 1.0e8
-    n_particles_target = 200
+    n_particles_target = min(200, raw_ids.size)
+
+    # Deterministic selection of particles for reproducible assertions
+    monkeypatch.setattr(
+        "part2pop.population.factory.partmc.np.random.choice",
+        lambda arr, size, replace: arr[:size],
+    )
 
     pop = build_partmc(
-        infile=str(infile),
-        N_tot=N_tot_target,
-        n_particles=n_particles_target,
+        {
+            "partmc_dir": str(partmc_dir),
+            "timestep": 1,
+            "repeat": 1,
+            "N_tot": N_tot_target,
+            "n_particles": n_particles_target,
+            "suppress_warning": True,
+        }
     )
 
     # Basic sanity checks on the constructed population
-    assert pop.n_particles == n_particles_target
+    assert len(pop.ids) == n_particles_target
 
     # Total number concentration should match the requested value (within FP noise)
-    assert np.isclose(pop.N_tot, N_tot_target, rtol=1e-12, atol=0.0)
+    total_num = pop.get_Ntot() if hasattr(pop, "get_Ntot") else np.sum(pop.num_concs)
+    assert np.isclose(total_num, N_tot_target, rtol=1e-12, atol=0.0)
 
     # The factory resamples particles but should not alter per-particle
     # mass composition. For a subset of particles we check that the
     # species mass vectors are consistent with the original data.
-    sampled_ids_raw = pop.ids[: min(10, pop.n_particles)]
-    sampled_masses_raw = pop.spec_masses[: min(10, pop.n_particles), :].T  # (nspec, nsample)
+    sample_size = min(10, n_particles_target)
+    sampled_indices = np.arange(sample_size)
+    sampled_ids_raw = raw_ids[sampled_indices]
+    nspec_pop = pop.spec_masses.shape[1]
+    sampled_masses_raw = raw_masses[:nspec_pop, sampled_indices].T  # (nsample, nspec_pop)
 
     # Build a mapping from id -> index in the population for quick lookup
     id_to_idx_pop = {int(pid): i for i, pid in enumerate(pop.ids)}
@@ -95,7 +114,7 @@ def test_partmc_build_real_data_rescales_to_requested_Ntot():
         j = id_to_idx_pop[raw_id]
 
         # masses_raw: (nspec,), masses_pop: (nspec,)
-        masses_raw = sampled_masses_raw[:, k]
+        masses_raw = sampled_masses_raw[k, :]
         masses_pop = pop.spec_masses[j, :]
 
         assert masses_pop.shape == masses_raw.shape

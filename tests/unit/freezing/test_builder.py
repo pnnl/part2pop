@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from part2pop.population.builder import build_population
+import part2pop.freezing.builder as fb
 from part2pop.freezing.builder import (
     build_freezing_particle,
     build_freezing_population,
@@ -81,3 +82,28 @@ def test_build_freezing_population_T_in_C():
     assert ff.shape[0] == len(pop.ids)
     assert np.all(ff >= 0.0)
     assert np.all(ff <= 1.0)
+
+
+def test_freezing_particle_builder_validates_type(monkeypatch):
+    builder = fb.FreezingParticleBuilder({"morphology": None})
+    with pytest.raises(ValueError):
+        builder.build(base_particle=object())
+
+    monkeypatch.setattr(fb, "discover_morphology_types", lambda: {"good": lambda p, c: ("ok", p, c)})
+    with pytest.raises(ValueError):
+        fb.FreezingParticleBuilder({"morphology": "bad"}).build(base_particle=object())
+
+    result = fb.FreezingParticleBuilder({"morphology": "good"}).build(base_particle="p")
+    assert result[1] == "p"
+
+
+def test_build_freezing_population_unknown_units(monkeypatch):
+    class _StubFreezePop:
+        def __init__(self, base, T): self.base = base; self.T=T
+        def add_freezing_particle(self, fp, pid, T): pass
+    monkeypatch.setattr(fb, "FreezingPopulation", _StubFreezePop)
+    monkeypatch.setattr(fb, "build_freezing_particle", lambda base_particle, cfg: ("fp", cfg))
+
+    base = type("P", (), {"ids": [1], "get_particle": lambda self, pid: "p"})()
+    with pytest.raises(ValueError):
+        fb.build_freezing_population(base, {"T_units": "X"})

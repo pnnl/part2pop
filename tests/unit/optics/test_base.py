@@ -61,3 +61,31 @@ def test_optical_population_aggregates_particle_coeffs():
     # Unknown key should raise
     with pytest.raises(ValueError):
         optical_pop.get_optical_coeff("not_a_real_optics_type", rh=0, wvl=0)
+
+
+def test_optical_helpers_indexing_and_refractive_indices():
+    pop = _make_monodisperse_population()
+    rh_grid = [0.0, 0.5]
+    wvl_grid = [400e-9, 550e-9]
+    cfg = {"rh_grid": rh_grid, "wvl_grid": wvl_grid}
+    base_particle = pop.get_particle(pop.ids[0])
+    opt_part = DummyOpticalParticle(base_particle, cfg)
+    opt_part.compute_optics()
+
+    # Refractive indices available and callable
+    ri = opt_part.get_refractive_indices()
+    assert len(ri) == len(base_particle.species)
+
+    # Per-particle getter with slices/indices
+    assert opt_part.get_cross_section("ext", rh_idx=0).shape == (len(wvl_grid),)
+
+    optical_pop = OpticalPopulation(pop, rh_grid, wvl_grid)
+    optical_pop.add_optical_particle(opt_part, pop.ids[0])
+
+    # Internal helper handles list indexing
+    vals = optical_pop._safe_index_2d(np.array([[1, 2], [3, 4]]), [0, 1], [0, 1])
+    assert vals.shape == (2, 2)
+
+    # Missing RH/wavelength should raise
+    with pytest.raises(ValueError):
+        optical_pop.get_optical_coeff("b_ext", rh=0.25)
