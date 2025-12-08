@@ -67,8 +67,9 @@ pip install part2pop
 ```
 ---
 
-## Quick start
+## Examples
 
+<<<<<<< HEAD
 ### Build a simple population
 
 ```python
@@ -85,6 +86,9 @@ print(pop)
 ```
 
 More examples are available under `examples/`.
+=======
+Examples are available under `examples/`.
+>>>>>>> 3b99577 (Update README.md)
 
 ---
 
