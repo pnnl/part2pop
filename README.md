@@ -1,6 +1,8 @@
 # part2pop
 
-{{CODECOV_BADGE}}
+[![CI](https://github.com/lfierce2/pyparticle-dev/actions/workflows/ci.yml/badge.svg)](https://github.com/lfierce2/pyparticle-dev/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/lfierce2/pyparticle-dev/branch/main/graph/badge.svg)](https://codecov.io/gh/lfierce2/pyparticle-dev)
+
 
 > A modular Python toolkit for building, analyzing, and extending aerosol particle populations.
 
