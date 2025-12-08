@@ -103,7 +103,7 @@ src/part2pop/
     freezing/                # Immersion-freezing parameterizations
     analysis/                # Derived quantities and utilities
     viz/                     # Plotting helpers
-    data/                    # Packaged species data
+    data/                    # Packaged data used by builders
 ```
 
 ---
