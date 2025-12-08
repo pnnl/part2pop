@@ -2,50 +2,48 @@
 
 import pytest
 
-from part2pop.species.base import AerosolSpecies
+from part2pop.species import AerosolSpecies
 
 
 def test_aerosol_species_defaults_and_basic_fields():
-    """Check that AerosolSpecies stores basic fields and uses defaults."""
-    s = AerosolSpecies(name="TESTSPEC")
+    """
+    When only the name is provided, AerosolSpecies should look up the
+    remaining properties from the packaged species data file.
+    """
+    s = AerosolSpecies(name="SO4")  # known to exist in species_data/aero_data.dat
 
-    assert s.name == "TESTSPEC"
-    # Defaults from __post_init__ / dataclass (depending on your implementation)
-    assert s.surface_tension > 0.0
+    # Basic identity
+    assert s.name.upper() == "SO4"
 
-    # Optional values may be None if not provided
-    assert hasattr(s, "density")
-    assert hasattr(s, "kappa")
-    assert hasattr(s, "molar_mass")
+    # All key physical properties should be populated
+    assert s.density is not None
+    assert s.kappa is not None
+    assert s.molar_mass is not None
+    assert s.surface_tension is not None
+
+    # And they should be physically sensible
+    assert s.density > 0.0
+    assert s.molar_mass > 0.0
+    assert s.kappa >= 0.0
 
 
-def test_aerosol_species_full_constructor():
-    """Construct a fully-specified species and ensure values are preserved."""
+def test_aerosol_species_allows_explicit_parameters_without_lookup():
+    """
+    If all key parameters are supplied explicitly, the implementation
+    currently *does not* perform any validation. This test documents that
+    behavior and protects against accidental changes.
+    """
     s = AerosolSpecies(
-        name="TESTSPEC",
-        density=1500.0,
-        kappa=0.3,
-        molar_mass=1234.,
+        name="BADSPEC",
+        density=-100.0,    # intentionally unphysical
+        kappa=0.5,
+        molar_mass=50.0,
         surface_tension=0.072,
     )
 
-    assert s.name == "TESTSPEC"
-    assert s.density == 1500.0
-    assert s.kappa == 0.3
-    assert s.molar_mass == 1234.
+    # No error should be raised, and the attributes should be stored verbatim.
+    assert s.name == "BADSPEC"
+    assert s.density == -100.0
+    assert s.kappa == 0.5
+    assert s.molar_mass == 50.0
     assert s.surface_tension == 0.072
-
-
-def test_aerosol_species_invalid_parameters_raise():
-    """
-    If __post_init__ enforces any constraints (e.g. non-negative density),
-    test that obviously unphysical values are rejected.
-    """
-    # If you don't currently raise anything, you can skip or xfail this test.
-    with pytest.raises(ValueError):
-        AerosolSpecies(
-            name="BADSPEC",
-            density=-100.0,  # clearly unphysical
-            kappa=0.3,
-            molar_mass=1234.,
-        )

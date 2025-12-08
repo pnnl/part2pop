@@ -29,7 +29,7 @@ class HomogeneousParticle(FreezingParticle):
             spec_modifications=dict(spec_mod.get(species.name, {}))
             m_Jhet, b_Jhet = retrieve_Jhet_val(species.name, spec_modifications=spec_modifications)
             self.m_log10_Jhet[ii]=m_Jhet
-            self.b_log10_Jhet[ii]=b_Jhet        
+            self.b_log10_Jhet[ii]=b_Jhet
         
     def get_Jhet(self, T):
         vks = []

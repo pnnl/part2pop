@@ -2,33 +2,95 @@
 
 import numpy as np
 
-from part2pop import AerosolSpecies
-from part2pop.aerosol_particle import Particle
+from part2pop.aerosol_particle import make_particle
 from part2pop.freezing.factory.homogeneous import HomogeneousParticle, build
 
 
 def _make_droplet_with_insolute():
-    spec_insol = AerosolSpecies("SO4")
-    spec_h2o = AerosolSpecies("H2O")
-    species = (spec_insol, spec_h2o)
-    vols = np.array([0.1, 0.9])
-    p = Particle(
-        diameter=0.5e-6,
-        species=species,
-        spec_vol_fracs=vols,
+    """
+    Construct a physically reasonable wet particle using the public
+    `make_particle` helper, rather than manually instantiating Particle.
+
+    Returns
+    -------
+    base_particle : part2pop.aerosol_particle.Particle
+    cfg : dict
+        Configuration dict passed to HomogeneousParticle. Currently only
+        `species_modifications` is used by the model.
+    """
+    # 0.5 µm wet diameter, 10% insoluble sulfate, 90% water by mass.
+    D_wet = 0.5e-6
+    aero_spec_names = ["SO4", "H2O"]
+    aero_spec_frac = [0.1, 0.9]
+
+    base_particle = make_particle(
+        D=D_wet,
+        aero_spec_names=aero_spec_names,
+        aero_spec_frac=aero_spec_frac,
         D_is_wet=True,
     )
-    return p
+
+    # Minimal config that is consistent with the implementation:
+    cfg = {
+        "species_modifications": {},
+    }
+    return base_particle, cfg
 
 
 def test_homogeneous_particle_Jhet_positive():
-    p = _make_droplet_with_insolute()
-    hp = HomogeneousParticle(p, cfg={})
-    J = hp.get_Jhet(T=235.0)
-    assert J >= 0.0
+    """
+    J_het for a physically reasonable supercooled droplet should be > 0.
+    """
+    base_particle, cfg = _make_droplet_with_insolute()
+    fpart = HomogeneousParticle(base_particle, cfg)
+
+    T = 233.15  # K, clearly below freezing
+    Jhet = fpart.get_Jhet(T)
+
+    # Scalar and strictly positive
+    assert np.isscalar(Jhet)
+    assert Jhet > 0.0
 
 
-def test_homogeneous_build_wrapper():
-    p = _make_droplet_with_insolute()
-    hp = build(p, cfg={})
-    assert isinstance(hp, HomogeneousParticle)
+def test_homogeneous_Jhet_temperature_sensitivity():
+    """
+    At colder temperatures, the homogeneous freezing rate J_het should
+    increase compared to warmer (but still subfreezing) temperatures.
+    """
+    base_particle, cfg = _make_droplet_with_insolute()
+    fpart = HomogeneousParticle(base_particle, cfg)
+
+    T_cold = 228.15  # K
+    T_warm = 238.15  # K
+
+    J_cold = fpart.get_Jhet(T_cold)
+    J_warm = fpart.get_Jhet(T_warm)
+
+    # Both positive, and colder temperature gives larger rate.
+    assert J_cold > 0.0
+    assert J_warm > 0.0
+    assert J_cold > J_warm
+
+
+def test_homogeneous_build_wrapper_returns_equivalent_object():
+    """
+    The factory-level `build` wrapper should construct a HomogeneousParticle
+    equivalent to calling the constructor directly.
+    """
+    base_particle, cfg = _make_droplet_with_insolute()
+
+    direct = HomogeneousParticle(base_particle, cfg)
+
+    # `build` expects a model_config with `model_name` and `model_kwargs`.
+    model_config = {
+        "model_name": "homogeneous",
+        "model_kwargs": cfg,
+    }
+    built = build(base_particle, model_config)
+
+    assert isinstance(built, HomogeneousParticle)
+
+    # Check that the key internal fields are numerically identical.
+    np.testing.assert_allclose(built.INSA, direct.INSA)
+    np.testing.assert_allclose(built.m_log10_Jhet, direct.m_log10_Jhet)
+    np.testing.assert_allclose(built.b_log10_Jhet, direct.b_log10_Jhet)

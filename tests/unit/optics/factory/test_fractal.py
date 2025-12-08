@@ -18,7 +18,7 @@ def _make_bc_rich_population():
     return build_population(cfg)
 
 
-@pytest.mark.importorskip("pyBCabs")
+# @pytest.mark.importorskip("pyBCabs")
 def test_fractal_particle_compute_optics():
     pop = _make_bc_rich_population()
     base_particle = pop.get_particle(pop.ids[0])

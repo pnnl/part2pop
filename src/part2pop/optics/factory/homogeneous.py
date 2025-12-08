@@ -10,9 +10,11 @@ try:
     from part2pop._patch import patch_pymiescatt
     patch_pymiescatt()
     from PyMieScatt import MieQ
+    _PMS_ERR = None
 except Exception as e:
     MieQ = None
     _PMS_ERR = e
+
 
 
 @register("homogeneous")

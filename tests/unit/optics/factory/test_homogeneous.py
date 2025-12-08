@@ -1,36 +1,42 @@
-# tests/unit/optics/factory/test_homogeneous.py
+# tests/unit/optics/factory/test_core_shell.py
 
 import numpy as np
+import pytest
 
 from part2pop.population.builder import build_population
-from part2pop.optics.factory.homogeneous import HomogeneousParticle, build
+from part2pop.optics.factory.homogeneous import HomogeneousParticle, build, _PMS_ERR
 
 
-def _make_monodisperse_population():
-    cfg = {
+@pytest.mark.skipif(_PMS_ERR is not None, reason=f"PyMieScatt not available: {_PMS_ERR}")
+def test_core_shell_particle_compute_optics():
+    cfg_pop = {
         "type": "monodisperse",
-        "aero_spec_names": [["SO4", "H2O"]],
+        "aero_spec_names": [["BC", "SO4", "H2O"]],
         "N": [1.0e6],
         "D": [0.1e-6],
-        "aero_spec_fracs": [[0.9, 0.1]],
+        "aero_spec_fracs": [[0.2, 0.7, 0.1]],
     }
-    return build_population(cfg)
-
-
-def test_homogeneous_particle_compute_optics():
-    pop = _make_monodisperse_population()
+    pop = build_population(cfg_pop)
     base_particle = pop.get_particle(pop.ids[0])
 
     cfg = {"wvl_grid": [550e-9], "rh_grid": [0.0]}
-    hp = HomogeneousParticle(base_particle, cfg)
-    hp.compute_optics()
+    cp = HomogeneousParticle(base_particle, cfg)
+    cp.compute_optics()
 
-    assert np.isfinite(hp.Cext[0, 0])
-    assert hp.Cext[0, 0] >= 0.0
+    assert np.isfinite(cp.Cext[0, 0])
+    assert cp.Cext[0, 0] >= 0.0
 
 
-def test_homogeneous_build_wrapper():
-    pop = _make_monodisperse_population()
+@pytest.mark.skipif(_PMS_ERR is not None, reason=f"PyMieScatt not available: {_PMS_ERR}")
+def test_core_shell_build_wrapper():
+    cfg_pop = {
+        "type": "monodisperse",
+        "aero_spec_names": [["BC", "SO4", "H2O"]],
+        "N": [1.0e6],
+        "D": [0.1e-6],
+        "aero_spec_fracs": [[0.2, 0.7, 0.1]],
+    }
+    pop = build_population(cfg_pop)
     base_particle = pop.get_particle(pop.ids[0])
-    hp = build(base_particle, {"wvl_grid": [550e-9], "rh_grid": [0.0]})
-    assert isinstance(hp, HomogeneousParticle)
+    cp = build(base_particle, {"wvl_grid": [550e-9], "rh_grid": [0.0]})
+    assert isinstance(cp, HomogeneousParticle)
