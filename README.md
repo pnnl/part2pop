@@ -34,7 +34,7 @@ All produce a `ParticlePopulation` with:
 - consistent particle IDs.
 
 ### 🔹 Optical-property builders
-Morphology-specific routines compute scattering, absorption, extinction, and asymmetry parameter (`g`) across wavelength and RH grids.
+Morphology-specific routines compute scattering, absorption, extinction, and asymmetry parameter as a function of wavelength and relative humidity.
 
 Supported morphologies include:
 - Homogeneous spheres  
