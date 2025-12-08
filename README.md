@@ -129,6 +129,8 @@ To add new functionality:
 No changes to the core API are required.  
 Please open an issue or PR to discuss proposed additions.
 
+Any additions should include a corresponding test under `test/unit`.
+
 ---
 
 ## License
