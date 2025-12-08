@@ -1,8 +1,9 @@
 # part2pop
-[![CI](https://github.com/lfierce2/pyparticle-dev/actions/workflows/ci.yml/badge.svg)](https://github.com/lfierce2/pyparticle-dev/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/lfierce2/pyparticle-dev/branch/main/graph/badge.svg)](https://codecov.io/gh/lfierce2/pyparticle-dev)
 
-> A modular Python toolkit for linking particle-level models to population-level aerosol effects.
+[![CI](https://github.com/pnnl/part2pop/actions/workflows/ci.yml/badge.svg)](https://github.com/pnnl/part2pop/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/pnnl/part2pop/branch/main/graph/badge.svg)](https://codecov.io/gh/pnnl/part2pop)
+
+> A modular Python toolkit for building, analyzing, and extending aerosol particle populations.
 
 `part2pop` is a lightweight Python library that provides a **standardized representation of aerosol particles and populations**, together with modular builders for species, particle populations, optical properties, freezing properties, and analysis tools. Its **builder/registry design** makes the system easily extensible: new population types, particle morphologies, freezing parameterizations, or species definitions can be added by placing small modules into the appropriate `factory/` directory—without modifying core code.
 
@@ -34,7 +35,7 @@ All produce a `ParticlePopulation` with:
 - consistent particle IDs.
 
 ### 🔹 Optical-property builders
-Morphology-specific routines compute scattering, absorption, extinction, and asymmetry parameter as a function of wavelength and relative humidity.
+Morphology-specific routines compute scattering, absorption, extinction, and asymmetry parameter (`g`) across wavelength and RH grids.
 
 Supported morphologies include:
 - Homogeneous spheres  
@@ -63,13 +64,18 @@ Plotting helpers for size distributions, optical coefficients, freezing curves, 
 ## Installation
 
 ```bash
-pip install part2pop
+git clone https://github.com/pnnl/part2pop.git
+cd part2pop
+pip install -e .
 ```
+
+Optional dependencies (e.g., `netCDF4`, `PyMieScatt`, `pyBCabs`) enable extended IO and optical capabilities.  
+Missing optional dependencies generate clear, informative error messages.
+
 ---
 
-## Examples
+## Quick start
 
-<<<<<<< HEAD
 ### Build a simple population
 
 ```python
@@ -85,10 +91,29 @@ pop = build_population(config)
 print(pop)
 ```
 
+### Compute optical properties
+
+```python
+from part2pop.optics import build_optical_population
+
+opt_pop = build_optical_population(pop, {
+    "type": "homogeneous",
+    "wvl_grid": [550e-9],
+    "rh_grid": [0.0],
+})
+
+print(opt_pop.get_optical_coeff("b_scat", rh=0.0, wvl=550e-9))
+```
+
+### Analyze a population
+
+```python
+from part2pop.analysis import size_distribution
+
+d, dNdlnD = size_distribution(pop)
+```
+
 More examples are available under `examples/`.
-=======
-Examples are available under `examples/`.
->>>>>>> 3b99577 (Update README.md)
 
 ---
 
@@ -103,7 +128,7 @@ src/part2pop/
     freezing/                # Immersion-freezing parameterizations
     analysis/                # Derived quantities and utilities
     viz/                     # Plotting helpers
-    data/                    # Packaged data used by builders
+    data/                    # Packaged species data
 ```
 
 ---
@@ -128,8 +153,6 @@ To add new functionality:
 
 No changes to the core API are required.  
 Please open an issue or PR to discuss proposed additions.
-
-Any additions should include a corresponding test under `test/unit`.
 
 ---
 
