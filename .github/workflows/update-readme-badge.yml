@@ -1,0 +1,30 @@
+name: Update README Badges
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  update-badges:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Inject badges into README
+        run: |
+          CI_BADGE="[![CI](https://github.com/${{ github.repository }}/actions/workflows/ci.yml/badge.svg)](https://github.com/${{ github.repository }}/actions/workflows/ci.yml)"
+          CODECOV_BADGE="[![codecov](https://codecov.io/gh/${{ github.repository }}/branch/main/graph/badge.svg)](https://codecov.io/gh/${{ github.repository }})"
+
+          sed -e "s|<!-- CI_BADGE -->|$CI_BADGE|" \
+              -e "s|<!-- CODECOV_BADGE -->|$CODECOV_BADGE|" \
+              README.md.template > README.md
+
+      - name: Commit and push updated README
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add README.md
+          git commit -m "Update badges in README" || echo "No changes to commit"
+          git push
