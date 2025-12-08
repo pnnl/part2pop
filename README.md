@@ -1,11 +1,8 @@
 # part2pop
-> A modular Python toolkit for building, analyzing, and extending aerosol particle populations.
-
 [![CI](https://github.com/lfierce2/pyparticle-dev/actions/workflows/ci.yml/badge.svg)](https://github.com/lfierce2/pyparticle-dev/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/lfierce2/pyparticle-dev/branch/main/graph/badge.svg)](https://codecov.io/gh/lfierce2/pyparticle-dev)
 
-
-
+> A modular Python toolkit for linking particle-level models to population-level aerosol effects.
 
 `part2pop` is a lightweight Python library that provides a **standardized representation of aerosol particles and populations**, together with modular builders for species, particle populations, optical properties, freezing properties, and analysis tools. Its **builder/registry design** makes the system easily extensible: new population types, particle morphologies, freezing parameterizations, or species definitions can be added by placing small modules into the appropriate `factory/` directory—without modifying core code.
 
