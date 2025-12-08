@@ -90,28 +90,6 @@ pop = build_population(config)
 print(pop)
 ```
 
-### Compute optical properties
-
-```python
-from part2pop.optics import build_optical_population
-
-opt_pop = build_optical_population(pop, {
-    "type": "homogeneous",
-    "wvl_grid": [550e-9],
-    "rh_grid": [0.0],
-})
-
-print(opt_pop.get_optical_coeff("b_scat", rh=0.0, wvl=550e-9))
-```
-
-### Analyze a population
-
-```python
-from part2pop.analysis import size_distribution
-
-d, dNdlnD = size_distribution(pop)
-```
-
 More examples are available under `examples/`.
 
 ---
