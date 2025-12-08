@@ -40,12 +40,12 @@ jobs:
 
       - name: Upload coverage to Codecov
         if: ${{ matrix.python-version == '3.11' }}
-        uses: codecov/codecov-action@v5      # ← CHANGE #1
-        with:                                # ← CHANGE #2
+        uses: codecov/codecov-action@v5
+        with:                          
           files: ./coverage.xml
           flags: unittests
           verbose: true
-          token: ${{ secrets.CODECOV_TOKEN }}   # ← STILL SAME TOKEN NAME
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   integration-tests:
     name: Integration tests (main & PRs only)
