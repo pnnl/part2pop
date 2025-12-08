@@ -65,10 +65,6 @@ Plotting helpers for size distributions, optical coefficients, freezing curves, 
 ```bash
 pip install part2pop
 ```
-
-Optional dependencies (e.g., `netCDF4`, `PyMieScatt`, `pyBCabs`) enable extended IO and optical capabilities.  
-Missing optional dependencies generate clear, informative error messages.
-
 ---
 
 ## Quick start
