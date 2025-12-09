@@ -1,8 +1,7 @@
 name: Update README Badges
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:   # ← Manual trigger only (prevents CI from modifying main automatically)
 
 jobs:
   update-badges:
@@ -20,11 +19,3 @@ jobs:
           sed -e "s|<!-- CI_BADGE -->|$CI_BADGE|" \
               -e "s|<!-- CODECOV_BADGE -->|$CODECOV_BADGE|" \
               README.md.template > README.md
-
-      - name: Commit and push updated README
-        run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git add README.md
-          git commit -m "Update badges in README" || echo "No changes to commit"
-          git push
