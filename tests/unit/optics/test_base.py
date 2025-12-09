@@ -89,3 +89,54 @@ def test_optical_helpers_indexing_and_refractive_indices():
     # Missing RH/wavelength should raise
     with pytest.raises(ValueError):
         optical_pop.get_optical_coeff("b_ext", rh=0.25)
+
+
+def test_optical_particle_cross_section_getters_and_variants():
+    pop = _make_monodisperse_population()
+    rh_grid = [0.0, 0.5]
+    wvl_grid = [400e-9, 550e-9]
+    cfg = {"rh_grid": rh_grid, "wvl_grid": wvl_grid}
+    base_particle = pop.get_particle(pop.ids[0])
+    opt_part = DummyOpticalParticle(base_particle, cfg)
+    opt_part.compute_optics()
+
+    cross_sections = opt_part.get_cross_sections()
+    assert "Cext" in cross_sections
+    assert "g" in cross_sections
+    assert opt_part.get_cross_section("ext", rh_idx=0).shape == (len(wvl_grid),)
+
+    with pytest.raises(ValueError):
+        opt_part.get_cross_section("invalid")
+
+    optical_pop = OpticalPopulation(pop, rh_grid, wvl_grid)
+    optical_pop._find_index(pop.ids[0])
+
+    opt_part.Cabs_bc = np.ones_like(opt_part.Cabs)
+    optical_pop.add_optical_particle(opt_part, pop.ids[0])
+    assert optical_pop.Cabs_bc is not None
+    assert optical_pop.Cabs_bc.shape == (len(pop.ids), len(rh_grid), len(wvl_grid))
+
+    with pytest.raises(ValueError):
+        optical_pop._find_index(9999)
+
+
+def test_optical_population_statistics_and_safe_indexing():
+    pop = _make_monodisperse_population()
+    rh_grid = [0.0, 0.5]
+    wvl_grid = [400e-9, 550e-9]
+    cfg = {"rh_grid": rh_grid, "wvl_grid": wvl_grid}
+    base_particle = pop.get_particle(pop.ids[0])
+    opt_part = DummyOpticalParticle(base_particle, cfg)
+    opt_part.compute_optics()
+
+    optical_pop = OpticalPopulation(pop, rh_grid, wvl_grid)
+    optical_pop.add_optical_particle(opt_part, pop.ids[0])
+    optical_pop.compute_effective_kappas()
+    assert optical_pop.tkappas.shape[0] == len(pop.ids)
+    assert optical_pop.shell_tkappas.shape[0] == len(pop.ids)
+
+    vals = optical_pop._safe_index_2d(optical_pop.Cext[0], slice(None), [0, 1])
+    assert vals.shape == (optical_pop.rh_grid.size, 2)
+
+    g_val = optical_pop.get_optical_coeff("g")
+    assert np.ndim(g_val) == 2

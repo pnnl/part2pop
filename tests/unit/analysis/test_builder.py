@@ -1,4 +1,5 @@
 import warnings
+import types
 
 import pytest
 
@@ -62,3 +63,87 @@ def test_build_variable_invalid_scope():
     # Current implementation fails before explicit ValueError; ensure it raises
     with pytest.raises(Exception):
         bld.build_variable("x", scope="unknown")
+
+
+def test_variable_builder_handles_builder_without_meta(monkeypatch):
+    class FakeBuilder:
+        def __init__(self):
+            self.last_cfg = None
+
+        def __call__(self, cfg):
+            self.last_cfg = cfg
+            return types.SimpleNamespace(meta=types.SimpleNamespace(default_cfg={"local": 2}))
+
+    fake_builder = FakeBuilder()
+
+    monkeypatch.setattr(bld, "resolve_name", lambda name: name)
+    monkeypatch.setattr(bld, "resolve_particle_name", lambda name: name)
+    monkeypatch.setattr(bld, "_ALIASES", {})
+    monkeypatch.setattr(bld, "_get_registry_builder", lambda scope: lambda name: fake_builder)
+    monkeypatch.setattr(bld, "_get_defaults_for_var", lambda name: {"global": 1})
+
+    vb = bld.VariableBuilder("foo", cfg={"local": 5, "user": 7}, scope="population")
+    vb.build()
+    assert fake_builder.last_cfg["global"] == 1
+    assert fake_builder.last_cfg["local"] == 5
+    assert fake_builder.last_cfg["user"] == 7
+
+
+def test_variable_builder_ignores_defaults_failure(monkeypatch):
+    class BuilderWithMeta:
+        meta = types.SimpleNamespace(default_cfg={"meta_val": 3})
+
+        def __call__(self, cfg):
+            obj = types.SimpleNamespace(cfg=cfg, meta=types.SimpleNamespace(default_cfg={"meta_val": 3}))
+            return obj
+
+    def fake_registry(scope):
+        return lambda name: BuilderWithMeta()
+
+    monkeypatch.setattr(bld, "resolve_name", lambda name: name)
+    monkeypatch.setattr(bld, "resolve_particle_name", lambda name: name)
+    monkeypatch.setattr(bld, "_ALIASES", {})
+    monkeypatch.setattr(bld, "_get_registry_builder", fake_registry)
+    monkeypatch.setattr(bld, "_get_defaults_for_var", lambda name: (_ for _ in ()).throw(RuntimeError("no defaults")))
+
+    vb = bld.VariableBuilder("bar", cfg={"override": 4}, scope="population")
+    inst = vb.build()
+    assert inst.cfg["override"] == 4
+
+
+def test_variable_builder_handles_meta_instantiation_failure(monkeypatch):
+    class UnstableBuilder:
+        def __init__(self):
+            self.calls = 0
+
+        def __call__(self, cfg):
+            self.calls += 1
+            if self.calls == 1:
+                raise RuntimeError("fail")
+            return types.SimpleNamespace(meta=types.SimpleNamespace(default_cfg={"meta": 1}), cfg=cfg)
+
+    def fake_registry(scope):
+        return lambda name: UnstableBuilder()
+
+    monkeypatch.setattr(bld, "resolve_name", lambda name: name)
+    monkeypatch.setattr(bld, "resolve_particle_name", lambda name: name)
+    monkeypatch.setattr(bld, "_ALIASES", {})
+    monkeypatch.setattr(bld, "_get_registry_builder", fake_registry)
+    monkeypatch.setattr(bld, "_get_defaults_for_var", lambda name: {"global": 2})
+
+    vb = bld.VariableBuilder("foo", cfg={"user": 3}, scope="population")
+    inst = vb.build()
+    assert inst.cfg["global"] == 2
+    assert inst.cfg["user"] == 3
+
+
+def test_get_registry_builder_returns_scoped_getters():
+    pop_getter = bld._get_registry_builder("population")
+    part_getter = bld._get_registry_builder("particle")
+    assert callable(pop_getter)
+    assert callable(part_getter)
+    # ensure callable accepts known keys
+    builders = pop_getter("Nccn")
+    assert callable(builders)
+    builders = part_getter("P_frz")
+    assert callable(builders)

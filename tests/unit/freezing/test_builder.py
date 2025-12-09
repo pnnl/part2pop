@@ -5,6 +5,7 @@ import pytest
 
 from part2pop.population.builder import build_population
 import part2pop.freezing.builder as fb
+from part2pop.freezing.base import FreezingPopulation, retrieve_Jhet_val
 from part2pop.freezing.builder import (
     build_freezing_particle,
     build_freezing_population,
@@ -107,3 +108,85 @@ def test_build_freezing_population_unknown_units(monkeypatch):
     base = type("P", (), {"ids": [1], "get_particle": lambda self, pid: "p"})()
     with pytest.raises(ValueError):
         fb.build_freezing_population(base, {"T_units": "X"})
+
+
+def test_build_freezing_population_with_kelvin():
+    pop = _make_monodisperse_population()
+    cfg = {
+        "T_units": "K",
+        "T_grid": [250.0],
+        "morphology": "homogeneous",
+        "cooling_rate": -1.0,
+    }
+
+    frz_pop = build_freezing_population(pop, cfg)
+    ff = frz_pop.get_frozen_fraction(cfg["cooling_rate"])
+    assert ff.shape == frz_pop.T_grid.shape
+    assert np.all(ff >= 0.0)
+
+
+class _StubFreezingParticle:
+    def __init__(self, jhet, insa):
+        self._jhet = np.array(jhet, dtype=float)
+        self.INSA = np.array(insa, dtype=float)
+
+    def get_Jhet(self, T):
+        return self._jhet
+
+
+def test_freezing_population_math_helpers():
+    base = _make_monodisperse_population()
+    T_grid = np.array([230.0, 240.0])
+    frz_pop = FreezingPopulation(base, T_grid=T_grid)
+
+    particle = _StubFreezingParticle(jhet=[1.0, 2.0], insa=[0.1, 0.2])
+    frz_pop.add_freezing_particle(particle, part_id=base.ids[0], T=T_grid)
+
+    assert np.allclose(frz_pop.get_avg_Jhet(), particle._jhet)
+    ns = frz_pop.get_nucleating_sites(dT_dt=1.0)
+    assert ns.shape == T_grid.shape
+    assert np.all(np.isfinite(ns))
+
+    ff = frz_pop.get_frozen_fraction(dT_dt=1.0)
+    assert ff.shape == T_grid.shape
+    assert np.all(np.isfinite(ff))
+
+    probs = frz_pop.get_freezing_probs()
+    assert probs.shape == frz_pop.Jhet.shape
+    assert np.all((probs >= 0.0) & (probs <= 1.0))
+
+
+def test_freezing_population_descending_T_branch():
+    base = _make_monodisperse_population()
+    T_grid = np.array([250.0, 240.0])
+    frz_pop = FreezingPopulation(base, T_grid=T_grid)
+
+    particle = _StubFreezingParticle(jhet=[0.5, 0.5], insa=[0.3, 0.3])
+    frz_pop.add_freezing_particle(particle, part_id=base.ids[0], T=T_grid)
+
+    ns = frz_pop.get_nucleating_sites(dT_dt=0.5)
+    ff = frz_pop.get_frozen_fraction(dT_dt=0.5)
+    assert ns.shape == T_grid.shape
+    assert ff.shape == T_grid.shape
+
+
+def test_add_freezing_particle_invalid_id_raises():
+    base = _make_monodisperse_population()
+    frz_pop = FreezingPopulation(base, T_grid=[260.0])
+    particle = _StubFreezingParticle(jhet=[1.0], insa=[0.1])
+
+    with pytest.raises(ValueError):
+        frz_pop.add_freezing_particle(particle, part_id=9999, T=[260.0])
+
+
+def test_retrieve_Jhet_val_with_overrides():
+    default_m, default_b = retrieve_Jhet_val("SO4")
+    assert default_m == "26.61"
+    assert default_b == "-3.93"
+
+    override_m, override_b = retrieve_Jhet_val(
+        "SO4",
+        spec_modifications={"m_log10Jhet": "1.23", "b_log10Jhet": "-4.56"},
+    )
+    assert override_m == "1.23"
+    assert override_b == "-4.56"

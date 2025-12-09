@@ -59,3 +59,49 @@ def test_dnd_kde_requires_grid(monkeypatch):
     bad = dnd_mod.build({"method": "unknown"})
     with pytest.raises(ValueError):
         bad.compute(pop)
+
+
+class _ProvidedPopulation(_StubPopulation):
+    def get_provided_dNdlnD(self, cfg):
+        return {
+            "D": np.array([1e-7]),
+            "dNdlnD": np.array([42.0]),
+            "edges": np.array([1e-7, 2e-7]),
+        }
+
+
+class _InterpPopulation(_StubPopulation):
+    def get_provided_dNdlnD(self, cfg):
+        return {
+            "D": np.array([1e-7, 2e-7]),
+            "dNdlnD": np.array([1.0, 2.0]),
+            "edges": np.array([1e-7, 1.5e-7, 2e-7]),
+        }
+
+
+def test_dnd_provided_method_returns_population_density():
+    pop = _ProvidedPopulation([1e-7], [0.9e-7], [1.0])
+    var = dnd_mod.build({"method": "provided"})
+
+    dens = var.compute(pop)
+    assert np.allclose(dens, np.array([42.0]))
+
+    as_dict = var.compute(pop, as_dict=True)
+    assert as_dict["edges"].shape[0] == 2
+    assert as_dict["dNdlnD"][0] == 42.0
+
+
+def test_dnd_interp_method_remaps_density(monkeypatch):
+    pop = _InterpPopulation([1e-7, 1.5e-7], [0.9e-7, 1.4e-7], [1.0, 2.0])
+    var = dnd_mod.build({"method": "interp", "edges": [1e-7, 2e-7]})
+
+    def fake_density1d_cdf_map(D_src, dens_src, edges, measure):
+        assert measure == "ln"
+        assert np.allclose(edges, np.array([1e-7, 2e-7]))
+        return np.array([1.1e-7, 1.8e-7]), np.array([5.5, 6.5]), edges
+
+    monkeypatch.setattr(dnd_mod, "density1d_cdf_map", fake_density1d_cdf_map)
+
+    out = var.compute(pop, as_dict=True)
+    assert np.allclose(out["D"], np.array([1.1e-7, 1.8e-7]))
+    assert np.allclose(out["dNdlnD"], np.array([5.5, 6.5]))

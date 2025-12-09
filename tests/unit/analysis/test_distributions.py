@@ -1,3 +1,7 @@
+import builtins
+import sys
+import types
+
 import numpy as np
 import pytest
 
@@ -95,3 +99,67 @@ def test_density2d_cdf_map_conserves_total_and_validates_inputs():
 
     with pytest.raises(ValueError):
         dist.density2d_cdf_map(x_centers, y_centers, np.ones((3, 3)), edges_x_tgt, edges_y_tgt)
+
+
+def test_u_from_x_validates_inputs():
+    with pytest.raises(ValueError):
+        dist._u_from_x(np.array([0.0]), measure="ln")
+    with pytest.raises(ValueError):
+        dist._u_from_x(np.array([1.0]), measure="bogus")
+
+
+def test_density1d_cdf_map_single_bin_branch():
+    src_centers = np.array([1.0])
+    dens_src = np.array([5.0])
+    edges_tgt = np.array([0.5, 1.5])
+    centers, dens_tgt, edges = dist.density1d_cdf_map(
+        x_src_centers=src_centers,
+        dens_src=dens_src,
+        edges_tgt=edges_tgt,
+        measure="linear",
+    )
+    assert centers.shape == (1,)
+    assert edges is edges_tgt
+    assert dens_tgt.shape == (1,)
+    assert np.all(dens_tgt >= 0.0)
+
+
+def test_kde1d_in_measure_normalizes_with_stub(monkeypatch):
+    class FakeKDE:
+        def __init__(self, u, weights=None):
+            self.u = np.asarray(u)
+            self.weights = np.asarray(weights)
+
+        def __call__(self, q):
+            q = np.asarray(q)
+            return np.full_like(q, 2.0, dtype=float)
+
+    fake_stats = types.SimpleNamespace(gaussian_kde=FakeKDE)
+    fake_scipy = types.ModuleType("scipy")
+    fake_scipy.stats = fake_stats
+    monkeypatch.setitem(sys.modules, "scipy", fake_scipy)
+    monkeypatch.setitem(sys.modules, "scipy.stats", fake_stats)
+
+    x = np.array([1.0, 2.0])
+    w = np.array([1.0, 1.0])
+    xq = np.array([1.0, 2.0])
+
+    dens = dist.kde1d_in_measure(x, w, xq, measure="linear", normalize=True)
+    assert dens.shape == xq.shape
+    assert np.isclose(np.trapz(dens, xq), 1.0)
+
+
+def test_kde1d_in_measure_requires_scipy(monkeypatch):
+    orig_import = builtins.__import__
+
+    def fake_import(name, globals=None, locals=None, fromlist=(), level=0):
+        if name.startswith("scipy"):
+            raise ImportError("scipy missing")
+        return orig_import(name, globals, locals, fromlist, level)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+
+    with pytest.raises(RuntimeError, match="scipy"):
+        dist.kde1d_in_measure(
+            np.array([1.0]), np.array([1.0]), np.array([1.0]), measure="linear"
+        )

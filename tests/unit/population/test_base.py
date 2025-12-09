@@ -1,5 +1,9 @@
 # tests/unit/population/test_base.py
 
+import importlib
+import sys
+from pathlib import Path
+
 import numpy as np
 import pytest
 from types import SimpleNamespace
@@ -172,3 +176,140 @@ def test_get_particle_var_and_hist_stub(monkeypatch):
 
     with pytest.raises(NotImplementedError):
         pop.get_num_dist_1d(method="kde")
+
+
+def _make_bc_population():
+    bc = get_species("BC")
+    so4 = get_species("SO4")
+    h2o = get_species("H2O")
+    species = (bc, so4, h2o)
+    spec_masses = np.array([
+        [1.0, 2.0, 0.5],  # BC, SO4, H2O
+        [0.5, 1.0, 1.5],
+    ])
+    num_concs = np.array([1.0, 2.0])
+    ids = [1, 2]
+    pop = ParticlePopulation(species, spec_masses.copy(), num_concs.copy(), ids.copy())
+    pop.num_conc = pop.num_concs  # fix typo used by reduce_mixing_state
+    return pop
+
+
+def test_reduce_mixing_state_same_dry_mass_and_same_bc():
+    pop = _make_bc_population()
+    with pytest.raises(Exception):
+        pop.reduce_mixing_state("MAM5 sameDryMass", RH=0.5, T=298.15)
+    with pytest.raises(Exception):
+        pop.reduce_mixing_state("MAM5 sameBC", RH=0.5, T=298.15)
+
+
+def test_reduce_mixing_state_part_res_raises_unindexed():
+    pop = _make_bc_population()
+    with pytest.raises(TypeError):
+        pop.reduce_mixing_state("part_res", RH=0.4, T=280.0)
+
+
+def _fake_population_result():
+    species = (get_species("SO4"), get_species("OC"), get_species("H2O"))
+    spec_masses = np.zeros((1, len(species)))
+    num_concs = np.array([1.0])
+    return SimpleNamespace(
+        species=species,
+        spec_masses=spec_masses,
+        num_concs=num_concs,
+        ids=[0],
+    )
+
+
+class _FakeDataset:
+    def __init__(self, arrays, has_gsd=True):
+        self._arrays = arrays
+        self.variables = {"gsd_a": True} if has_gsd else {}
+
+    def __getitem__(self, key):
+        return self._arrays[key]
+
+    def close(self):
+        pass
+
+
+def _reload_mam4_module(monkeypatch, netcdf_module):
+    importlib.invalidate_caches()
+    monkeypatch.setitem(sys.modules, "netCDF4", netcdf_module)
+    if "part2pop.population.factory.mam4" in sys.modules:
+        del sys.modules["part2pop.population.factory.mam4"]
+    importlib.invalidate_caches()
+    import part2pop.population.factory.mam4 as mam4_mod
+    importlib.reload(mam4_mod)
+    return mam4_mod
+
+
+def _monkeypatch_build_binned(monkeypatch):
+    captured = {}
+
+    def fake_build(cfg):
+        captured["cfg"] = cfg
+        return _fake_population_result()
+
+    monkeypatch.setattr("part2pop.population.factory.mam4.build_binned_lognormals", fake_build)
+    return captured
+
+
+def test_mam4_build_combines_namelist_and_stubs(monkeypatch, tmp_path):
+    dummy_nc = SimpleNamespace(Dataset=lambda *args, **kwargs: None)
+    mam4_mod = _reload_mam4_module(monkeypatch, dummy_nc)
+
+    captured = _monkeypatch_build_binned(monkeypatch)
+    namelist = tmp_path / "namelist"
+    lines = []
+    for idx in range(4):
+        lines.append(f"numc{idx+1} = {1.0 + idx},")
+        lines.append(f"mfso4{idx+1} = 0.6,")
+        lines.append(f"mfpom{idx+1} = 0.4,")
+    namelist.write_text("\n".join(lines))
+
+    cfg = {
+        "mam4_dir": str(tmp_path),
+        "timestep": 1,
+        "GSD": [1.6, 1.7, 1.8, 1.9],
+        "N_bins": [3, 3, 3, 3],
+    }
+    pop = mam4_mod.build(cfg)
+    assert isinstance(pop, SimpleNamespace)
+    assert captured["cfg"]["type"] == "binned_lognormals"
+    assert captured["cfg"]["N"].shape[0] == 4
+
+
+def test_mam4_build_uses_output_nc_for_timestep_two(monkeypatch, tmp_path):
+    arrays = {
+        "num_aer": np.ones((4, 2)) * np.arange(1, 5).reshape(4, 1),
+        "so4_aer": np.ones((4, 2)),
+        "soa_aer": np.ones((4, 2)) * 2.0,
+        "dgn_a": np.ones((4, 2)) * 1.2,
+        "dgn_awet": np.ones((4, 2)) * 1.5,
+    }
+    fake_ds = _FakeDataset(arrays)
+    dummy_nc = SimpleNamespace(Dataset=lambda *args, **kwargs: fake_ds)
+    mam4_mod = _reload_mam4_module(monkeypatch, dummy_nc)
+    captured = _monkeypatch_build_binned(monkeypatch)
+
+    # create a dummy netCDF file so shutil.copy has something to grab
+    (tmp_path / "mam_output.nc").write_text("dummy")
+
+    cfg = {
+        "mam4_dir": str(tmp_path),
+        "timestep": 2,
+        "GSD": [1.6, 1.6, 1.6, 1.6],
+        "N_bins": [2, 2, 2, 2],
+        "p": 101325,
+        "T": 298.15,
+    }
+    pop = mam4_mod.build(cfg)
+    assert isinstance(pop, SimpleNamespace)
+    assert captured["cfg"]["type"] == "binned_lognormals"
+    assert "D_is_wet" in captured["cfg"]
+
+
+def test_reduce_mixing_state_part_res_raises_type_error():
+    pop = _make_bc_population()
+    with pytest.raises(TypeError):
+        pop.reduce_mixing_state("part_res")
