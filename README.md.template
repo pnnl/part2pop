@@ -91,26 +91,19 @@ pop = build_population(config)
 print(pop)
 ```
 
-### Compute optical properties
+### Analyze and plot results
 
 ```python
-from part2pop.optics import build_optical_population
+from part2pop.viz.builder import build_plotter
 
-opt_pop = build_optical_population(pop, {
-    "type": "homogeneous",
-    "wvl_grid": [550e-9],
-    "rh_grid": [0.0],
-})
+plot_cfg = {
+    "varname": "b_scat",
+    "var_cfg": {"morphology":"core-shell", "wvl_grid": np.linspace(350e-9,1050e-9,29), "rh_grid": [0.]}
+}
 
-print(opt_pop.get_optical_coeff("b_scat", rh=0.0, wvl=550e-9))
-```
+plotter = build_plotter("state_line", cfg)
+plotter.plot(pop, ax, label=s["label"])
 
-### Analyze a population
-
-```python
-from part2pop.analysis import size_distribution
-
-d, dNdlnD = size_distribution(pop)
 ```
 
 More examples are available under `examples/`.
@@ -122,13 +115,13 @@ More examples are available under `examples/`.
 ```
 src/part2pop/
     aerosol_particle.py      # Particle representation and physics
-    species/                 # Species registry + built-in datasets
-    population/              # Population builders + factories
-    optics/                  # Optical property builders and morphologies
-    freezing/                # Immersion-freezing parameterizations
-    analysis/                # Derived quantities and utilities
+    species/                 # Aerosol species representation
+    population/              # Population builders + factory of population types
+    optics/                  # Optical property builders + factory of particle morphologies
+    freezing/                # Freezing property builder + factory of parameterizations
+    analysis/                # Downstream diagnostics and utilities
     viz/                     # Plotting helpers
-    data/                    # Packaged species data
+    data/                    # Packaged data
 ```
 
 ---
@@ -139,9 +132,6 @@ The design philosophy of `part2pop` is that **all extensibility happens through 
 
 To add new functionality:
 
-- **New species definition:**  
-  Add a module to `species/` or `species/factory/`, then register it.
-
 - **New population type:**  
   Add a module under `population/factory/` with a `build(config)` function.
 
@@ -150,6 +140,12 @@ To add new functionality:
 
 - **New freezing parameterization:**  
   Add a module under `freezing/factory/`.
+
+- **New diagnostic variable:**
+  Add a particle-level or population-level variable under `analysis/particle/factory` or `analysis/populaiton/factory`, respectively
+
+- **New visualization type:**
+  Add a new type of visualization under `viz/factory`
 
 No changes to the core API are required.  
 Please open an issue or PR to discuss proposed additions.
