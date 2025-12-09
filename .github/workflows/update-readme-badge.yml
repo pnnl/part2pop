@@ -1,101 +1,108 @@
-name: Update README Badges
-
-permissions:
-  contents: write   # required to push commits with the GITHUB_TOKEN
+# .github/workflows/update-readme-badge.yml
+name: Update README from Template
 
 on:
-  workflow_dispatch:   # manual trigger; change to push/schedule if you want automatic runs
+  push:
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
-  update-badges:
+  update-readme:
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: write   # needed so the workflow can push changes
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          persist-credentials: true   # use GITHUB_TOKEN for pushing
 
-      - name: Inject badges into README
+      - name: Generate README.md from template
         run: |
-          set -e
-          TEMPLATE="README.md.template"
-          if [ ! -f "$TEMPLATE" ]; then
-            echo "Template $TEMPLATE not found in repository root. Aborting."
-            exit 1
-          fi
-
           CI_BADGE="[![CI](https://github.com/${{ github.repository }}/actions/workflows/ci.yml/badge.svg)](https://github.com/${{ github.repository }}/actions/workflows/ci.yml)"
           CODECOV_BADGE="[![codecov](https://codecov.io/gh/${{ github.repository }}/branch/main/graph/badge.svg)](https://codecov.io/gh/${{ github.repository }})"
 
           sed -e "s|<!-- CI_BADGE -->|$CI_BADGE|" \
               -e "s|<!-- CODECOV_BADGE -->|$CODECOV_BADGE|" \
-              "$TEMPLATE" > README.md
+              README.md.template > README.md
 
-      - name: Commit & push README.md
-        uses: EndBug/add-and-commit@v9
-        with:
-          message: "chore: update README badges"
-          add: "README.md"
-          author_name: "github-actions[bot]"
-          author_email: "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: Commit and push if README.md changed
+        run: |
+          if git diff --quiet README.md; then
+            echo "README.md unchanged; nothing to commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add README.md
+          git commit -m "chore: auto-update README from template [skip ci]" || exit 0
+          git push
 
 # name: Update README Badges
 
+# permissions:
+#   contents: write   # required to push commits with the GITHUB_TOKEN
+
 # on:
-#   push:
-#     branches: [ main ]
-#   workflow_dispatch:
+#   workflow_dispatch:   # manual trigger; change to push/schedule if you want automatic runs
 
 # jobs:
 #   update-badges:
 #     runs-on: ubuntu-latest
 
-#     permissions:
-#       contents: write   # needed so the workflow can push changes
-
 #     steps:
 #       - name: Checkout repo
 #         uses: actions/checkout@v4
 #         with:
-#           token: ${{ secrets.GITHUB_TOKEN }}
+#           fetch-depth: 0
 
 #       - name: Inject badges into README
 #         run: |
+#           set -e
+#           TEMPLATE="README.md.template"
+#           if [ ! -f "$TEMPLATE" ]; then
+#             echo "Template $TEMPLATE not found in repository root. Aborting."
+#             exit 1
+#           fi
+
 #           CI_BADGE="[![CI](https://github.com/${{ github.repository }}/actions/workflows/ci.yml/badge.svg)](https://github.com/${{ github.repository }}/actions/workflows/ci.yml)"
 #           CODECOV_BADGE="[![codecov](https://codecov.io/gh/${{ github.repository }}/branch/main/graph/badge.svg)](https://codecov.io/gh/${{ github.repository }})"
 
 #           sed -e "s|<!-- CI_BADGE -->|$CI_BADGE|" \
 #               -e "s|<!-- CODECOV_BADGE -->|$CODECOV_BADGE|" \
-#               README.md.template > README.md
+#               "$TEMPLATE" > README.md
 
-#       - name: Commit README if changed
-#         run: |
-#           if git diff --quiet README.md; then
-#             echo "README.md is up to date; nothing to commit."
-#             exit 0
-#           fi
-
-#           git config user.name "github-actions[bot]"
-#           git config user.email "github-actions[bot]@users.noreply.github.com"
-
-#           git add README.md
-#           git commit -m "Update README badges from template [skip ci]"
-#           git push
-
+#       - name: Commit & push README.md
+#         uses: EndBug/add-and-commit@v9
+#         with:
+#           message: "chore: update README badges"
+#           add: "README.md"
+#           author_name: "github-actions[bot]"
+#           author_email: "41898282+github-actions[bot]@users.noreply.github.com"
 
 # # name: Update README Badges
 
 # # on:
-# #   workflow_dispatch:   # ← Manual trigger only (prevents CI from modifying main automatically)
+# #   push:
+# #     branches: [ main ]
+# #   workflow_dispatch:
 
 # # jobs:
 # #   update-badges:
 # #     runs-on: ubuntu-latest
 
+# #     permissions:
+# #       contents: write   # needed so the workflow can push changes
+
 # #     steps:
 # #       - name: Checkout repo
 # #         uses: actions/checkout@v4
+# #         with:
+# #           token: ${{ secrets.GITHUB_TOKEN }}
 
 # #       - name: Inject badges into README
 # #         run: |
@@ -105,3 +112,40 @@ jobs:
 # #           sed -e "s|<!-- CI_BADGE -->|$CI_BADGE|" \
 # #               -e "s|<!-- CODECOV_BADGE -->|$CODECOV_BADGE|" \
 # #               README.md.template > README.md
+
+# #       - name: Commit README if changed
+# #         run: |
+# #           if git diff --quiet README.md; then
+# #             echo "README.md is up to date; nothing to commit."
+# #             exit 0
+# #           fi
+
+# #           git config user.name "github-actions[bot]"
+# #           git config user.email "github-actions[bot]@users.noreply.github.com"
+
+# #           git add README.md
+# #           git commit -m "Update README badges from template [skip ci]"
+# #           git push
+
+
+# # # name: Update README Badges
+
+# # # on:
+# # #   workflow_dispatch:   # ← Manual trigger only (prevents CI from modifying main automatically)
+
+# # # jobs:
+# # #   update-badges:
+# # #     runs-on: ubuntu-latest
+
+# # #     steps:
+# # #       - name: Checkout repo
+# # #         uses: actions/checkout@v4
+
+# # #       - name: Inject badges into README
+# # #         run: |
+# # #           CI_BADGE="[![CI](https://github.com/${{ github.repository }}/actions/workflows/ci.yml/badge.svg)](https://github.com/${{ github.repository }}/actions/workflows/ci.yml)"
+# # #           CODECOV_BADGE="[![codecov](https://codecov.io/gh/${{ github.repository }}/branch/main/graph/badge.svg)](https://codecov.io/gh/${{ github.repository }})"
+
+# # #           sed -e "s|<!-- CI_BADGE -->|$CI_BADGE|" \
+# # #               -e "s|<!-- CODECOV_BADGE -->|$CODECOV_BADGE|" \
+# # #               README.md.template > README.md
