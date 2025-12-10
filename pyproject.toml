@@ -75,7 +75,6 @@ Issues = "https://github.com/pnnl/part2pop/issues"
 
 [tool.setuptools.package-data]
 part2pop = [
-    "data",
     "data/*",
     "data/**/*",
     "data/species_data/*.dat",
