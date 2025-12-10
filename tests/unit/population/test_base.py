@@ -247,6 +247,44 @@ def test_make_particle_from_masses_preserves_species_order():
     assert names == ["SO4", "BC"]
 
 
+def test_particle_index_and_volume_helpers():
+    particle = make_particle(1e-6, ["BC", "SO4"], [0.7, 0.3])
+    # Mass helpers
+    assert particle.get_mass_dry() <= particle.get_mass_tot()
+    assert particle.get_mass_tot() > 0.0
+
+    # Index helpers
+    assert 0 in particle.idx_core()
+    assert len(particle.idx_dry()) >= 1
+    assert 0 in particle.idx_dry_shell()
+    assert particle.idx_h2o() >= 0
+
+    # Volume helpers
+    assert particle.get_vol_tot() >= particle.get_vol_dry()
+    assert particle.get_vol_core() >= 0.0
+    assert particle.get_vol_dry_shell() >= 0.0
+
+    # Species property helpers return sensible values
+    assert np.all(particle.get_spec_rhos() > 0.0)
+    assert np.all(particle.get_spec_kappas() >= 0.0)
+    assert np.all(particle.get_spec_MWs() > 0.0)
+    assert np.all(particle.get_vks() >= 0.0)
+    assert np.all(particle.get_moles() >= 0.0)
+
+    # Critical supersaturation via get_variable helper
+    crit = particle.get_variable("critical_supersaturation", T=298.15)
+    assert crit >= 0.0
+
+    # Mass / density helpers
+    assert particle.get_rho_h2o() > 0.0
+    assert particle.get_mass_h2o() >= 0.0
+
+    # Access specific species components
+    spec_mass = particle.get_spec_mass("BC")
+    particle.set_spec_mass("BC", float(spec_mass[0]) * 0.5)
+    assert np.isclose(float(particle.get_spec_mass("BC")[0]), float(spec_mass[0]) * 0.5)
+
+
 # ---------------------------------------------------------------------------
 # Extended tests using a stubbed Particle to isolate population logic
 # ---------------------------------------------------------------------------
