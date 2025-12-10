@@ -74,8 +74,10 @@ Repository = "https://github.com/pnnl/part2pop"
 Issues = "https://github.com/pnnl/part2pop/issues"
 
 [tool.setuptools.package-data]
-part2pop = ["data/**/*"]
 part2pop = [
+    "data",
+    "data/*",
+    "data/**/*",
     "data/species_data/*.dat",
     "data/species_data/*.csv",
 ]
