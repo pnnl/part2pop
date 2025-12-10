@@ -8,7 +8,7 @@ from abc import abstractmethod
 import numpy as np
 
 # Adjust imports to your tree
-from ..aerosol_particle import Particle
+from ..aerosol_particle import Particle, make_particle_from_masses
 from ..population.base import ParticlePopulation
 # from ..data_old import species_open
 from ..data import open_dataset
@@ -63,10 +63,10 @@ class FreezingPopulation(ParticlePopulation):
         out = np.zeros(self.T_grid.shape)
         if self.T_grid[-1]>self.T_grid[0]:
             for ii in range(1, len(self.T_grid)+1):
-                out[-ii] = np.sum((self.num_concs/dT_dt)*trapezoid(np.flip(self.Jhet[-ii:]), x=np.flip(self.T_grid[-ii:]), axis=0))
-        else: 
+                out[-ii] = np.sum((self.num_concs*self.INSA)*trapezoid(np.flip(self.Jhet[-ii:])/dT_dt, x=np.flip(self.T_grid[-ii:]), axis=0))
+        else:
             for ii in range(0, len(self.T_grid)):
-                out[ii] = np.sum((self.num_concs/dT_dt)*trapezoid(self.Jhet[:ii], x=self.T_grid[:ii], axis=0))       
+                out[ii] = np.sum((self.num_concs*self.INSA)*trapezoid(self.Jhet[:ii]/dT_dt, x=self.T_grid[:ii], axis=0))
         return out
     
     def get_frozen_fraction(self, dT_dt):
