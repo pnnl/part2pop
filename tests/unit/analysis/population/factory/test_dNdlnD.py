@@ -59,3 +59,35 @@ def test_dnd_kde_requires_grid(monkeypatch):
     bad = dnd_mod.build({"method": "unknown"})
     with pytest.raises(ValueError):
         bad.compute(pop)
+
+
+class _ProvidedPopulation(_StubPopulation):
+    def __init__(self, dwets, ddrys, num_concs):
+        super().__init__(dwets, ddrys, num_concs)
+        self.provided = {
+            "D": np.array([1e-7, 2e-7]),
+            "dNdlnD": np.array([1.0, 2.0]),
+            "edges": np.array([5e-8, 1.5e-7, 2.5e-7]),
+        }
+
+    def get_provided_dNdlnD(self, cfg):
+        return self.provided
+
+
+def test_dnd_provided_method_respects_population_data():
+    pop = _ProvidedPopulation([1e-7], [1e-7], [1.0])
+    var = dnd_mod.build({"method": "provided"})
+    out = var.compute(pop, as_dict=True)
+    assert np.allclose(out["dNdlnD"], pop.provided["dNdlnD"])
+    assert np.allclose(var.compute(pop), pop.provided["dNdlnD"])
+
+
+def test_dnd_interp_conservatively_remaps():
+    pop = _ProvidedPopulation([1e-7], [1e-7], [1.0])
+    cfg = {
+        "method": "interp",
+        "edges": [1e-8, 1e-7, 1.1e-6],
+    }
+    var = dnd_mod.build(cfg)
+    dens = var.compute(pop)
+    assert dens.shape[0] == len(cfg["edges"]) - 1

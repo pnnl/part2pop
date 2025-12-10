@@ -1,3 +1,7 @@
+import importlib
+import pkgutil
+from types import SimpleNamespace
+
 import pytest
 
 import part2pop.analysis.population.factory.registry as reg
@@ -79,3 +83,25 @@ def test_get_population_builder_unknown(monkeypatch):
     monkeypatch.setattr(reg, "_DISCOVERED", True)
     with pytest.raises(reg.UnknownVariableError):
         reg.get_population_builder("missing")
+
+
+def test_discover_registers_builders(monkeypatch):
+    monkeypatch.setattr(reg, "_REGISTRY", {})
+    monkeypatch.setattr(reg, "_ALIASES", {})
+    monkeypatch.setattr(reg, "_DISCOVERED", False)
+    monkeypatch.setattr(pkgutil, "iter_modules", lambda paths: [(None, "dummy", False)])
+
+    module = SimpleNamespace(build=lambda cfg=None: SimpleNamespace(cfg=cfg))
+    monkeypatch.setattr(importlib, "import_module", lambda name: module)
+    reg._discover()
+
+    assert "dummy" in reg._REGISTRY
+
+
+def test_unknown_variable_suggestions_with_discovery(monkeypatch):
+    monkeypatch.setattr(reg, "_REGISTRY", {"abc": lambda cfg=None: cfg})
+    monkeypatch.setattr(reg, "_ALIASES", {})
+    monkeypatch.setattr(reg, "_DISCOVERED", True)
+    with pytest.raises(reg.UnknownVariableError) as excinfo:
+        reg.resolve_name("abd")
+    assert "abc" in str(excinfo.value)

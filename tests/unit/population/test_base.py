@@ -2,14 +2,17 @@
 
 import numpy as np
 import pytest
+from numpy.exceptions import AxisError
 from types import SimpleNamespace
 
 from part2pop.population.base import ParticlePopulation
 from part2pop.aerosol_particle import (
     compute_Dwet,
+    compute_Sc_funsixdeg,
     compute_mass_h2o,
     effective_density,
     make_particle,
+    make_particle_from_masses,
 )
 from part2pop.species.registry import get_species
 
@@ -129,6 +132,119 @@ def test_effective_density_computes_inverse_sum():
     fracs = [0.25, 0.75]
     expected = 1.0 / (fracs[0] / 1000.0 + fracs[1] / 2000.0)
     assert np.isclose(effective_density(fracs, specs), expected)
+
+
+def _build_population_from_particle(particle):
+    spec_masses = np.atleast_2d(particle.masses)
+    return ParticlePopulation(
+        species=particle.species,
+        spec_masses=spec_masses.copy(),
+        num_concs=np.array([1.0]),
+        ids=[1],
+    )
+
+
+def test_population_species_idx_and_mass_conc():
+    particle = make_particle(1e-6, ["BC"], [1.0])
+    pop = _build_population_from_particle(particle)
+    idx = pop.get_species_idx("BC")
+    assert int(idx) == idx
+    assert pop.get_mass_conc("BC") > 0.0
+
+
+def test_equilibrate_h2o_updates_mass():
+    particle = _make_simple_particle()
+    pop = _build_population_from_particle(particle)
+    idx_h2o = pop.get_species_idx("H2O")
+    assert pop.spec_masses[0, idx_h2o] == 0.0
+    pop._equilibrate_h2o(0.8, 298.15)
+    assert pop.spec_masses[0, idx_h2o] > 0.0
+
+
+def test_get_num_dist_1d_rejects_unknown_methods():
+    particle = _make_simple_particle()
+    pop = _build_population_from_particle(particle)
+    with pytest.raises(NotImplementedError):
+        pop.get_num_dist_1d(method="unknown")
+
+
+def test_tot_dry_mass_and_reduce_mixing_state():
+    particle = make_particle(1e-6, ["BC", "SO4"], [0.5, 0.5])
+    pop = _build_population_from_particle(particle)
+    total_mass = pop.get_tot_mass()
+    dry_mass = pop.get_tot_dry_mass()
+    assert np.isclose(dry_mass, total_mass - pop.spec_masses[0, pop.get_species_idx("H2O")])
+    spec_masses = np.vstack([particle.masses, particle.masses])
+    multi = ParticlePopulation(
+        species=particle.species,
+        spec_masses=spec_masses.copy(),
+        num_concs=np.array([1.0, 1.0]),
+        ids=[1, 2],
+    )
+    with pytest.raises(AxisError):
+        multi.reduce_mixing_state(mixing_state="MAM4sameDryMass", RH=0.5, T=290.0)
+def test_particle_equilibration_updates_h2o_mass():
+    particle = _make_simple_particle()
+    assert np.isclose(particle.get_mass_h2o(), 0.0)
+    particle._equilibrate_h2o(RH=0.8, T=298.15)
+    assert particle.get_mass_h2o() > 0.0
+
+
+def test_particle_variable_helpers_return_expected_values():
+    particle = _make_simple_particle()
+    wet = particle.get_variable("wet_diameter", 0.5, 300.0)
+    assert wet >= particle.get_Ddry()
+    assert np.isclose(particle.get_variable("dry_diameter"), particle.get_Ddry())
+    assert np.isclose(particle.get_variable("tkappa"), particle.get_tkappa())
+
+
+def test_particle_spec_accessors_and_moles():
+    particle = _make_simple_particle()
+    original = float(particle.get_spec_mass("SO4"))
+    particle.set_spec_mass("SO4", original * 2)
+    assert np.isclose(float(particle.get_spec_mass("SO4")[0]), original * 2)
+    assert particle.get_spec_moles("SO4") > 0.0
+    assert particle.get_spec_vol("SO4") > 0.0
+    assert particle.get_spec_rho("SO4") > 0.0
+
+
+def test_particle_tkappa_shell_and_density():
+    particle = make_particle(1e-6, ["BC", "SO4"], [0.5, 0.5])
+    assert particle.get_tkappa() > 0.0
+    assert particle.get_shell_tkappa() > 0.0
+    assert particle.get_trho() > 0.0
+
+
+def test_critical_supersaturation_branches_for_high_and_low_kappa():
+    stiff = _make_simple_particle()
+    s_high = stiff.get_critical_supersaturation(T=295.0)
+    assert s_high > 0.0
+
+    hydrophobic = make_particle(1e-6, ["OC"], [1.0])
+    s_low, dcrit = hydrophobic.get_critical_supersaturation(T=280.0, return_D_crit=True)
+    assert s_low >= 0.0
+    assert dcrit > hydrophobic.get_Ddry()
+
+
+def test_compute_dwet_returns_larger_diameter_for_hygroscopic_particle():
+    dwet = compute_Dwet(1e-6, kappa=0.4, RH=0.8, T=298.15)
+    assert dwet > 1e-6
+
+
+def test_compute_sc_function_matches_formula():
+    value = compute_Sc_funsixdeg(1e-6, 1.0, 0.2, 0.8e-6)
+    c6 = 1.0
+    c4 = -(3.0 * (0.8e-6**3) * 0.2 / 1.0)
+    c3 = -(2.0 - 0.2) * (0.8e-6**3)
+    c0 = (0.8e-6**6) * (1.0 - 0.2)
+    expected = c6 * (1e-6**6) + c4 * (1e-6**4) + c3 * (1e-6**3) + c0
+    assert np.isclose(value, expected)
+
+
+def test_make_particle_from_masses_preserves_species_order():
+    particle = make_particle_from_masses(["SO4", "BC"], [1e-15, 2e-15])
+    names = [spec.name for spec in particle.species]
+    assert names == ["SO4", "BC"]
 
 
 # ---------------------------------------------------------------------------
