@@ -58,3 +58,41 @@ def test_get_variable_class_bubbles_instantiation_error(monkeypatch):
 
     with pytest.raises(RuntimeError):
         gr.get_variable_class("bad")
+
+
+def test_list_registered_variables_produces_mapping(monkeypatch):
+    monkeypatch.setattr(
+        gr,
+        "FAMILY_DISCOVERY_FUNCS",
+        {
+            "PopulationVariable": lambda: {"foo.population": lambda cfg=None: cfg},
+            "ParticleVariable": lambda: {"bar.particle": lambda cfg=None: cfg},
+        },
+        raising=False,
+    )
+    mapping = gr.list_registered_variables()
+    assert mapping["foo.population"] == "PopulationVariable"
+    assert mapping["bar.particle"] == "ParticleVariable"
+
+
+def test_family_suffix_inference_from_full_name(monkeypatch):
+    monkeypatch.setattr(gr, "DEFAULT_VARIABLE_FAMILIES", {}, raising=False)
+    builder = lambda cfg=None: SimpleNamespace(cfg=cfg)
+    monkeypatch.setattr(
+        gr,
+        "FAMILY_DISCOVERY_FUNCS",
+        {"PopulationVariable": lambda: {"foo.population": builder}},
+        raising=False,
+    )
+    result = gr.get_variable_builder("foo.population")
+    assert result is builder
+
+
+def test_build_full_variable_name_with_existing_suffix():
+    assert gr.build_full_variable_name("foo.population", "PopulationVariable") == "foo.population"
+
+
+def test_get_variable_builder_unknown_family_raises(monkeypatch):
+    monkeypatch.setattr(gr, "DEFAULT_VARIABLE_FAMILIES", {}, raising=False)
+    with pytest.raises(ValueError):
+        gr.get_variable_builder("missing")

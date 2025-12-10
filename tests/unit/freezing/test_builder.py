@@ -3,6 +3,10 @@
 import numpy as np
 import pytest
 
+from part2pop.aerosol_particle import make_particle
+from part2pop.freezing.factory import registry as freezing_registry
+from part2pop.freezing.factory.utils import calculate_Psat
+from part2pop.population.base import ParticlePopulation
 from part2pop.population.builder import build_population
 import part2pop.freezing.builder as fb
 from part2pop.freezing.builder import (
@@ -107,3 +111,69 @@ def test_build_freezing_population_unknown_units(monkeypatch):
     base = type("P", (), {"ids": [1], "get_particle": lambda self, pid: "p"})()
     with pytest.raises(ValueError):
         fb.build_freezing_population(base, {"T_units": "X"})
+
+
+def test_calculate_psat_helpers_increase_with_temperature():
+    low_wv, low_ice = calculate_Psat(260.0)
+    high_wv, high_ice = calculate_Psat(280.0)
+    assert high_wv > low_wv
+    assert high_ice > low_ice
+
+
+def test_calculate_psat_returns_positive_values():
+    psat_wv, psat_ice = calculate_Psat(270.0)
+    assert psat_wv > 0.0
+    assert psat_ice > 0.0
+
+
+class _FakeFreezingParticle:
+    def __init__(self, *args, **kwargs):
+        self._jhet = np.array([1.0])
+        self.INSA = np.array([1.0])
+
+    def get_Jhet(self, T):
+        return self._jhet
+
+
+def _build_base_population():
+    particle = make_particle(1e-6, ["SO4"], [1.0])
+    return ParticlePopulation(
+        species=particle.species,
+        spec_masses=np.asarray([particle.masses]),
+        num_concs=np.asarray([1.0]),
+        ids=[3],
+    )
+
+
+def test_freezing_particle_builder_requires_morphology():
+    with pytest.raises(ValueError):
+        fb.FreezingParticleBuilder({}).build(_FakeFreezingParticle())
+
+
+def test_freezing_particle_builder_unknown_type(monkeypatch):
+    monkeypatch.setattr(freezing_registry, "discover_morphology_types", lambda: {})
+    builder = fb.FreezingParticleBuilder({"morphology": "missing"})
+    with pytest.raises(ValueError):
+        builder.build(_FakeFreezingParticle())
+
+
+def test_build_freezing_population_runs_for_C_and_K(monkeypatch):
+    monkeypatch.setattr(
+        fb,
+        "discover_morphology_types",
+        lambda: {"stub": lambda base, cfg: _FakeFreezingParticle()},
+    )
+    base = _build_base_population()
+    cfg = {"morphology": "stub", "T_grid": [270.0], "T_units": "C"}
+    pop_c = fb.build_freezing_population(base, cfg)
+    assert hasattr(pop_c, "Jhet")
+
+    cfg["T_units"] = "K"
+    pop_k = fb.build_freezing_population(base, cfg)
+    assert hasattr(pop_k, "Jhet")
+
+
+def test_build_freezing_population_bad_units():
+    base = _build_base_population()
+    with pytest.raises(ValueError):
+        fb.build_freezing_population(base, {"morphology": "stub", "T_units": "M"})

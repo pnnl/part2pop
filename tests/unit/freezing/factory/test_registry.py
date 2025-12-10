@@ -1,11 +1,49 @@
 # tests/unit/freezing/factory/test_registry.py
 
-from part2pop.freezing.factory.registry import discover_morphology_types
+import pkgutil
+from types import SimpleNamespace
+
+import pytest
+
+from part2pop.freezing.factory import registry as freezing_registry
 
 
 def test_discover_morphology_types_returns_callables():
-    morphs = discover_morphology_types()
+    morphs = freezing_registry.discover_morphology_types()
     assert isinstance(morphs, dict)
     assert len(morphs) > 0
     for name, builder in morphs.items():
         assert callable(builder)
+
+
+def test_register_decorator_and_discovery(monkeypatch):
+    monkeypatch.setattr(freezing_registry, "_morphology_registry", {}, raising=False)
+    monkeypatch.setattr(
+        freezing_registry,
+        "pkgutil",
+        pkgutil,
+        raising=False,
+    )
+
+    @freezing_registry.register("dummy")
+    def builder(base, cfg):
+        return (base, cfg)
+
+    discovered = freezing_registry.discover_morphology_types()
+    assert "dummy" in discovered
+    assert callable(discovered["dummy"])
+
+
+def test_discover_skips_broken_module(monkeypatch):
+    monkeypatch.setattr(
+        freezing_registry,
+        "pkgutil",
+        SimpleNamespace(iter_modules=lambda paths: [(None, "missing", False)]),
+        raising=False,
+    )
+    monkeypatch.setattr(freezing_registry, "_morphology_registry", {}, raising=False)
+    def fail_import(full, file_path=None):
+        raise ModuleNotFoundError("wonky")
+    monkeypatch.setattr(freezing_registry, "_safe_import_module", fail_import, raising=False)
+    # Should not raise even if import fails
+    _ = freezing_registry.discover_morphology_types()
