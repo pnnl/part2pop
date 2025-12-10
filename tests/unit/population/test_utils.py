@@ -32,6 +32,63 @@ def test_mass_fraction_from_counts(monkeypatch):
     assert pytest.approx(fracs["Y"]) == 0.5
 
 
+def test_mass_fraction_from_counts_requires_positive_total(monkeypatch):
+    monkeypatch.setattr(utils, "get_species", lambda name: _FakeSpecies(molar_mass=0.0))
+
+    with pytest.raises(ValueError):
+        utils._mass_fraction_from_counts({"X": 1})
+
+
+def test_parse_formula_supports_counts_and_errors():
+    tokens = ["SO4", "Na", "Cl"]
+
+    counts = utils._parse_formula("Na2ClSO4", tokens)
+    assert counts == {"Na": 2, "Cl": 1, "SO4": 1}
+
+    with pytest.raises(ValueError):
+        utils._parse_formula("(Na2", tokens)
+
+    with pytest.raises(ValueError):
+        utils._parse_formula("Na2Cl)X", tokens)
+
+    with pytest.raises(ValueError):
+        utils._parse_formula("Unknown", tokens)
+
+
+def test_normalize_handles_zero_sum():
+    fracs = utils._normalize([0.0, 0.0, 0.0])
+    assert fracs == [0.0, 0.0, 0.0]
+
+    normalized = utils._normalize([1.0, 1.0])
+    assert normalized == [0.5, 0.5]
+
+
+def test_expand_compounds_errors_and_zero_fracs(monkeypatch):
+    monkeypatch.setattr(utils, "_read_available_species_tokens", lambda: ["Na", "Cl", "SO4"])
+    monkeypatch.setattr(
+        utils,
+        "get_species",
+        lambda name: _FakeSpecies(
+            molar_mass={"Na": 23.0, "Cl": 35.0, "SO4": 96.0}[name]
+        ),
+    )
+
+    # Length mismatch between names_list and fracs_list
+    with pytest.raises(ValueError):
+        utils.expand_compounds_for_population([["Na"]], [[0.5], [0.5]])
+
+    # Sublist length mismatch
+    with pytest.raises(ValueError):
+        utils.expand_compounds_for_population([["Na", "Cl"]], [[0.5]])
+
+    # Zero fractions are ignored; normalized result should be identical to a single entry
+    names_list = [["Na", "Cl"]]
+    fracs_list = [[0.0, 1.0]]
+    out_names, out_fracs = utils.expand_compounds_for_population(names_list, fracs_list)
+    assert out_names == [["Cl"]]
+    assert pytest.approx(out_fracs[0][0]) == 1.0
+
+
 def test_expand_compounds_for_population(monkeypatch):
     # stub available tokens and species masses
     monkeypatch.setattr(utils, "_read_available_species_tokens", lambda: ["Na", "Cl", "X"])

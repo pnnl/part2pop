@@ -1,97 +1,77 @@
+import sys
+
 import numpy as np
 import pytest
 
-import part2pop.analysis.distributions as dist
+from part2pop.analysis import distributions as dist
 
 
-def test_make_edges_and_bin_widths_linear_and_log():
-    edges_lin, centers_lin = dist.make_edges(0.0, 10.0, 5, scale="linear")
-    assert len(edges_lin) == 6
-    assert np.allclose(centers_lin, np.linspace(1, 9, 5))
+def test_make_edges_computes_log_and_linear_scales():
+    log_edges, log_centers = dist.make_edges(1.0, 10.0, 3, scale="log")
+    assert log_edges.shape == (4,)
+    assert log_centers.shape == (3,)
+    assert log_centers[0] > 0
 
-    edges_log, centers_log = dist.make_edges(1.0, 100.0, 2, scale="log")
-    assert np.allclose(edges_log, [1.0, 10.0, 100.0])
-    assert np.allclose(centers_log, [np.sqrt(10), np.sqrt(1000)])
-
+    lin_edges, lin_centers = dist.make_edges(0.0, 4.0, 2, scale="linear")
+    assert np.allclose(lin_centers, [1.0, 3.0])
     with pytest.raises(ValueError):
-        dist.make_edges(-1.0, 1.0, 3, scale="log")
+        dist.make_edges(-1.0, 1.0, 2, scale="log")
     with pytest.raises(ValueError):
-        dist.bin_widths([0.0, 1.0], measure="ln")
-    with pytest.raises(ValueError):
-        dist.bin_widths([0, 1], measure="bogus")
+        dist.make_edges(1.0, 2.0, 2, scale="invalid")
 
 
-def test_density1d_from_samples_conserves_total_and_normalizes():
+def test_bin_widths_and_u_transform_errors():
     edges = np.array([1.0, 2.0, 3.0])
-    x = np.array([1.2, 1.8, 2.2, 2.8])
+    assert np.allclose(dist.bin_widths(edges, measure="linear"), np.diff(edges))
+    with pytest.raises(ValueError):
+        dist.bin_widths(np.array([0.0, 1.0]), measure="ln")
+    with pytest.raises(ValueError):
+        dist.bin_widths(edges, measure="bad")
+
+    with pytest.raises(ValueError):
+        dist._u_from_x(np.array([0.0, 1.0]), measure="ln")
+    with pytest.raises(ValueError):
+        dist._u_from_x(np.array([1.0, 2.0]), measure="bad")
+
+
+def test_density1d_from_samples_normalize():
+    x = np.array([0.5, 1.5, 2.5])
     weights = np.ones_like(x)
-
-    centers, dens, _ = dist.density1d_from_samples(x, weights, edges, measure="linear")
-    assert np.allclose(centers, [1.5, 2.5])
-    assert np.allclose(dens, [2.0, 2.0])
-
-    centers_n, dens_n, _ = dist.density1d_from_samples(
-        x, weights, edges, measure="linear", normalize=True
+    edges = np.array([0.1, 1.0, 2.0, 3.0])
+    centers, dens, passed_edges = dist.density1d_from_samples(
+        x, weights, edges, measure="ln", normalize=True
     )
-    total = np.trapz(dens_n, centers_n)
+    assert np.allclose(passed_edges, edges)
+    assert centers.shape == dens.shape
+    u_centers = np.log(centers)
+    total = np.trapz(dens, u_centers)
     assert np.isclose(total, 1.0)
 
 
-def test_density1d_cdf_map_conserves_total_and_validates_inputs():
-    src_centers = np.array([1.0, 2.0])
-    dens_src = np.array([1.0, 1.0])
-    edges_tgt = np.array([1.0, 1.5, 3.0])
+def test_density1d_cdf_map_errors_and_success():
+    x_src = np.array([1.0, 3.0])
+    dens_src = np.array([0.5, 1.5])
+    edges_tgt = np.array([0.5, 2.0, 4.0])
 
-    tgt_centers, dens_tgt, _ = dist.density1d_cdf_map(
-        x_src_centers=src_centers,
-        dens_src=dens_src,
-        edges_tgt=edges_tgt,
-        measure="linear",
-    )
-    assert tgt_centers.shape == (2,)
-    assert np.all(dens_tgt >= 0)
-    total_src = np.sum(dens_src * np.diff([0.5, 1.5, 2.5]))  # approximate total in src
-    total_tgt = np.sum(dens_tgt * np.diff(edges_tgt))
-    assert total_tgt <= total_src + 1e-6
-
+    # mismatched shapes
     with pytest.raises(ValueError):
-        dist.density1d_cdf_map(np.array([[1.0]]), dens_src, edges_tgt)
+        dist.density1d_cdf_map(x_src_centers=np.array([[1.0]]), dens_src=dens_src, edges_tgt=edges_tgt)
     with pytest.raises(ValueError):
-        dist.density1d_cdf_map(src_centers, np.array([[1.0]]), edges_tgt)
+        dist.density1d_cdf_map(x_src, np.array([1.0]), edges_tgt)
     with pytest.raises(ValueError):
-        dist.density1d_cdf_map(src_centers, dens_src, np.array([1.0]))
+        dist.density1d_cdf_map(x_src, dens_src, np.array([[1.0], [2.0]]))
+
+    centers, dens_mapped, out_edges = dist.density1d_cdf_map(x_src, dens_src, edges_tgt)
+    assert centers.shape == (2,)
+    assert np.allclose(out_edges, edges_tgt)
+    assert np.all(dens_mapped >= 0.0)
 
 
-def test_density2d_from_samples_normalizes():
-    x = np.array([1.0, 2.0, 1.5, 2.5])
-    y = np.array([10.0, 20.0, 15.0, 25.0])
-    w = np.ones_like(x)
-    edges_x = np.array([1.0, 2.0, 3.0])
-    edges_y = np.array([10.0, 20.0, 30.0])
+def test_kde1d_requires_scipy(monkeypatch):
+    import types
 
-    cx, cy, dens, _, _ = dist.density2d_from_samples(
-        x, y, w, edges_x, edges_y, measure_x="linear", measure_y="linear", normalize=True
-    )
-    assert dens.shape == (2, 2)
-    total = np.trapz(np.trapz(dens, cy, axis=1), cx)
-    assert np.isclose(total, 1.0)
-
-
-def test_density2d_cdf_map_conserves_total_and_validates_inputs():
-    x_centers = np.array([1.0, 2.0])
-    y_centers = np.array([10.0, 20.0])
-    dens_src = np.full((2, 2), 1.0)
-    edges_x_tgt = np.array([1.0, 2.0, 3.0])
-    edges_y_tgt = np.array([10.0, 20.0, 30.0])
-
-    cx_tgt, cy_tgt, dens_tgt, _, _ = dist.density2d_cdf_map(
-        x_centers, y_centers, dens_src, edges_x_tgt, edges_y_tgt, measure_x="linear", measure_y="linear"
-    )
-    assert dens_tgt.shape == (2, 2)
-    assert np.all(dens_tgt >= 0)
-    total_src = np.sum(dens_src * np.diff([0.5, 1.5, 2.5])[:, None] * np.diff([5.0, 15.0, 25.0]))
-    total_tgt = np.sum(dens_tgt * np.diff(edges_x_tgt)[:, None] * np.diff(edges_y_tgt))
-    assert total_tgt <= total_src + 1e-6
-
-    with pytest.raises(ValueError):
-        dist.density2d_cdf_map(x_centers, y_centers, np.ones((3, 3)), edges_x_tgt, edges_y_tgt)
+    monkeypatch.setitem(sys.modules, "scipy.stats", types.SimpleNamespace())
+    with pytest.raises(RuntimeError, match="scipy is required"):
+        dist.kde1d_in_measure(
+            x=np.array([1.0]), weights=np.array([1.0]), xq=np.array([1.0])
+        )

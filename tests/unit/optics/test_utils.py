@@ -49,3 +49,9 @@ def test_get_cross_section_array_invalid_type_raises():
     optical_pop = _make_optical_population()
     with pytest.raises(ValueError, match="Unknown optics_type"):
         get_cross_section_array_from_population(optical_pop, "not_a_real_type")
+
+
+def test_get_cross_section_array_returns_full_when_no_indices():
+    optical_pop = _make_optical_population()
+    arr = get_cross_section_array_from_population(optical_pop, "total_ext")
+    assert arr.shape == optical_pop.Cext.shape

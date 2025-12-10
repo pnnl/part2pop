@@ -1,9 +1,14 @@
 # tests/unit/population/factory/test_registry.py
 
 import pkgutil
+from types import SimpleNamespace
 
-from part2pop.population.factory import registry as factory_registry
+import pytest
+
+from part2pop.analysis.base import VariableMeta
+from part2pop.analysis.population.factory import registry as analysis_factory_registry
 from part2pop.population import factory as factory_pkg
+from part2pop.population.factory import registry as factory_registry
 
 
 def test_discover_population_types_covers_all_factory_modules():
@@ -34,3 +39,46 @@ def test_discover_population_types_covers_all_factory_modules():
     # If you ever add a factory module without a build() function, this test
     # will fail and remind you to either add build() or explicitly ignore it.
     assert module_names == discovered
+
+
+def test_describe_variable_returns_meta(monkeypatch):
+    fake_meta = VariableMeta(
+        name="tempvar",
+        axis_names=("d",),
+        description="temporary",
+        aliases=("alias",),
+        default_cfg={"foo": "bar"},
+    )
+
+    def builder(cfg=None):
+        return SimpleNamespace(meta=fake_meta)
+
+    builder.meta = fake_meta
+    monkeypatch.setattr(
+        analysis_factory_registry,
+        "get_population_builder",
+        lambda name: builder,
+        raising=False,
+    )
+
+    described = analysis_factory_registry.describe_variable("tempvar")
+    assert described["name"] == fake_meta.name
+    assert described["defaults"] == {"foo": "bar"}
+    assert "alias" in described["aliases"]
+
+
+def test_describe_variable_raises_without_meta(monkeypatch):
+    def builder(cfg=None):
+        class Dummy:
+            meta = None
+
+        return Dummy()
+
+    monkeypatch.setattr(
+        analysis_factory_registry,
+        "get_population_builder",
+        lambda name: builder,
+        raising=False,
+    )
+    with pytest.raises(analysis_factory_registry.UnknownVariableError):
+        analysis_factory_registry.describe_variable("tempvar")
