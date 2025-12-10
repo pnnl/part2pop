@@ -1,29 +1,25 @@
-name: Update README Badges
+# .github/workflows/update-readme-badge.yml
+name: Update README from Template
 
 on:
   push:
-    branches:
-      - main
-    paths:
-      - README.md.template
-      - .github/workflows/update-readme-badge.yml
+    branches: [ main ]
   workflow_dispatch:
 
-permissions:
-  contents: write
- 
 jobs:
-  update-badges:
-    if: github.actor != 'github-actions[bot]'
+  update-readme:
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: write   # IMPORTANT: allow this workflow to push
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          persist-credentials: true   # use GITHUB_TOKEN so we can push
 
-      - name: Inject badges into README
+      - name: Generate README.md from template
         run: |
           CI_BADGE="[![CI](https://github.com/${{ github.repository }}/actions/workflows/ci.yml/badge.svg)](https://github.com/${{ github.repository }}/actions/workflows/ci.yml)"
           CODECOV_BADGE="[![codecov](https://codecov.io/gh/${{ github.repository }}/branch/main/graph/badge.svg)](https://codecov.io/gh/${{ github.repository }})"
@@ -32,19 +28,17 @@ jobs:
               -e "s|<!-- CODECOV_BADGE -->|$CODECOV_BADGE|" \
               README.md.template > README.md
 
-      - name: Detect README changes
-        id: check
+      - name: Commit and push if README.md changed
         run: |
-          if git status --porcelain README.md | grep -q README.md; then
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "changed=false" >> "$GITHUB_OUTPUT"
+          # If README.md is unchanged, do nothing
+          if git diff --quiet -- README.md; then
+            echo "README.md unchanged; nothing to commit."
+            exit 0
           fi
 
-      - name: Commit and push README
-        if: steps.check.outputs.changed == 'true'
-        run: |
           git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit README.md -m "Update README badges"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add README.md
+          git commit -m "chore: auto-update README from template [skip ci]" || exit 0
           git push
