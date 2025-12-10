@@ -73,6 +73,12 @@ Homepage = "https://github.com/pnnl/part2pop"
 Repository = "https://github.com/pnnl/part2pop"
 Issues = "https://github.com/pnnl/part2pop/issues"
 
+[tool.setuptools.package-data]
+part2pop = ["data/**/*"]
+part2pop = [
+    "data/species_data/*.dat",
+    "data/species_data/*.csv",
+]
 
 [tool.setuptools]
 # src-layout: code lives in src/part2pop
@@ -80,3 +86,4 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
