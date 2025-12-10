@@ -6,6 +6,7 @@ import pytest
 from part2pop.population.builder import build_population
 from part2pop.population.base import ParticlePopulation
 from part2pop.optics.builder import (
+    OpticalParticleBuilder,
     build_optical_particle,
     build_optical_population,
 )
@@ -48,3 +49,33 @@ def test_build_optical_population_homogeneous():
     b_ext = optical_pop.get_optical_coeff("b_ext", rh=0, wvl=550e-9)
     assert np.isfinite(b_ext)
     assert b_ext >= 0.0
+
+
+def test_optical_particle_builder_raises_unknown(monkeypatch):
+    pop = _make_monodisperse_population()
+    base_particle = pop.get_particle(pop.ids[0])
+    monkeypatch.setattr(
+        "part2pop.optics.builder.discover_morphology_types", lambda: {}
+    )
+    builder = OpticalParticleBuilder({"type": "missing"})
+    with pytest.raises(ValueError, match="Unknown optics morphology type"):
+        builder.build(base_particle)
+
+
+def test_optical_particle_builder_returns_custom_type(monkeypatch):
+    pop = _make_monodisperse_population()
+    base_particle = pop.get_particle(pop.ids[0])
+
+    class CustomOptical:
+        def __init__(self, particle, cfg):
+            self.particle = particle
+            self.cfg = cfg
+
+    monkeypatch.setattr(
+        "part2pop.optics.builder.discover_morphology_types",
+        lambda: {"custom": CustomOptical},
+    )
+    builder = OpticalParticleBuilder({"type": "custom", "rh_grid": [0.0], "wvl_grid": [550e-9]})
+    result = builder.build(base_particle)
+    assert isinstance(result, CustomOptical)
+    assert result.particle is base_particle

@@ -1,8 +1,21 @@
 # tests/unit/population/factory/test_binned_lognormals.py
 
 import numpy as np
+import pytest
 
 from part2pop import build_population
+
+
+def _base_cfg():
+    return {
+        "type": "binned_lognormals",
+        "GMD": [0.07e-6],
+        "GSD": [1.6],
+        "N": [1e8],
+        "N_bins": [20],
+        "aero_spec_names": [["SO4"]],
+        "aero_spec_fracs": [[1.0]],
+    }
 
 
 def test_binned_lognormals_single_mode_total_number_and_bins():
@@ -71,3 +84,18 @@ def test_binned_lognormals_two_modes_multispecies():
 
     # Basic check: mass concentrations are non-negative
     assert np.all(pop.spec_masses >= 0.0)
+
+
+def test_requires_both_global_edges():
+    cfg = _base_cfg()
+    cfg["D_min"] = 0.01e-6
+    with pytest.raises(ValueError, match="Provide both"):
+        build_population(cfg)
+
+
+def test_rejects_invalid_global_edges():
+    cfg = _base_cfg()
+    cfg["D_min"] = 0.3e-6
+    cfg["D_max"] = 0.2e-6
+    with pytest.raises(ValueError, match="D_min and D_max must be positive"):
+        build_population(cfg)

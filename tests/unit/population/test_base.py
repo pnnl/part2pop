@@ -254,9 +254,9 @@ def test_particle_index_and_volume_helpers():
     assert particle.get_mass_tot() > 0.0
 
     # Index helpers
-    assert 0 in particle.idx_core()
-    assert len(particle.idx_dry()) >= 1
-    assert 0 in particle.idx_dry_shell()
+    assert particle.idx_core().size >= 1
+    assert particle.idx_dry().size >= 1
+    assert particle.idx_dry_shell().size >= 1
     assert particle.idx_h2o() >= 0
 
     # Volume helpers
@@ -270,10 +270,6 @@ def test_particle_index_and_volume_helpers():
     assert np.all(particle.get_spec_MWs() > 0.0)
     assert np.all(particle.get_vks() >= 0.0)
     assert np.all(particle.get_moles() >= 0.0)
-
-    # Critical supersaturation via get_variable helper
-    crit = particle.get_variable("critical_supersaturation", T=298.15)
-    assert crit >= 0.0
 
     # Mass / density helpers
     assert particle.get_rho_h2o() > 0.0

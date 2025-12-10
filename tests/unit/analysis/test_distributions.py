@@ -152,3 +152,29 @@ def test_kde1d_in_measure_normalizes_with_scipy():
     assert np.isfinite(dens).all()
     total = np.trapz(dens, np.log(xq))
     assert np.isclose(total, 1.0, atol=1e-2)
+
+
+def test_u_from_x_linear_passes_through():
+    arr = np.array([1.2, 2.3, 4.5])
+    result = dist._u_from_x(arr, measure="linear")
+    assert np.allclose(arr, result)
+
+
+def test_density1d_cdf_map_handles_single_bin():
+    centers = np.array([2.0])
+    dens = np.array([1.0])
+    edges = np.array([1.0, 3.0])
+    cx, dens_out, out_edges = dist.density1d_cdf_map(centers, dens, edges, measure="linear")
+    assert cx.size == edges.size - 1
+    assert np.allclose(out_edges, edges)
+    assert np.all(dens_out >= 0.0)
+
+
+def test_density1d_from_samples_linear_measure_no_normalize():
+    x = np.array([0.5, 1.0, 1.5])
+    weights = np.ones_like(x)
+    edges = np.array([0.1, 1.0, 2.0])
+    centers, dens, _ = dist.density1d_from_samples(x, weights, edges, measure="linear", normalize=False)
+    expected_centers = 0.5 * (edges[:-1] + edges[1:])
+    assert np.allclose(centers, expected_centers)
+    assert np.all(dens >= 0.0)

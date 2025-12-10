@@ -98,6 +98,60 @@ def test_discover_registers_builders(monkeypatch):
     assert "dummy" in reg._REGISTRY
 
 
+def test_describe_variable_uses_instance_meta(monkeypatch):
+    _reset_registry(monkeypatch)
+
+    class Instance:
+        meta = SimpleNamespace(
+            name="inst",
+            axis_names=("a",),
+            description="desc",
+            aliases=[],
+            default_cfg={"c": 3},
+            units={},
+        )
+
+    def builder(cfg=None):
+        return Instance()
+
+    reg._REGISTRY["inst"] = builder
+    info = reg.describe_variable("inst")
+    assert info["name"] == "inst"
+    assert info["defaults"] == {"c": 3}
+
+
+def test_discover_uses_spec_loader_on_import_failure(monkeypatch):
+    monkeypatch.setattr(reg, "_REGISTRY", {})
+    monkeypatch.setattr(reg, "_ALIASES", {})
+    monkeypatch.setattr(reg, "_DISCOVERED", False)
+    monkeypatch.setattr(pkgutil, "iter_modules", lambda paths: [(None, "spec", False)])
+
+    def fake_import(name):
+        raise ModuleNotFoundError("boom")
+
+    class FakeLoader:
+        def exec_module(self, module):
+            module.build = lambda cfg=None: SimpleNamespace(cfg=cfg)
+
+    dummy_spec = SimpleNamespace(loader=FakeLoader())
+    dummy_module = SimpleNamespace()
+
+    monkeypatch.setattr(importlib, "import_module", fake_import)
+    monkeypatch.setattr(
+        importlib.util,
+        "spec_from_file_location",
+        lambda fullname, file_path=None: dummy_spec,
+    )
+    monkeypatch.setattr(
+        importlib.util,
+        "module_from_spec",
+        lambda spec: dummy_module,
+    )
+
+    reg._discover()
+    assert "spec" in reg._REGISTRY
+
+
 def test_unknown_variable_suggestions_with_discovery(monkeypatch):
     monkeypatch.setattr(reg, "_REGISTRY", {"abc": lambda cfg=None: cfg})
     monkeypatch.setattr(reg, "_ALIASES", {})

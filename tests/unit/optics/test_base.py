@@ -130,6 +130,8 @@ def test_optical_population_select_indices_and_safe_indexing():
     arr = np.arange(4).reshape(2, 2)
     assert np.array_equal(pop._safe_index_2d(arr, slice(None), slice(None)), arr)
     assert np.array_equal(pop._safe_index_2d(arr, [0], [1]), arr[[0]][:, [1]])
+    seq = pop._safe_index_2d(arr, [0, 1], [0, 1])
+    assert seq.shape == (2, 2)
 
 
 def test_optical_population_add_and_coefficients():

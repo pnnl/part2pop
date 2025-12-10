@@ -108,3 +108,38 @@ def test_state_line_scalar_outputs_currently_error(monkeypatch):
     plotter = StateLinePlotter({"varname": "Nccn"})
     with pytest.raises(TypeError):
         plotter.prep(population)
+
+
+def test_state_line_discerns_wavelength_axis(monkeypatch):
+    population = {
+        "b_abs": np.array([1.0, 2.0]),
+        "wvl_grid": np.array([550.0, 650.0]),
+        "rh_grid": np.array([0.5]),
+    }
+    monkeypatch.setattr(state_line, "build_variable", _stub_build_variable(population))
+
+    plotter = StateLinePlotter({"varname": "b_abs", "var_cfg": {"wvl_grid": population["wvl_grid"], "rh_grid": population["rh_grid"]}})
+    prepared = plotter.prep(population)
+    assert np.array_equal(prepared["x"], population["wvl_grid"])
+    assert prepared["x"] is not None
+
+
+def test_state_line_supports_temperature_axes(monkeypatch):
+    population = {
+        "avg_Jhet": np.array([0.1, 0.2, 0.3]),
+        "T_grid": np.array([280.0, 290.0, 300.0]),
+    }
+    monkeypatch.setattr(state_line, "build_variable", _stub_build_variable(population))
+
+    plotter = StateLinePlotter({"varname": "avg_Jhet", "var_cfg": {}})
+    prepared = plotter.prep(population)
+    assert np.array_equal(prepared["x"], population["T_grid"])
+    assert prepared["ylabel"] == "avg_Jhet [u]"
+
+
+def test_state_line_rejects_unsupported_variable(monkeypatch):
+    population = {"unknown": np.array([0.1])}
+    monkeypatch.setattr(state_line, "build_variable", _stub_build_variable(population))
+    plotter = StateLinePlotter({"varname": "unknown"})
+    with pytest.raises(ValueError):
+        plotter.prep(population)

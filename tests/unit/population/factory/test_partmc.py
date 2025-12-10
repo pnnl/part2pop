@@ -7,7 +7,11 @@ from pathlib import Path
 # Try importing PARTMC factory & netCDF4; if unavailable, skip the tests.
 try:
     import netCDF4  # noqa: F401
-    from part2pop.population.factory.partmc import build as build_partmc
+    from part2pop.population.factory.partmc import (
+        build as build_partmc,
+        map_camp_specs,
+        get_ncfile,
+    )
     HAS_NETCDF4 = True
 except Exception:
     HAS_NETCDF4 = False
@@ -119,3 +123,23 @@ def test_partmc_build_real_data_rescales_to_requested_Ntot(monkeypatch):
 
         assert masses_pop.shape == masses_raw.shape
         assert np.allclose(masses_pop, masses_raw, rtol=0, atol=1e-14)
+
+
+def test_map_camp_specs_returns_suffixes():
+    names = ["abc.def", "ghi"]
+    assert map_camp_specs(names) == ["def", "ghi"]
+
+
+def test_get_ncfile_requires_existing_directory(tmp_path):
+    missing_dir = tmp_path / "out"
+    with pytest.raises(FileNotFoundError):
+        get_ncfile(missing_dir, timestep=1, repeat=1)
+
+
+def test_get_ncfile_detects_known_prefix(tmp_path):
+    out_dir = tmp_path / "out"
+    out_dir.mkdir(parents=True)
+    file_path = out_dir / "urban_plume_0001_00000001.nc"
+    file_path.write_text("data")
+    result = get_ncfile(out_dir, timestep=1, repeat=1)
+    assert result.name == "urban_plume_0001_00000001.nc"

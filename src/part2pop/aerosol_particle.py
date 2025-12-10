@@ -160,7 +160,7 @@ class Particle:
         return rhos[idx[0]]
             
     def get_rho_h2o(self):
-        return self.species[self.idx_h2o].density
+        return self.species[self.idx_h2o()].density
     
     def get_mass_h2o(self):
         return self.masses[self.idx_h2o()]

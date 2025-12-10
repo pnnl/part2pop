@@ -136,6 +136,42 @@ def test_discover_particle_handles_discovery_exceptions(monkeypatch):
     assert "bar.particle" in mapping
 
 
+def test_discover_population_success(monkeypatch):
+    builder = lambda cfg=None: SimpleNamespace(name="foo")
+    monkeypatch.setattr(population_registry, "_discover", lambda: None, raising=False)
+    monkeypatch.setattr(population_registry, "list_variables", lambda: ["foo"], raising=False)
+    monkeypatch.setattr(population_registry, "get_builder", lambda name: builder, raising=False)
+    mapping = gr._discover_population_variable_types()
+    assert mapping["foo.population"] is builder
+
+
+def test_discover_particle_success(monkeypatch):
+    builder = lambda cfg=None: SimpleNamespace(name="bar")
+    monkeypatch.setattr(particle_registry, "_discover_particle_factories", lambda: None, raising=False)
+    monkeypatch.setattr(particle_registry, "list_particle_variables", lambda: ["bar"], raising=False)
+    monkeypatch.setattr(
+        particle_registry,
+        "get_particle_builder",
+        lambda name: builder,
+        raising=False,
+    )
+    mapping = gr._discover_particle_variable_types()
+    assert mapping["bar.particle"] is builder
+
+
+def test_get_variable_builder_with_config_family(monkeypatch):
+    builder = lambda cfg=None: SimpleNamespace(cfg=cfg)
+    monkeypatch.setattr(
+        gr,
+        "FAMILY_DISCOVERY_FUNCS",
+        {"PopulationVariable": lambda: {"foo.population": builder}},
+        raising=False,
+    )
+    monkeypatch.setattr(gr, "DEFAULT_VARIABLE_FAMILIES", {}, raising=False)
+    result = gr.get_variable_builder("foo", config={"family": "PopulationVariable"})
+    assert result is builder
+
+
 def test_get_variable_builder_unknown_family(monkeypatch):
     monkeypatch.setattr(
         gr,

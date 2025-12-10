@@ -84,3 +84,48 @@ def test_describe_particle_variable(monkeypatch):
 
     with pytest.raises(reg.UnknownParticleVariableError):
         reg.describe_particle_variable("missing")
+
+
+def test_describe_particle_variable_uses_instance_meta(monkeypatch):
+    _reset_registry(monkeypatch)
+
+    class Instance:
+        meta = SimpleNamespace(
+            name="inst_meta",
+            axis_names=("y",),
+            description="desc",
+            aliases=[],
+            default_cfg={"b": 2},
+            units=None,
+        )
+
+    def builder(cfg=None):
+        return Instance()
+
+    reg._PARTICLE_REG["inst_meta"] = builder
+    info = reg.describe_particle_variable("inst_meta")
+    assert info["name"] == "inst_meta"
+    assert info["defaults"] == {"b": 2}
+
+
+def test_discover_particle_factories_handles_import_fail(monkeypatch):
+    _reset_registry(monkeypatch)
+    monkeypatch.setattr(pkgutil, "iter_modules", lambda paths: [(None, "fallback", False)])
+    # Fail the normal import, force fallback via spec loader
+    monkeypatch.setattr(importlib, "import_module", lambda name: (_ for _ in ()).throw(ImportError("boom")))
+
+    class FakeLoader:
+        def exec_module(self, module):
+            module.build = lambda cfg=None: SimpleNamespace(cfg=cfg)
+
+    fake_spec = SimpleNamespace(loader=FakeLoader())
+    monkeypatch.setattr(
+        importlib.util,
+        "spec_from_file_location",
+        lambda fullname, file_path: fake_spec,
+    )
+    module_holder = SimpleNamespace()
+    monkeypatch.setattr(importlib.util, "module_from_spec", lambda spec: module_holder)
+
+    reg._discover_particle_factories()
+    assert "fallback" in reg._PARTICLE_REG
