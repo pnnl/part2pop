@@ -1,15 +1,27 @@
 name: Update README Badges
 
 on:
-  workflow_dispatch:   # ← Manual trigger only (prevents CI from modifying main automatically)
+  push:
+    branches:
+      - main
+    paths:
+      - README.md.template
+      - .github/workflows/update-readme-badge.yml
+  workflow_dispatch:
 
+permissions:
+  contents: write
+ 
 jobs:
   update-badges:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Inject badges into README
         run: |
@@ -19,3 +31,20 @@ jobs:
           sed -e "s|<!-- CI_BADGE -->|$CI_BADGE|" \
               -e "s|<!-- CODECOV_BADGE -->|$CODECOV_BADGE|" \
               README.md.template > README.md
+
+      - name: Detect README changes
+        id: check
+        run: |
+          if git status --porcelain README.md | grep -q README.md; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit and push README
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit README.md -m "Update README badges"
+          git push
