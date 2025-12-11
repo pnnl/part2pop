@@ -101,8 +101,9 @@ plot_cfg = {
     "var_cfg": {"morphology":"core-shell", "wvl_grid": np.linspace(350e-9,1050e-9,29), "rh_grid": [0.]}
 }
 
+fig, ax = plt.subplots()
 plotter = build_plotter("state_line", cfg)
-plotter.plot(pop, ax, label=s["label"])
+plotter.plot(pop, ax)
 
 ```
 
