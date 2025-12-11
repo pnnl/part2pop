@@ -98,6 +98,52 @@ def test_particle_population_total_number_concentration():
     assert np.isclose(N_tot, 3e8)
 
 
+def test_find_particle_returns_next_index_for_unknown():
+    pop = _empty_population()
+    particle = _make_simple_particle()
+    pop.set_particle(particle, part_id=1, num_conc=1e8)
+    assert pop.find_particle(2) == len(pop.ids)
+
+
+def test_get_particle_raises_for_missing_id():
+    pop = _empty_population()
+    with pytest.raises(ValueError):
+        pop.get_particle(99)
+
+
+def test_set_particle_warns_when_adding_new_id():
+    pop = _empty_population()
+    particle = _make_simple_particle()
+    with pytest.warns(UserWarning, match="adding"):
+        pop.set_particle(particle, part_id=5, num_conc=2e8, suppress_warning=False)
+    assert 5 in pop.ids
+    assert np.isclose(pop.num_concs[-1], 2e8)
+
+
+def test_add_particle_appends_to_population():
+    pop = _empty_population()
+    p1 = _make_simple_particle()
+    pop.add_particle(p1, part_id=1, num_conc=1e8)
+    p2 = _make_simple_particle()
+    pop.add_particle(p2, part_id=2, num_conc=2e8)
+    assert len(pop.ids) == 2
+    assert np.isclose(pop.num_concs[-1], 2e8)
+    assert pop.spec_masses.shape[0] == 2
+
+
+def test_get_tot_dry_mass_without_h2o_equals_total():
+    dry_species = (get_species("BC"), get_species("SO4"))
+    spec_masses = np.array([[1e-15, 2e-15]])
+    num_concs = np.array([1e6])
+    pop = ParticlePopulation(
+        species=dry_species,
+        spec_masses=spec_masses,
+        num_concs=num_concs,
+        ids=[1],
+    )
+    assert np.isclose(pop.get_tot_dry_mass(), pop.get_tot_mass())
+
+
 def test_make_particle_requires_fraction_sum():
     with pytest.raises(ValueError):
         make_particle(1e-6, ["SO4"], [0.5])

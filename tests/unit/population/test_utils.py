@@ -113,6 +113,55 @@ def test_expand_compounds_for_population(monkeypatch):
     assert merged["X"] > 0
 
 
+def test_read_available_species_tokens_includes_real_species(monkeypatch):
+    fake_data = "\n".join(
+        ["# header", "ABC 0 0 0 0", "Z 0 0 0 0", "LONGTOKEN 0 0 0 0"]
+    )
+    monkeypatch.setattr(
+        utils,
+        "open_dataset",
+        lambda _: io.StringIO(fake_data),
+    )
+    tokens = utils._read_available_species_tokens()
+    assert tokens[0] == "LONGTOKEN"
+    assert "ABC" in tokens
+    assert "Z" in tokens
+    assert all(len(tokens[i]) >= len(tokens[i + 1]) for i in range(len(tokens) - 1))
+
+
+def test_expand_compounds_merges_known_tokens(monkeypatch):
+    monkeypatch.setattr(utils, "_read_available_species_tokens", lambda: ["BC"])
+    out_names, out_fracs = utils.expand_compounds_for_population(
+        [["BC", "BC"]], [[0.2, 0.8]]
+    )
+    assert out_names == [["BC"]]
+    assert pytest.approx(out_fracs[0][0]) == pytest.approx(1.0)
+
+
+def test_expand_compounds_handles_multiple_modes(monkeypatch):
+    tokens = ["Na", "Cl", "BC"]
+    monkeypatch.setattr(utils, "_read_available_species_tokens", lambda: tokens)
+    mass_lookup = {"Na": 23.0, "Cl": 35.0, "BC": 1.0}
+
+    def fake_get_species(name):
+        return _FakeSpecies(molar_mass=mass_lookup[name])
+
+    monkeypatch.setattr(utils, "get_species", fake_get_species)
+
+    names_list = [["NaCl", "BC"], ["BC"]]
+    fracs_list = [[0.7, 0.3], [1.0]]
+
+    out_names, out_fracs = utils.expand_compounds_for_population(
+        names_list, fracs_list
+    )
+
+    assert out_names[1] == ["BC"]
+    assert pytest.approx(out_fracs[1][0]) == 1.0
+
+    mode_one = dict(zip(out_names[0], out_fracs[0]))
+    assert set(mode_one) == {"Na", "Cl", "BC"}
+    assert pytest.approx(mode_one["BC"]) == 0.3
+
 def test_read_available_species_tokens(monkeypatch):
     fake_data = "\n".join(
         [
