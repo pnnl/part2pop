@@ -1,1 +1,35 @@
+# -------------------------------------------
+# Always keep the local version of README.md
+# -------------------------------------------
 README.md merge=ours
+
+# -------------------------------------------
+# Recommended defaults for code repositories
+# -------------------------------------------
+
+# Auto-detect text files, ensure consistent line endings
+* text=auto
+
+# Treat Markdown explicitly as text (prevents accidental binary classification)
+*.md text
+
+# Normalize shell scripts / python / config files
+*.sh text eol=lf
+*.py text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.toml text eol=lf
+
+# Treat images as binary (no merges)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.svg binary
+
+# Allow GitHub linguist to correctly classify vendored/generated files if needed
+# (Uncomment as needed)
+# docs/* linguist-documentation
+# src/**/*.c linguist-vendored
+
