@@ -148,6 +148,32 @@ def test_optical_population_add_and_coefficients():
         pop.get_optical_coeff("unknown")
 
 
+def test_optical_particle_cross_section_variants_included():
+    pop = _make_monodisperse_population()
+    rh_grid = [0.0]
+    wvl_grid = [550e-9]
+    cfg = {"rh_grid": rh_grid, "wvl_grid": wvl_grid}
+    base_particle = pop.get_particle(pop.ids[0])
+    opt_part = DummyOpticalParticle(base_particle, cfg)
+    opt_part.Cabs_bc = np.ones_like(opt_part.Cabs) * 0.5
+    optical_pop = OpticalPopulation(pop, rh_grid, wvl_grid)
+    optical_pop.add_optical_particle(opt_part, pop.ids[0])
+    cross_sections = opt_part.get_cross_sections()
+    assert "Cabs_bc" in cross_sections
+    assert cross_sections["Cabs_bc"].shape == opt_part.Cabs_bc.shape
+
+
+def test_optical_particle_get_cross_section_invalid_type(monkeypatch):
+    pop = _make_monodisperse_population()
+    rh_grid = [0.0]
+    wvl_grid = [550e-9]
+    cfg = {"rh_grid": rh_grid, "wvl_grid": wvl_grid}
+    base_particle = pop.get_particle(pop.ids[0])
+    opt_part = DummyOpticalParticle(base_particle, cfg)
+    with pytest.raises(ValueError):
+        opt_part.get_cross_section("unknown_type")
+
+
 def test_compute_effective_kappas_runs():
     base_pop = _simple_population()
     pop = OpticalPopulation(base_pop, rh_grid=[0.0], wvl_grid=[550e-9])

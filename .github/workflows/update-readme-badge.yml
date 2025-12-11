@@ -11,18 +11,18 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: write   # IMPORTANT: allow this workflow to push
+      contents: write
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
-          persist-credentials: true   # use GITHUB_TOKEN so we can push
+          persist-credentials: true
 
       - name: Generate README.md from template
         run: |
           CI_BADGE="[![CI](https://github.com/${{ github.repository }}/actions/workflows/ci.yml/badge.svg)](https://github.com/${{ github.repository }}/actions/workflows/ci.yml)"
-          CODECOV_BADGE="[![codecov](https://codecov.io/gh/${{ github.repository }}/branch/main/graph/badge.svg)](https://codecov.io/gh/${{ github.repository }})"
+          CODECOV_BADGE="[![codecov](https://codecov.io/gh/${{ github.repository }}/branch/main/graph/badge.svg${{ vars.CODECOV_BADGE_SUFFIX }})](https://codecov.io/gh/${{ github.repository }})"
 
           sed -e "s|<!-- CI_BADGE -->|$CI_BADGE|" \
               -e "s|<!-- CODECOV_BADGE -->|$CODECOV_BADGE|" \
@@ -30,7 +30,6 @@ jobs:
 
       - name: Commit and push if README.md changed
         run: |
-          # If README.md is unchanged, do nothing
           if git diff --quiet -- README.md; then
             echo "README.md unchanged; nothing to commit."
             exit 0
@@ -42,3 +41,94 @@ jobs:
           git add README.md
           git commit -m "chore: auto-update README from template [skip ci]" || exit 0
           git push
+
+
+# # .github/workflows/update-readme-badge.yml
+# name: Update README from Template
+
+# on:
+#   push:
+#     branches: [ main ]
+#   workflow_dispatch:
+
+# jobs:
+#   update-readme:
+#     runs-on: ubuntu-latest
+
+#     permissions:
+#       contents: write   # IMPORTANT: allow this workflow to push
+
+#     steps:
+#       - name: Checkout repo
+#         uses: actions/checkout@v4
+#         with:
+#           persist-credentials: true   # use GITHUB_TOKEN so we can push
+
+# # .github/workflows/update-readme-badge.yml
+# name: Update README from Template
+
+# on:
+#   push:
+#     branches: [ main ]
+#   workflow_dispatch:
+
+# jobs:
+#   update-readme:
+#     runs-on: ubuntu-latest
+
+#     permissions:
+#       contents: write   # IMPORTANT: allow this workflow to push
+
+#     steps:
+#       - name: Checkout repo
+#         uses: actions/checkout@v4
+#         with:
+#           persist-credentials: true   # use GITHUB_TOKEN so we can push
+
+#       - name: Generate README.md from template
+#         run: |
+#           CI_BADGE="[![CI](https://github.com/${{ github.repository }}/actions/workflows/ci.yml/badge.svg)](https://github.com/${{ github.repository }}/actions/workflows/ci.yml)"
+#           CODECOV_BADGE="[![codecov](https://codecov.io/gh/${{ github.repository }}/branch/main/graph/badge.svg)](https://codecov.io/gh/${{ github.repository }})"
+
+#           sed -e "s|<!-- CI_BADGE -->|$CI_BADGE|" \
+#               -e "s|<!-- CODECOV_BADGE -->|$CODECOV_BADGE|" \
+#               README.md.template > README.md
+
+#       - name: Commit and push if README.md changed
+#         run: |
+#           # If README.md is unchanged, do nothing
+#           if git diff --quiet -- README.md; then
+#             echo "README.md unchanged; nothing to commit."
+#             exit 0
+#           fi
+
+#           git config user.name "github-actions[bot]"
+#           git config user.email "github-actions[bot]@users.noreply.github.com"
+
+#           git add README.md
+#           git commit -m "chore: auto-update README from template [skip ci]" || exit 0
+#           git push
+
+
+#       # - name: Generate README.md from template
+#       #   run: |
+#       #     CI_BADGE="[![CI](https://github.com/${{ github.repository }}/actions/workflows/ci.yml/badge.svg)](https://github.com/${{ github.repository }}/actions/workflows/ci.yml)"
+#       #     CODECOV_BADGE="[![codecov](https://codecov.io/gh/${{ github.repository }}/branch/main/graph/badge.svg)](https://codecov.io/gh/${{ github.repository }})"
+
+#       #     sed -e "s|<!-- CI_BADGE -->|$CI_BADGE|" \
+#       #         -e "s|<!-- CODECOV_BADGE -->|$CODECOV_BADGE|" \
+#       #         README.md.template > README.md
+#       # - name: Commit and push if README.md changed
+#       #   run: |
+#       #     # If README.md is unchanged, do nothing
+#       #     if git diff --quiet -- README.md; then
+#       #       echo "README.md unchanged; nothing to commit."
+#       #       exit 0
+#       #     fi
+
+#       #     git config user.name "github-actions[bot]"
+#       #     git config user.email "github-actions[bot]@users.noreply.github.com"
+
+#       #     git add README.md
+#       #     git commit -m "chore: auto-update README from template [skip ci]" || exit 0
+#       #     git push

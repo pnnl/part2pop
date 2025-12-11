@@ -168,6 +168,72 @@ def _totals_from_population(pop):
     return N_total, totals_by_species
 
 
+def _write_mam_namelist(tmp_path, numcs, mass_fracs):
+    content_lines = []
+    for idx, val in enumerate(numcs, start=1):
+        content_lines.append(f"numc{idx} = {val},")
+    for mode, fracs in enumerate(mass_fracs, start=1):
+        for name, frac in fracs.items():
+            content_lines.append(f"mf{name.lower()}{mode} = {frac},")
+    fname = tmp_path / "namelist"
+    fname.write_text("\n".join(content_lines))
+    return fname
+
+
+def test_get_mam_input_defaults_to_zero(tmp_path):
+    fname = _write_mam_namelist(tmp_path, [1.0, 2.0], [{"SO4": 0.2, "POM": 0.8}, {"SO4": 0.5, "POM": 0.5}])
+    assert mam4.get_mam_input("numc1", fname) == 1.0
+    assert mam4.get_mam_input("missing", fname) == 0.0
+
+
+@pytest.mark.usefixtures("tmp_path")
+def test_mam4_build_initial_conditions(tmp_path):
+    cfg = {
+        "mam4_dir": str(tmp_path),
+        "timestep": 1,
+        "GSD": [1.5, 1.6, 1.7, 1.8],
+        "GMD_init": [1e-7, 2e-7, 3e-7, 4e-7],
+        "N": [1e6, 2e6, 3e6, 4e6],
+        "N_bins": [5, 5, 5, 5],
+    }
+    tmp_path.mkdir(exist_ok=True)
+    _write_mam_namelist(tmp_path, [1.0, 1.5, 2.0, 2.5], [{"SO4": 0.5, "POM": 0.5}]*4)
+
+    pop = build_mam4(cfg)
+    assert len(pop.ids) == sum(cfg["N_bins"])
+    assert pop.get_Ntot() > 0.0
+
+
+@pytest.mark.usefixtures("tmp_path")
+def test_mam4_build_from_output(tmp_path):
+    nc_path = tmp_path / "mam_output.nc"
+
+    ds = Dataset(nc_path, "w")
+    ds.createDimension("mode", 4)
+    ds.createDimension("time", 1)
+    vars_shape = ("mode", "time")
+    for name in ("num_aer", "so4_aer", "soa_aer", "dgn_a", "dgn_awet"):
+        var = ds.createVariable(name, "f8", vars_shape)
+        var[:] = np.ones((4, 1)) * 2.0
+    ds.close()
+
+    cfg = {
+        "mam4_dir": str(tmp_path),
+        "timestep": 2,
+        "GSD": [1.5, 1.6, 1.7, 1.8],
+        "N_bins": [3, 3, 3, 3],
+        "p": 90e3,
+        "T": 298.0,
+        "N_sigmas": 4,
+        "N": [1e6] * 4,
+        "add_mixing_ratios": False,
+    }
+
+    pop = build_mam4(cfg)
+    assert pop.get_Ntot() > 0.0
+    assert len(pop.ids) == sum(cfg["N_bins"])
+
+
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------

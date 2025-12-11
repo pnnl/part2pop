@@ -198,6 +198,26 @@ def test_particle_variable_helpers_return_expected_values():
     assert np.isclose(particle.get_variable("tkappa"), particle.get_tkappa())
 
 
+def test_particle_density_and_surface_properties(monkeypatch):
+    particle = make_particle(1e-6, ["BC", "SO4"], [0.5, 0.5])
+    assert particle.get_rho_w() == 1000.0
+
+    with pytest.warns(UserWarning):
+        sigma = particle.get_surface_tension()
+    assert np.isclose(sigma, 0.072)
+
+    s_crit, dcrit = particle.get_critical_supersaturation(T=298.15, return_D_crit=True)
+    assert s_crit >= 0.0
+    assert dcrit > 0.0
+
+    # ensure effective kappa getters return finite values
+    assert particle.get_tkappa() >= 0.0
+    assert particle.get_shell_tkappa() >= 0.0
+
+    # effective density helper returns positive value
+    assert particle.get_trho() > 0.0
+
+
 def test_particle_spec_accessors_and_moles():
     particle = _make_simple_particle()
     original = float(particle.get_spec_mass("SO4"))

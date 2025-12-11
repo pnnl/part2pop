@@ -14,6 +14,10 @@ try:
     )
     HAS_NETCDF4 = True
 except Exception:
+    netCDF4 = None
+    build_partmc = None
+    map_camp_specs = None
+    get_ncfile = None
     HAS_NETCDF4 = False
 
 pytestmark = pytest.mark.skipif(
@@ -125,6 +129,33 @@ def test_partmc_build_real_data_rescales_to_requested_Ntot(monkeypatch):
         assert np.allclose(masses_pop, masses_raw, rtol=0, atol=1e-14)
 
 
+def _create_partmc_nc(tmp_path, prefix="urban_plume_", n_particles=3):
+    out_dir = tmp_path / "out"
+    out_dir.mkdir(parents=True)
+    fname = out_dir / f"{prefix}0001_00000001.nc"
+    ds = netCDF4.Dataset(str(fname), "w")
+    ds.createDimension("particle", n_particles)
+    species = ["SO4", "BC"]
+    ds.createDimension("spec", len(species))
+
+    aero_species = ds.createVariable("aero_species", "S1", ("spec",))
+    aero_species.names = ",".join(species)
+
+    mass = ds.createVariable("aero_particle_mass", "f8", ("spec", "particle"))
+    mass[:, :] = np.ones((len(species), n_particles)) * 1e-15
+
+    ids = ds.createVariable("aero_id", "i4", ("particle",))
+    ids[:] = np.arange(n_particles, dtype=int)
+
+    comp_vol = ds.createVariable("aero_comp_vol", "f8", ("particle",))
+    comp_vol[:] = np.ones(n_particles)
+
+    gas_ratio = ds.createVariable("gas_mixing_ratio", "f8", ("particle",))
+    gas_ratio[:] = np.linspace(0.1, 0.2, n_particles)
+    ds.close()
+    return out_dir, fname
+
+
 def test_map_camp_specs_returns_suffixes():
     names = ["abc.def", "ghi"]
     assert map_camp_specs(names) == ["def", "ghi"]
@@ -143,3 +174,31 @@ def test_get_ncfile_detects_known_prefix(tmp_path):
     file_path.write_text("data")
     result = get_ncfile(out_dir, timestep=1, repeat=1)
     assert result.name == "urban_plume_0001_00000001.nc"
+
+
+def test_partmc_build_raises_when_too_many_particles(tmp_path):
+    partmc_dir, _ = _create_partmc_nc(tmp_path, n_particles=2)
+    with pytest.raises(IndexError):
+        build_partmc(
+            {
+                "partmc_dir": str(tmp_path),
+                "timestep": 1,
+                "repeat": 1,
+                "n_particles": 5,
+                "N_tot": 1e6,
+            }
+        )
+
+
+def test_partmc_build_adds_mixing_ratios(tmp_path):
+    partmc_dir, _ = _create_partmc_nc(tmp_path, n_particles=3)
+    pop = build_partmc(
+        {
+            "partmc_dir": str(tmp_path),
+            "timestep": 1,
+            "repeat": 1,
+            "N_tot": 1e6,
+            "n_particles": 2,
+        }
+    )
+    assert hasattr(pop, "gas_mixing_ratios")

@@ -1,5 +1,4 @@
 import io
-
 import numpy as np
 import pytest
 
@@ -130,3 +129,15 @@ def test_read_available_species_tokens(monkeypatch):
     tokens = utils._read_available_species_tokens()
     assert tokens[0] == "ABC"  # sorted longest-first
     assert "X" in tokens
+
+
+def test_parse_formula_flags_trailing_chars():
+    tokens = ["SO4", "Na", "Cl"]
+    with pytest.raises(ValueError):
+        utils._parse_formula("SO4X", tokens)
+
+
+def test_mass_fraction_from_counts_with_real_species():
+    fracs = utils._mass_fraction_from_counts({"SO4": 1, "BC": 1})
+    assert pytest.approx(sum(fracs.values())) == 1.0
+    assert fracs["SO4"] > 0.0 and fracs["BC"] > 0.0
