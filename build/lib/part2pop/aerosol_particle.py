@@ -49,7 +49,7 @@ class Particle:
             RH=maxRH
             
         Ddry = self.get_Ddry()
-        Dwet = compute_Dwet(Ddry, self.get_tkappa(), RH, T,
+        Dwet = compute_Dwet(Ddry, self.get_tkappa(), RH, T, 
                      sigma_h2o=sigma_h2o, rho_h2o=rho_h2o, MW_h2o=MW_h2o)
         mass_h2o = compute_mass_h2o(Ddry,Dwet,rho_h2o=1000.)
         self.masses[self.idx_h2o()] = mass_h2o
@@ -65,20 +65,14 @@ class Particle:
         *kwargs : tuple
             Additional arguments forwarded to the underlying method.
         """
-        if varname == 'wet_diameter' or varname == 'Dwet':
+        if varname == 'wet_diameter':
             return self.get_Dwet(*kwargs)
-        elif varname == 'dry_diameter' or varname == 'Ddry':
+        elif varname == 'dry_diameter':
             return self.get_Ddry()
         elif varname == 'tkappa':
             return self.get_tkappa()
         elif varname == 'critical_supersaturation' or varname == 's_c':
             return self.get_critical_supersaturation(T, return_D_crit=False, sigma_h2o=0.072)
-        elif varname == 'vol_tot':
-            return self.get_vol_tot()
-        elif varname == 'vol_dry':
-            return self.get_vol_dry()
-        elif varname == 'concentrations':
-            return self.get_species_concs()
     
     def idx_h2o(self):
         return np.where([
@@ -87,11 +81,13 @@ class Particle:
     def idx_dry(self):
         idx_all = np.arange(len(self.species))        
         idx_h2o = self.idx_h2o()
-        spec_densities = self.get_spec_rhos()
+        
         if idx_h2o == -1:
-            idx_not_h2o = np.hstack([idx for idx in idx_all[:-1] if idx != idx_h2o and spec_densities[idx]>0])
-        else:
-            idx_not_h2o = np.hstack([idx for idx in idx_all if idx != idx_h2o and spec_densities[idx]>0])
+            idx_not_h2o = idx_all[:-1]
+        elif idx_h2o >= 0:
+            idx_not_h2o = np.hstack([idx for idx in idx_all if idx != idx_h2o])
+        else:    
+            idx_not_h2o = np.hstack([idx_all[:idx_h2o],idx_all[idx_h2o:][1:]])
         return idx_not_h2o
     
     def idx_core(self,core_specs=['BC']):
@@ -103,8 +99,8 @@ class Particle:
             spec.name not in core_specs + ['H2O'] for spec in self.species])[0]
     
     def idx_spec(self, spec_name):
-        names = [spec.name for spec in self.species]
-        return np.where(np.array(names) == spec_name)[0][0]
+        return np.where([
+            spec.name in spec_name for spec in self.species])
         
     def get_spec_rhos(self):
         spec_rhos = np.hstack([one_spec.density for one_spec in self.species])
@@ -181,7 +177,7 @@ class Particle:
 
     def get_vol_tot(self):
         vks = self.get_vks()
-        vol_tot = np.nansum(vks[self.idx_dry()]) + vks[self.idx_h2o()]
+        vol_tot = np.sum(vks)
         return vol_tot
         
     def get_vol_dry(self):
@@ -247,7 +243,8 @@ class Particle:
         # compute effective kappa
         vks = self.get_vks()
         spec_kappas = self.get_spec_kappas()
-        tkappa = np.sum(vks[self.idx_dry()]*spec_kappas[self.idx_dry()])/np.sum(vks[self.idx_dry()])
+        idx_not_h2o, = np.where([one_spec.name.upper()!='H2O' for one_spec in self.species])
+        tkappa = np.sum(vks[idx_not_h2o]*spec_kappas[idx_not_h2o])/np.sum(vks[idx_not_h2o])
         return tkappa
     
     def get_shell_tkappa(self):
@@ -304,12 +301,6 @@ class Particle:
             return s_critical,D_critical
         else:
             return s_critical
-            
-    def get_species_concs(self):
-        water_volume = np.repeat(self.get_vol_tot() - self.get_vol_dry(), len(self.masses))
-        molec_masses = np.array([species.molar_mass for species in self.species])
-        concs = (self.masses/molec_masses)/water_volume
-        return concs
     
         
 # def make_particle(
