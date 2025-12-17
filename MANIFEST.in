@@ -1,2 +1,3 @@
 include part2pop/data/species_data/*.dat
 recursive-include examples/example_data *
+include README.pypi.md

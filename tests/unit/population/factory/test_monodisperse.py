@@ -59,3 +59,18 @@ def test_monodisperse_multiple_particles_number_conservation():
     # All particles should have positive mass and number concentration
     assert np.all(pop.num_concs > 0.0)
     assert np.all(np.sum(pop.spec_masses, axis=1) > 0.0)
+
+
+def test_monodisperse_accepts_stringy_numbers():
+    cfg = {
+        "type": "monodisperse",
+        "aero_spec_names": [["SO4"]],
+        "N": ["3.0"],
+        "D": ["0.10e-6"],
+        "aero_spec_fracs": [[1.0]],
+    }
+
+    pop = build_population(cfg)
+
+    assert len(pop.ids) == 1
+    assert np.isclose(pop.get_Ntot(), 3.0)

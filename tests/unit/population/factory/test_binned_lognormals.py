@@ -99,3 +99,23 @@ def test_rejects_invalid_global_edges():
     cfg["D_max"] = 0.2e-6
     with pytest.raises(ValueError, match="D_min and D_max must be positive"):
         build_population(cfg)
+
+
+def test_binned_lognormals_accepts_stringy_numbers():
+    cfg = {
+        "type": "binned_lognormals",
+        "GMD": ["0.1e-6"],
+        "GSD": ["1.6"],
+        "N": ["1e8"],
+        "N_bins": "40",
+        "D_min": "0.01e-6",
+        "D_max": "0.4e-6",
+        "aero_spec_names": [["SO4"]],
+        "aero_spec_fracs": [[1.0]],
+    }
+
+    pop = build_population(cfg)
+    assert len(pop.ids) == 40
+
+    N_tot = float(pop.get_Ntot())
+    assert np.isclose(N_tot, 1e8, rtol=0.02)

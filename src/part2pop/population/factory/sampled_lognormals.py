@@ -10,14 +10,17 @@ If N_parts is:
 """
 
 from ..base import ParticlePopulation
+from ..utils import normalize_population_config
+from .registry import register
 from part2pop import make_particle
 from part2pop.species.registry import get_species
-from .registry import register
+
 import numpy as np
 
 
 @register("sampled_lognormals")
 def build(config):
+    config = normalize_population_config(config)
 
     N_list = np.atleast_1d(config["N"]).astype(float)
     GMD_list = np.atleast_1d(config["GMD"]).astype(float)

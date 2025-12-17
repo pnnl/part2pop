@@ -74,3 +74,9 @@ jobs:
       - name: Run integration tests
         run: |
           pytest tests/integration
+
+      - name: Clean Python cache files
+        if: always()
+        run: |
+          find . -type d -name "__pycache__" -exec rm -r {} +
+          find . -type f -name "*.pyc" -delete

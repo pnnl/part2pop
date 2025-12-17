@@ -6,7 +6,7 @@ Build a binned lognormal population
 """
 
 from ..base import ParticlePopulation
-from ..utils import expand_compounds_for_population
+from ..utils import expand_compounds_for_population, normalize_population_config
 from part2pop import make_particle
 from part2pop.species.registry import get_species
 from .registry import register
@@ -16,11 +16,12 @@ import matplotlib.pyplot as plt
 
 @register("binned_lognormals")
 def build(config):
+    config = normalize_population_config(config)
     # fixme: make this +/- certain number of sigmas (rather than min/max diams)
     # D_min = float(config['D_min'])
     # D_max = float(config['D_max'])
-        
-    N_list = config['N']
+    
+    N_list = [float(one_N) for one_N in config['N']]
     GMD_list = config['GMD']
     GSD_list = config['GSD']
     

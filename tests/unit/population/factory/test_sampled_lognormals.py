@@ -59,3 +59,20 @@ def test_sampled_lognormals_two_modes_reasonable_Ntot():
     N_requested = float(np.sum(cfg["N"]))
     N_tot = float(pop.get_Ntot())
     assert np.isclose(N_tot, N_requested, rtol=0.1)
+
+
+def test_sampled_lognormals_accepts_stringy_numbers():
+    n_parts_str = "3500"
+    cfg = {
+        "type": "sampled_lognormals",
+        "GMD": ["0.1e-6"],
+        "GSD": ["1.6"],
+        "N": ["1e8"],
+        "N_parts": n_parts_str,
+        "aero_spec_names": [["SO4"]],
+        "aero_spec_fracs": [[1.0]],
+    }
+
+    pop = build_population(cfg)
+
+    assert len(pop.ids) == int(n_parts_str)

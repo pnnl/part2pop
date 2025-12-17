@@ -6,6 +6,7 @@ Build a monodisperse population
 """
 
 from ..base import ParticlePopulation
+from ..utils import normalize_population_config
 from part2pop import make_particle
 from part2pop.species.registry import get_species
 import numpy as np
@@ -13,6 +14,7 @@ from .registry import register
 
 @register("monodisperse")
 def build(config):
+    config = normalize_population_config(config)
     aero_spec_names = config['aero_spec_names']
     species_modifications = config.get('species_modifications', {})
     N = config['N']

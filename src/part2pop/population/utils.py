@@ -13,10 +13,49 @@ from __future__ import annotations
 
 from collections import OrderedDict
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Tuple
 
 from part2pop.species.registry import get_species
 from part2pop.data import open_dataset
+
+NumericConverter = Callable[[Any], Any]
+
+
+def _convert_config_value(value: Any, converter: NumericConverter) -> Any:
+    """Apply converter to scalar or iterable config values (but not strings as iterables)."""
+    if value is None:
+        return None
+    if isinstance(value, str):
+        return converter(value)
+    if isinstance(value, (list, tuple)):
+        return [converter(v) for v in value]
+    try:
+        iterator = iter(value)
+    except TypeError:
+        return converter(value)
+    # Guard against str/bytes typed iterables which would already match above.
+    return [converter(v) for v in iterator]
+
+
+def normalize_population_config(config: Dict[str, Any]) -> Dict[str, Any]:
+    """Coerce common population config keys to numeric scalars or lists."""
+    converters: Dict[str, NumericConverter] = {
+        "N": float,
+        "GMD": float,
+        "GSD": float,
+        "D": float,
+        "D_min": float,
+        "D_max": float,
+        "N_sigmas": float,
+        "N_bins": lambda v: int(float(v)),
+        "N_parts": lambda v: int(float(v)),
+    }
+    normalized = dict(config)
+    for key, converter in converters.items():
+        if key not in normalized:
+            continue
+        normalized[key] = _convert_config_value(normalized[key], converter)
+    return normalized
 
 def _read_available_species_tokens() -> List[str]:
     """Read available species names from datasets/species_data/aero_data.dat.
