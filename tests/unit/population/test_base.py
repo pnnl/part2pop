@@ -266,9 +266,12 @@ def test_particle_density_and_surface_properties(monkeypatch):
 
 def test_particle_spec_accessors_and_moles():
     particle = _make_simple_particle()
-    original = float(particle.get_spec_mass("SO4"))
+    def _get_mass(spec):
+        return np.asarray(particle.get_spec_mass(spec)).ravel()[0]
+
+    original = float(_get_mass("SO4"))
     particle.set_spec_mass("SO4", original * 2)
-    assert np.isclose(float(particle.get_spec_mass("SO4")[0]), original * 2)
+    assert np.isclose(float(_get_mass("SO4")), original * 2)
     assert particle.get_spec_moles("SO4") > 0.0
     assert particle.get_spec_vol("SO4") > 0.0
     assert particle.get_spec_rho("SO4") > 0.0
@@ -342,9 +345,12 @@ def test_particle_index_and_volume_helpers():
     assert particle.get_mass_h2o() >= 0.0
 
     # Access specific species components
-    spec_mass = particle.get_spec_mass("BC")
-    particle.set_spec_mass("BC", float(spec_mass[0]) * 0.5)
-    assert np.isclose(float(particle.get_spec_mass("BC")[0]), float(spec_mass[0]) * 0.5)
+    spec_mass = np.asarray(particle.get_spec_mass("BC")).ravel()[0]
+    particle.set_spec_mass("BC", float(spec_mass) * 0.5)
+    assert np.isclose(
+        float(np.asarray(particle.get_spec_mass("BC")).ravel()[0]),
+        float(spec_mass) * 0.5,
+    )
 
 
 # ---------------------------------------------------------------------------

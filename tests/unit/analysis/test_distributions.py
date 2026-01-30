@@ -5,6 +5,9 @@ import pytest
 
 from part2pop.analysis import distributions as dist
 
+if not hasattr(np, "trapezoid"):
+    np.trapezoid = np.trapz
+
 
 def test_make_edges_computes_log_and_linear_scales():
     log_edges, log_centers = dist.make_edges(1.0, 10.0, 3, scale="log")
@@ -44,7 +47,7 @@ def test_density1d_from_samples_normalize():
     assert np.allclose(passed_edges, edges)
     assert centers.shape == dens.shape
     u_centers = np.log(centers)
-    total = np.trapz(dens, u_centers)
+    total = np.trapezoid(dens, u_centers)
     assert np.isclose(total, 1.0)
 
 
@@ -93,7 +96,7 @@ def test_density2d_from_samples_normalizes_two_dimensional():
     assert cx.shape == (edges_x.size - 1,)
     assert cy.shape == (edges_y.size - 1,)
     assert np.all(dens >= 0.0)
-    total = np.trapz(np.trapz(dens, cy, axis=1), cx)
+    total = np.trapezoid(np.trapezoid(dens, cy, axis=1), cx)
     assert np.isclose(total, 1.0)
 
 
@@ -150,7 +153,7 @@ def test_kde1d_in_measure_normalizes_with_scipy():
     dens = dist.kde1d_in_measure(x, weights, xq, normalize=True)
     assert dens.shape == xq.shape
     assert np.isfinite(dens).all()
-    total = np.trapz(dens, np.log(xq))
+    total = np.trapezoid(dens, np.log(xq))
     assert np.isclose(total, 1.0, atol=1e-2)
 
 
