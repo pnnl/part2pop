@@ -52,3 +52,30 @@ def test_population_builder_dispatches_to_monodisperse_factory():
     assert len(pop.ids) == 1
     # Sanity: total N should match requested
     assert pop.get_Ntot() == pytest.approx(2.0)
+
+
+def test_population_builder_uses_discovered_types(monkeypatch):
+    """
+    PopulationBuilder should instantiate whatever class the registry advertises.
+    """
+    captured = {}
+
+    class FakePopulation:
+        def __init__(self, config):
+            captured["config"] = config
+            self.config = config
+
+    def fake_discover():
+        return {"fake": FakePopulation}
+
+    monkeypatch.setattr(
+        "part2pop.population.builder.discover_population_types",
+        fake_discover,
+    )
+
+    cfg = {"type": "fake", "value": 12}
+    pop = build_population(cfg)
+
+    assert isinstance(pop, FakePopulation)
+    assert captured["config"] is cfg
+    assert pop.config["value"] == 12
