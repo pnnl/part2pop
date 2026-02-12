@@ -64,9 +64,11 @@ class ParticlePopulation:
             self.ids.append(part_id)
     
     def get_species_idx(self, spec_name):
-        idx, = np.where([
-            spec.name in spec_name for spec in self.species])
-        return idx[0]
+        names = [spec.name for spec in self.species]
+        try:
+            return np.where(np.array(names) == spec_name)[0][0]
+        except:
+            return None
     
     def _equilibrate_h2o(self,S,T,rho_h2o=1000., MW_h2o=18e-3):
         for (part_id,num_conc) in zip(self.ids,self.num_concs):
@@ -146,3 +148,10 @@ class ParticlePopulation:
             particle.spec_masses[particle.idx_h2o()] = mass_h2o
             num_conc =self.num_conc[ii]
             self.set_particle(particle, part_id, num_conc, suppress_warning=False)
+            
+    def clone_detached(self):
+        """Return a copy that shares immutable data but has detached numeric arrays."""
+        return ParticlePopulation(
+            species=self.species, spec_masses=self.spec_masses.copy(),
+            num_concs=self.num_concs.copy(), ids=self.ids
+        )
