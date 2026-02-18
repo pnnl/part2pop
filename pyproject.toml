@@ -49,6 +49,8 @@ dependencies = [
   "importlib-resources",
   "PyMieScatt",
   "pyBCabs",
+  "tqdm",
+  "streamlit",
 ]
 
 [project.optional-dependencies]

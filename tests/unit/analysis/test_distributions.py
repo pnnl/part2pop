@@ -5,8 +5,52 @@ import pytest
 
 from part2pop.analysis import distributions as dist
 
-if not hasattr(np, "trapezoid"):
-    np.trapezoid = np.trapz
+
+def _get_trapezoid():
+    trap = getattr(np, "trapezoid", None)
+    if trap is None:
+        trap = getattr(np, "trapz", None)
+    if trap is None:
+        raise AttributeError("numpy is missing both trapezoid and trapz")
+    return trap
+
+
+TRAPEZOID = _get_trapezoid()
+
+
+def _density1d_inputs():
+    x = np.array([0.5, 1.5, 2.5])
+    weights = np.ones_like(x)
+    edges = np.array([0.1, 1.0, 2.0, 3.0])
+    return x, weights, edges
+
+
+def test_density1d_from_samples_normalize_without_trapezoid(monkeypatch):
+    trapz = getattr(np, "trapz", None)
+    if trapz is None:
+        pytest.skip("numpy trapz unavailable in this environment")
+    if hasattr(np, "trapezoid"):
+        monkeypatch.delattr(np, "trapezoid")
+    x, weights, edges = _density1d_inputs()
+    centers, dens, _ = dist.density1d_from_samples(
+        x, weights, edges, measure="ln", normalize=True
+    )
+    total = trapz(dens, np.log(centers))
+    assert np.isclose(total, 1.0)
+
+
+def test_density1d_from_samples_normalize_without_trapz(monkeypatch):
+    trapezoid = getattr(np, "trapezoid", None)
+    if trapezoid is None:
+        pytest.skip("numpy trapezoid unavailable in this environment")
+    if hasattr(np, "trapz"):
+        monkeypatch.delattr(np, "trapz")
+    x, weights, edges = _density1d_inputs()
+    centers, dens, _ = dist.density1d_from_samples(
+        x, weights, edges, measure="ln", normalize=True
+    )
+    total = trapezoid(dens, np.log(centers))
+    assert np.isclose(total, 1.0)
 
 
 def test_make_edges_computes_log_and_linear_scales():
@@ -47,7 +91,7 @@ def test_density1d_from_samples_normalize():
     assert np.allclose(passed_edges, edges)
     assert centers.shape == dens.shape
     u_centers = np.log(centers)
-    total = np.trapezoid(dens, u_centers)
+    total = TRAPEZOID(dens, u_centers)
     assert np.isclose(total, 1.0)
 
 
@@ -96,7 +140,7 @@ def test_density2d_from_samples_normalizes_two_dimensional():
     assert cx.shape == (edges_x.size - 1,)
     assert cy.shape == (edges_y.size - 1,)
     assert np.all(dens >= 0.0)
-    total = np.trapezoid(np.trapezoid(dens, cy, axis=1), cx)
+    total = TRAPEZOID(TRAPEZOID(dens, cy, axis=1), cx)
     assert np.isclose(total, 1.0)
 
 
@@ -153,7 +197,7 @@ def test_kde1d_in_measure_normalizes_with_scipy():
     dens = dist.kde1d_in_measure(x, weights, xq, normalize=True)
     assert dens.shape == xq.shape
     assert np.isfinite(dens).all()
-    total = np.trapezoid(dens, np.log(xq))
+    total = TRAPEZOID(dens, np.log(xq))
     assert np.isclose(total, 1.0, atol=1e-2)
 
 

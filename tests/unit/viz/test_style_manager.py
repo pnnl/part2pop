@@ -58,3 +58,18 @@ def test_unknown_geom_raises_valueerror():
     sm = StyleManager(Theme())
     with pytest.raises(ValueError):
         sm.plan("totally_unknown_geom", ["foo"])
+
+
+def test_cycle_linestyle_flag_produces_multiple_styles():
+    sm = StyleManager(Theme(), deterministic=True)
+    planned = sm.plan("line", ["a", "b", "c", "d"], cycle_linestyle=True)
+    unique = {v["linestyle"] for v in planned.values()}
+
+    assert len(unique) > 1
+
+
+def test_line_defaults_keep_solid_when_not_cycling():
+    sm = StyleManager(Theme(), deterministic=True)
+    planned = sm.plan("line", ["only"])
+
+    assert planned["only"]["linestyle"] == "-"

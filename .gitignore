@@ -2,5 +2,12 @@
 *.pyc
 
 .DS_Store
+*.DS_Store
 
 *.egg-info
+# Local-only tooling
+scripts/
+archive/
+tmp*
+
+*.zip

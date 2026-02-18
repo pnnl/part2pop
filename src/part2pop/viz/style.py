@@ -1,8 +1,8 @@
 # viz/style.py
 from __future__ import annotations
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from itertools import product
-from typing import Dict, List, Tuple, Iterable, Mapping, Any, Set
+from typing import Dict, Iterable, Mapping, Any, List, Sequence, Set, Tuple
 import hashlib
 
 # Shared defaults
@@ -13,40 +13,74 @@ DEFAULT_PALETTE = [
 DEFAULT_LINESTYLES = ["-","--","-.",":"]
 DEFAULT_MARKERS = ["o","s","^","D","v","P","X"]
 
+def _ensure_cycle(values: Sequence[str] | str | None, fallback: Sequence[str]) -> List[str]:
+    """
+    Normalize cycle inputs to a list while copying mutable defaults.
+    Accepts single strings, Sequences, or None (meaning -> fallback).
+    """
+    if values is None:
+        values = fallback
+    if isinstance(values, str):
+        return [values]
+    return list(values)
+
 @dataclass
 class GeomDefaults:
-    # Discrete cycles
-    palette: List[str] = field(default_factory=lambda: DEFAULT_PALETTE.copy())
-    linestyles: List[str] = field(default_factory=lambda: DEFAULT_LINESTYLES.copy())
-    markers: List[str] = field(default_factory=lambda: DEFAULT_MARKERS.copy())
-    # Scalar defaults
+    """
+    Collects style defaults + cycles for a geometry.
+    palette/linestyles/markers accept either lists (multi-cycle) or a single string value.
+    base_linestyle / base_marker define the one-off style when the cycle is disabled.
+    """
+    palette: Sequence[str] | str | None = None
+    linestyles: Sequence[str] | str | None = None
+    markers: Sequence[str] | str | None = None
     linewidth: float = 2.0
-    markersize: float = 36.0  # matplotlib 's' is area in points^2
+    markersize: float = 36.0
     alpha: float | None = None
-    # Continuous mappings
-    cmap: str = "viridis"  # for scatter/surface color mapping
-    
+    cmap: str = "viridis"
+    base_linestyle: str | None = None
+    base_marker: str | None = None
+    cycle_linestyle_default: bool = False
+    cycle_marker_default: bool = False
+
+    def __post_init__(self) -> None:
+        # copy/normalize lists so callers do not share references
+        self.palette = _ensure_cycle(self.palette, DEFAULT_PALETTE)
+        self.linestyles = _ensure_cycle(self.linestyles, DEFAULT_LINESTYLES)
+        self.markers = _ensure_cycle(self.markers, DEFAULT_MARKERS)
+
     # how to combine when both color and something else cycle
     def combos(self, use_linestyle: bool, use_marker: bool) -> List[Tuple[str, str | None, str | None]]:
-        # (color, linestyle, marker)
-        if use_linestyle and use_marker:
-            return [(c, ls, mk) for c, ls, mk in product(self.palette, self.linestyles, self.markers)]
+        """
+        Returns [(color, linestyle, marker)] permutations for deterministic hashing.
+        When a cycle is disabled, we still emit a single entry that carries the base style.
+        """
+        palette = list(self.palette)
         if use_linestyle:
-            return [(c, ls, None) for c, ls in product(self.palette, self.linestyles)]
+            linestyles = list(self.linestyles)
+        else:
+            linestyles = [self.base_linestyle]
         if use_marker:
-            return [(c, None, mk) for c, mk in product(self.palette, self.markers)]
-        return [(c, None, None) for c in self.palette]
-
+            markers = list(self.markers)
+        else:
+            markers = [self.base_marker]
+        linestyles = [ls for ls in linestyles if ls is not None] or [None]
+        markers = [mk for mk in markers if mk is not None] or [None]
+        return [(c, ls, mk) for c, ls, mk in product(palette, linestyles, markers)]
+    
 @dataclass
 class Theme:
     # Per-geometry defaults; extend as you add geoms
-    geoms: Dict[str, GeomDefaults] = field(default_factory=lambda: {
-        "line": GeomDefaults(linewidth=2.0, alpha=None, linestyles='-'),
-        "scatter": GeomDefaults(linewidth=1.0, markersize=36.0),
-        "bar": GeomDefaults(),
-        "box": GeomDefaults(),
-        "surface": GeomDefaults(),
-    })
+    geoms: Dict[str, GeomDefaults]
+
+    def __init__(self, geoms: Dict[str, GeomDefaults] | None = None):
+        self.geoms = geoms or {
+            "line": GeomDefaults(linewidth=2.0, alpha=None, base_linestyle="-"),
+            "scatter": GeomDefaults(linewidth=1.0, markersize=36.0, base_marker="o", cycle_marker_default=True),
+            "bar": GeomDefaults(),
+            "box": GeomDefaults(),
+            "surface": GeomDefaults(),
+        }
 
 class StyleManager:
     """
@@ -76,8 +110,8 @@ class StyleManager:
             raise ValueError(f"Unknown geom '{geom}'. Known: {list(self.theme.geoms)}")
         gd = self.theme.geoms[geom]
         # Sensible defaults per geom
-        use_ls = gd.linestyles and (cycle_linestyle if cycle_linestyle is not None else geom == "line")
-        use_mk = gd.markers and (cycle_marker if cycle_marker is not None else geom == "scatter")
+        use_ls = bool(gd.linestyles) and (cycle_linestyle if cycle_linestyle is not None else gd.cycle_linestyle_default)
+        use_mk = bool(gd.markers) and (cycle_marker if cycle_marker is not None else gd.cycle_marker_default)
         combos = gd.combos(use_ls, use_mk)
         ncombo = len(combos)
 

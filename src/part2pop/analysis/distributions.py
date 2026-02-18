@@ -2,6 +2,22 @@ from __future__ import annotations
 
 import numpy as np
 
+
+def _trapezoid_integrate(y, x=None, dx=1.0, axis=-1):
+    """
+    Call the available NumPy trapezoidal integration routine.
+
+    NumPy 2.0 dropped `np.trapz` in favor of `np.trapezoid`, while older
+    releases only expose `np.trapz`.  This helper always calls whichever
+    function exists so the rest of the module can rely on a single name.
+    """
+    func = getattr(np, "trapezoid", None)
+    if func is None:
+        func = getattr(np, "trapz", None)
+    if func is None:
+        raise AttributeError("NumPy installation lacks trapezoid/trapz integrators")
+    return func(y, x=x, dx=dx, axis=axis)
+
 try:
     from scipy.interpolate import PchipInterpolator as _PCHIP
     from scipy.interpolate import RegularGridInterpolator as _RGI
@@ -177,7 +193,7 @@ def density1d_from_samples(
         # We normalize using the same quadrature that users/tests use:
         #   total = ∫ dens d(measure) ≈ trapz(dens, u_centers)
         u_centers = _u_from_x(centers, measure)
-        total = np.trapz(dens, u_centers)
+        total = _trapezoid_integrate(dens, u_centers)
         if total > 0:
             dens = dens / total
 
@@ -332,7 +348,7 @@ def kde1d_in_measure(
     dens = kde(u_q)  # dens(u) per du
 
     if normalize:
-        total = np.trapz(dens, u_q)
+        total = _trapezoid_integrate(dens, u_q)
         if total > 0:
             dens = dens / total
 
@@ -415,8 +431,8 @@ def density2d_from_samples(
         uy = _u_from_x(cy, measure_y)
         # Approximate double integral via tensor product trapz
         # integrate over y first, then x
-        tmp = np.trapz(dens, uy, axis=1)
-        total = np.trapz(tmp, ux)
+        tmp = _trapezoid_integrate(dens, uy, axis=1)
+        total = _trapezoid_integrate(tmp, ux)
         if total > 0:
             dens = dens / total
 
@@ -632,7 +648,7 @@ def density2d_cdf_map(
 #         #      total = ∫ dens d(measure) ≈ trapz(dens, u_centers)
 #         #    where u_centers is ln(centers) or centers depending on measure.
 #         u_centers = _u_from_x(centers, measure)
-#         total = np.trapz(dens, u_centers)
+#         total = np.trapezoid(dens, u_centers)
 #         if total > 0:
 #             dens = dens / total
 
@@ -755,7 +771,7 @@ def density2d_cdf_map(
 #     dens = kde(u_q)  # dens(u) per du
 
 #     if normalize:
-#         total = np.trapz(dens, u_q)
+#         total = np.trapezoid(dens, u_q)
 #         if total > 0:
 #             dens = dens / total
 
@@ -1110,7 +1126,7 @@ def density2d_cdf_map(
 # #     dens = kde(u_q)  # dens(u) per du
 
 # #     if normalize:
-# #         total = np.trapz(dens, u_q)
+# #         total = np.trapezoid(dens, u_q)
 # #         if total > 0:
 # #             dens = dens / total
 
