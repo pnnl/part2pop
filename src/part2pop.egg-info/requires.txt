@@ -5,6 +5,7 @@ netCDF4
 importlib-resources
 PyMieScatt
 pyBCabs
+tqdm
 
 [test]
 pytest>=7

@@ -155,6 +155,10 @@ src/part2pop/freezing/factory/__init__.py
 src/part2pop/freezing/factory/homogeneous.py
 src/part2pop/freezing/factory/registry.py
 src/part2pop/freezing/factory/utils.py
+src/part2pop/io/__init__.py
+src/part2pop/io/_utils.py
+src/part2pop/io/loader.py
+src/part2pop/io/saver.py
 src/part2pop/optics/__init__.py
 src/part2pop/optics/base.py
 src/part2pop/optics/builder.py
@@ -170,6 +174,7 @@ src/part2pop/population/base.py
 src/part2pop/population/builder.py
 src/part2pop/population/utils.py
 src/part2pop/population/factory/binned_lognormals.py
+src/part2pop/population/factory/hiscale_observations.py
 src/part2pop/population/factory/mam4.py
 src/part2pop/population/factory/monodisperse.py
 src/part2pop/population/factory/partmc.py

@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+title: part2pop
+message: "Please cite part2pop if you use it in your research."
+authors:
+  - family-names: Fierce
+    given-names: Laura
+# fixme: add zenodo ID
+doi: 10.5281/zenodo.xxxxxxx 
+
+

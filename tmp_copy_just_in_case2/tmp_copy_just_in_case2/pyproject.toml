@@ -1,0 +1,90 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "part2pop"
+version = "0.1.1"
+description = "A modular Python toolkit to build, analyze, and extend aerosol particle populations."
+readme = { file = "README.pypi.md", content-type = "text/markdown" }
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+
+authors = [
+  { name = "Laura Fierce" },
+  { name = "Payton Beeler" },
+]
+
+keywords = [
+  "aerosols",
+  "atmospheric science",
+  "aerosol-radiation",
+  "aerosol-cloud",
+  "particle populations",
+  "CCN",
+  "optics",
+  "ice nucleation",
+]
+
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering",
+  "Topic :: Scientific/Engineering :: Atmospheric Science",
+]
+
+# All runtime dependencies (you can later refactor into optional extras)
+dependencies = [
+  "numpy",
+  "scipy",
+  "matplotlib",
+  "netCDF4",
+  "importlib-resources",
+  "PyMieScatt",
+  "pyBCabs",
+]
+
+[project.optional-dependencies]
+# For running tests
+test = [
+  "pytest>=7",
+  "pytest-cov>=4",
+]
+
+# You can expand this later if you want separate "dev", "docs", etc.
+# dev = [
+#   "pytest>=7",
+#   "pytest-cov>=4",
+#   "flake8",
+#   "black",
+#   "isort",
+# ]
+
+
+[project.urls]
+Homepage = "https://github.com/pnnl/part2pop"
+Repository = "https://github.com/pnnl/part2pop"
+Issues = "https://github.com/pnnl/part2pop/issues"
+
+[tool.setuptools.package-data]
+part2pop = [
+    "data/*",
+    "data/**/*",
+    "data/species_data/*.dat",
+    "data/species_data/*.csv",
+]
+
+[tool.setuptools]
+# src-layout: code lives in src/part2pop
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+

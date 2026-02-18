@@ -49,6 +49,7 @@ Requires-Dist: netCDF4
 Requires-Dist: importlib-resources
 Requires-Dist: PyMieScatt
 Requires-Dist: pyBCabs
+Requires-Dist: tqdm
 Provides-Extra: test
 Requires-Dist: pytest>=7; extra == "test"
 Requires-Dist: pytest-cov>=4; extra == "test"

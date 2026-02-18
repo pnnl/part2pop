@@ -49,6 +49,7 @@ dependencies = [
   "importlib-resources",
   "PyMieScatt",
   "pyBCabs",
+  "tqdm",
 ]
 
 [project.optional-dependencies]
