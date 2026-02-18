@@ -50,6 +50,7 @@ dependencies = [
   "PyMieScatt",
   "pyBCabs",
   "tqdm",
+  "streamlit",
 ]
 
 [project.optional-dependencies]
