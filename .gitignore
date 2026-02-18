@@ -4,3 +4,7 @@
 .DS_Store
 
 *.egg-info
+# Local-only tooling
+scripts/
+archive/
+tmp*
