@@ -1,0 +1,100 @@
+{
+  "type": "hiscale_observations",
+  "aimms_file": "/Users/fier887/Library/CloudStorage/OneDrive-PNNL/Code/multipart_archived2/multipart_archived/separate_tools/datasets/HISCALE_data_0425/AIMMS20_G1_20160425155810_R2_HISCALE020h.txt",
+  "splat_file": "/Users/fier887/Library/CloudStorage/OneDrive-PNNL/Code/multipart_archived2/multipart_archived/separate_tools/datasets/HISCALE_data_0425/Splat_Composition_25-Apr-2016.txt",
+  "ams_file": "/Users/fier887/Library/CloudStorage/OneDrive-PNNL/Code/multipart_archived2/multipart_archived/separate_tools/datasets/HISCALE_data_0425/HiScaleAMS_G1_20160425_R0.txt",
+  "fims_file": "/Users/fier887/Library/CloudStorage/OneDrive-PNNL/Code/multipart_archived2/multipart_archived/separate_tools/datasets/HISCALE_data_0425/FIMS_G1_20160425_R1_HISCALE_001s.txt",
+  "fims_bins_file": "/Users/fier887/Library/CloudStorage/OneDrive-PNNL/Code/multipart_archived2/multipart_archived/separate_tools/datasets/HISCALE_data_0425/HISCALE_FIMS_bins_R1.txt",
+  "z": 1000.0,
+  "dz": 100.0,
+  "splat_species": {
+    "BC": [
+      "soot"
+    ],
+    "OIN": [
+      "Dust"
+    ],
+    "OC": [
+      "org28",
+      "org30_43",
+      "BB_SOA",
+      "org_amines",
+      "BB",
+      "pyridine"
+    ],
+    "SO4": [
+      "sulfate_nitrate_org"
+    ],
+    "NO3": [
+      "nitrate_amine_org"
+    ],
+    "IEPOX_SOA": [
+      "IEPOX_SOA"
+    ]
+  },
+  "mass_thresholds": {
+    "IEPOX_SOA": [
+      [
+        0.3,
+        0.5,
+        0.1
+      ],
+      [
+        "IEPOX_OS",
+        "tetrol",
+        "tetrol_olig",
+        "IEPOX_OH_SOA"
+      ]
+    ],
+    "SO4": [
+      [
+        0.5,
+        0.7,
+        0.1
+      ],
+      [
+        "SO4"
+      ]
+    ],
+    "NO3": [
+      [
+        0.5,
+        0.7,
+        0.1
+      ],
+      [
+        "NO3"
+      ]
+    ],
+    "OC": [
+      [
+        0.5,
+        0.7,
+        0.1
+      ],
+      [
+        "OC"
+      ]
+    ],
+    "BC": [
+      [
+        0.5,
+        0.7,
+        0.1
+      ],
+      [
+        "BC"
+      ]
+    ],
+    "OIN": [
+      [
+        0.5,
+        0.7,
+        0.1
+      ],
+      [
+        "OIN"
+      ]
+    ]
+  }
+}

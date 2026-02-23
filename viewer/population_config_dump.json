@@ -1,0 +1,25 @@
+{
+  "type": "binned_lognormals",
+  "N": [
+    10000.0
+  ],
+  "GMD": [
+    1.5e-07
+  ],
+  "GSD": [
+    1.4
+  ],
+  "N_bins": 30,
+  "aero_spec_names": [
+    [
+      "BC",
+      "OC"
+    ]
+  ],
+  "aero_spec_fracs": [
+    [
+      0.1,
+      0.9
+    ]
+  ]
+}
