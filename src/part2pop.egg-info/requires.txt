@@ -6,6 +6,7 @@ importlib-resources
 PyMieScatt
 pyBCabs
 tqdm
+streamlit
 
 [test]
 pytest>=7

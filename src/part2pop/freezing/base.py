@@ -24,6 +24,11 @@ class FreezingParticle(Particle):
     def compute_Jhet(self, T):
         """Compute per-particle heterogeneous ice nucleation rate.
         """
+    
+#    @abstractmethod
+#    def compute_Jhom(self, T):
+#        """Compute per-particle homogeneous ice nucleation rate.
+#        """
 
     
 
@@ -40,19 +45,22 @@ class FreezingPopulation(ParticlePopulation):
             spec_masses=np.array(base_population.spec_masses, copy=True),
             num_concs=np.array(base_population.num_concs, copy=True),
             ids=list(base_population.ids).copy(),
+            species_modifications=base_population.species_modifications.copy()
         )
 
         # Prepare storage for per-particle Jhet values
         N_part = len(self.ids)
         self.T_grid = T_grid
-        self.Jhet = np.zeros((len(T_grid), N_part), dtype=float)
-        self.INSA = np.zeros((len(T_grid), N_part), dtype=float)
+        self.Jhet = np.zeros((len(T_grid), N_part), dtype=float) # 1/m^2*s
+        self.Jhom = np.zeros((len(T_grid), N_part), dtype=float) # 1/m^3*s
+        self.INSA = np.zeros((len(T_grid), N_part), dtype=float) # m^2
     
     def add_freezing_particle(self, freezing_particle, part_id, T, **kwargs):
         idx = self.find_particle(part_id)
         if idx >= len(self.ids) or self.ids[idx] != part_id:
-            raise ValueError(f"part_id {part_id} not found in OpticalPopulation ids.")
+            raise ValueError(f"part_id {part_id} not found in FreezingPopulation ids.")
         self.Jhet[:,idx] = freezing_particle.get_Jhet(T)
+        self.Jhom[:,idx] = freezing_particle.get_Jhom(T)
         self.INSA[:,idx] = freezing_particle.INSA
     
     def get_avg_Jhet(self):
@@ -81,8 +89,6 @@ class FreezingPopulation(ParticlePopulation):
                 ns = (1/dT_dt)*trapezoid(self.Jhet[:ii], x=self.T_grid[:ii], axis=0)
                 out[ii]=1-np.sum(weights*np.exp(-1.0*ns*self.INSA[ii]))
         return out
-        
-        
     
     def get_freezing_probs(self):
         return 1-np.exp(-self.Jhet*self.INSA*1.0)
