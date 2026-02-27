@@ -19,16 +19,12 @@ class FreezingParticle(Particle):
     """
     Base class for all freezing particle morphologies.
     """
-    
+
     @abstractmethod
     def compute_Jhet(self, T):
         """Compute per-particle heterogeneous ice nucleation rate.
         """
     
-#    @abstractmethod
-#    def compute_Jhom(self, T):
-#        """Compute per-particle homogeneous ice nucleation rate.
-#        """
 
     
 
@@ -90,8 +86,12 @@ class FreezingPopulation(ParticlePopulation):
                 out[ii]=1-np.sum(weights*np.exp(-1.0*ns*self.INSA[ii]))
         return out
     
-    def get_freezing_probs(self):
-        return 1-np.exp(-self.Jhet*self.INSA*1.0)
+    def get_freezing_probs(self, dt=1.0):
+        drop_volume = 0.0
+        for spec, mass in zip(self.species, self.spec_masses):
+            drop_volume+=mass/spec.density
+        P_frz = 1-np.exp(-(self.Jhet*self.INSA + self.Jhom*drop_volume)*dt) 
+        return P_frz
 
         
 
