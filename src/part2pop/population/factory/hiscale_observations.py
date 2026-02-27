@@ -53,7 +53,7 @@ from scipy.optimize import curve_fit
 from scipy.integrate import trapezoid
 from scipy.special import erf
 from typing import Any, Dict, List, Optional, Tuple
-import math, tqdm
+import math
 import re
 
 import numpy as np
