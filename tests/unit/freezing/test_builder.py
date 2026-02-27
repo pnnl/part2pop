@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from part2pop.aerosol_particle import make_particle
+from part2pop.freezing.factory.homogeneous import HomogeneousParticle
 from part2pop.freezing.factory import registry as freezing_registry
 from part2pop.freezing.factory.utils import calculate_Psat
 from part2pop.population.base import ParticlePopulation
@@ -21,10 +22,10 @@ def _make_monodisperse_population():
     """
     cfg = {
         "type": "monodisperse",
-        "aero_spec_names": [["SO4", "H2O"]],
+        "aero_spec_names": [["BC", "SO4", "H2O"]],
         "N": [1.0e4],
         "D": [0.5e-6],
-        "aero_spec_fracs": [[0.2, 0.8]],
+        "aero_spec_fracs": [[0.1, 0.2, 0.7]],
     }
     return build_population(cfg)
 
@@ -50,9 +51,9 @@ def test_build_freezing_particle_homogeneous():
 
     cfg = {"morphology": "homogeneous"}
     fp = build_freezing_particle(base_particle, cfg)
-
+    
     assert hasattr(fp, "get_Jhet")
-    J = fp.get_Jhet(T=235.0)
+    J = fp.get_Jhet(T=np.array([235.0]))
     assert np.isfinite(J)
     assert J >= 0.0
 
@@ -88,92 +89,50 @@ def test_build_freezing_population_T_in_C():
     assert np.all(ff <= 1.0)
 
 
-def test_freezing_particle_builder_validates_type(monkeypatch):
+def test_freezing_particle_builder_validates_type():
     builder = fb.FreezingParticleBuilder({"morphology": None})
     with pytest.raises(ValueError):
         builder.build(base_particle=object())
 
-    monkeypatch.setattr(fb, "discover_morphology_types", lambda: {"good": lambda p, c: ("ok", p, c)})
+    builder = fb.FreezingParticleBuilder({"morphology": 'random'})
     with pytest.raises(ValueError):
-        fb.FreezingParticleBuilder({"morphology": "bad"}).build(base_particle=object())
+        builder.build(base_particle=object())
 
-    result = fb.FreezingParticleBuilder({"morphology": "good"}).build(base_particle="p")
-    assert result[1] == "p"
+    base_population = _make_monodisperse_population()
+    base_particle = base_population.get_particle(base_population.ids[0])
+    result = fb.FreezingParticleBuilder({"morphology": "homogeneous"}).build(base_particle=base_particle)
+    assert type(result)==HomogeneousParticle
 
 
-def test_build_freezing_population_unknown_units(monkeypatch):
-    class _StubFreezePop:
-        def __init__(self, base, T): self.base = base; self.T=T
-        def add_freezing_particle(self, fp, pid, T): pass
-    monkeypatch.setattr(fb, "FreezingPopulation", _StubFreezePop)
-    monkeypatch.setattr(fb, "build_freezing_particle", lambda base_particle, cfg: ("fp", cfg))
-
-    base = type("P", (), {"ids": [1], "get_particle": lambda self, pid: "p"})()
+def test_build_freezing_population_unknown_units():
+    base_population = _make_monodisperse_population()
     with pytest.raises(ValueError):
-        fb.build_freezing_population(base, {"T_units": "X"})
+        fb.build_freezing_population(base_population, {"T_units": "X"})
 
 
 def test_calculate_psat_helpers_increase_with_temperature():
-    low_wv, low_ice = calculate_Psat(260.0)
-    high_wv, high_ice = calculate_Psat(280.0)
+    low_wv, low_ice = calculate_Psat(np.array([260.0]))
+    high_wv, high_ice = calculate_Psat(np.array([280.0]))
     assert high_wv > low_wv
     assert high_ice > low_ice
 
 
 def test_calculate_psat_returns_positive_values():
-    psat_wv, psat_ice = calculate_Psat(270.0)
+    psat_wv, psat_ice = calculate_Psat(np.array([270.0]))
     assert psat_wv > 0.0
     assert psat_ice > 0.0
 
 
-class _FakeFreezingParticle:
-    def __init__(self, *args, **kwargs):
-        self._jhet = np.array([1.0])
-        self.INSA = np.array([1.0])
-
-    def get_Jhet(self, T):
-        return self._jhet
-
-
-def _build_base_population():
-    particle = make_particle(1e-6, ["SO4"], [1.0])
-    return ParticlePopulation(
-        species=particle.species,
-        spec_masses=np.asarray([particle.masses]),
-        num_concs=np.asarray([1.0]),
-        ids=[3],
-    )
-
-
-def test_freezing_particle_builder_requires_morphology():
-    with pytest.raises(ValueError):
-        fb.FreezingParticleBuilder({}).build(_FakeFreezingParticle())
-
-
-def test_freezing_particle_builder_unknown_type(monkeypatch):
-    monkeypatch.setattr(freezing_registry, "discover_morphology_types", lambda: {})
-    builder = fb.FreezingParticleBuilder({"morphology": "missing"})
-    with pytest.raises(ValueError):
-        builder.build(_FakeFreezingParticle())
-
-
 def test_build_freezing_population_runs_for_C_and_K(monkeypatch):
-    monkeypatch.setattr(
-        fb,
-        "discover_morphology_types",
-        lambda: {"stub": lambda base, cfg: _FakeFreezingParticle()},
-    )
-    base = _build_base_population()
-    cfg = {"morphology": "stub", "T_grid": [270.0], "T_units": "C"}
-    pop_c = fb.build_freezing_population(base, cfg)
+    base_population = _make_monodisperse_population()
+    cfg = {"morphology": "homogeneous", "T_grid": np.array([270.0]), "T_units": "C"}
+    pop_c = fb.build_freezing_population(base_population, cfg)
     assert hasattr(pop_c, "Jhet")
+    assert hasattr(pop_c, "Jhom")
+    assert hasattr(pop_c, "INSA")
 
     cfg["T_units"] = "K"
-    pop_k = fb.build_freezing_population(base, cfg)
+    pop_k = fb.build_freezing_population(base_population, cfg)
     assert hasattr(pop_k, "Jhet")
-
-
-def test_build_freezing_population_bad_units():
-    base = _build_base_population()
-    with pytest.raises(ValueError):
-        fb.build_freezing_population(base, {"morphology": "stub", "T_units": "M"})
+    assert hasattr(pop_k, "Jhom")
+    assert hasattr(pop_k, "INSA")

@@ -58,25 +58,27 @@ class HomogeneousParticle(FreezingParticle):
         aw_ice = P_ice/P_wv
         aw = self.get_aw()
         delta_aw = aw - aw_ice
-        if delta_aw >= 0.26 and delta_aw <= 0.34:
-            Jhom = 10**(
-                    -906.7
-                    + 8502 * delta_aw
-                    + -26924 * delta_aw**2
-                    + 29180 * delta_aw**3
-                    + -1.522
-                )
-        elif delta_aw < 0.26:
-            Jhom = 0
-        elif delta_aw > 0.34:
-            delta_aw = 0.34
-            Jhom = 10**(
-                    -906.7
-                    + 8502 * delta_aw
-                    + -26924 * delta_aw**2
-                    + 29180 * delta_aw**3
-                    + -1.522
-                )
+        Jhom = np.zeros(len(delta_aw))
+        for ii in range(len(delta_aw)):
+            if delta_aw[ii] >= 0.26 and delta_aw[ii] <= 0.34:
+                Jhom[ii] = 10**(
+                            -906.7
+                            + 8502 * delta_aw[ii]
+                            + -26924 * delta_aw[ii]**2
+                            + 29180 * delta_aw[ii]**3
+                            + -1.522
+                        )
+            elif delta_aw[ii] < 0.26:
+                Jhom[ii] = 0
+            elif delta_aw[ii] > 0.34:
+                delta_aw[ii] = 0.34
+                Jhom[ii] = 10**(
+                            -906.7
+                            + 8502 * delta_aw[ii]
+                            + -26924 * delta_aw[ii]**2
+                            + 29180 * delta_aw[ii]**3
+                            + -1.522
+                        )
         return Jhom
     
     def get_aw(self):
@@ -103,12 +105,6 @@ class HomogeneousParticle(FreezingParticle):
                 sum_b += b_molal
         ln_aw = -0.01801528 * sum_b
         aw = np.exp(ln_aw)
-        
-        # numerical safety
-        if aw > 1.0:
-            aw = 1.0
-        if aw <= 0.0:
-            aw = 0.0
 
         return aw
     

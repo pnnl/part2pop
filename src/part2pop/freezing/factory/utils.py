@@ -34,8 +34,8 @@ def calculate_Psat(T):
                   + tanh(0.0415*(T-218.8)) *
                     (53.878 - 1331.22/T - 9.44523*ln(T) + 0.014025*T)
     """
-    if T <= 0:
-        raise ValueError("Temperature must be in Kelvin and > 0.")
+    if (T <= 0).any():
+        raise ValueError("Temperature in Kelvin must be > 0.")
 
     lnT = np.log(T)
 
@@ -78,6 +78,8 @@ def calculate_dPsat_dT(T):
     dp_dT_liq : Pa/K
     """
     T = np.asarray(T)
+    if (T <= 0).any():
+        raise ValueError("Temperature in Kelvin must be > 0.")
     lnT = np.log(T)
 
     # -------------------
