@@ -50,6 +50,7 @@ Requires-Dist: importlib-resources
 Requires-Dist: PyMieScatt
 Requires-Dist: pyBCabs
 Requires-Dist: tqdm
+Requires-Dist: streamlit
 Provides-Extra: test
 Requires-Dist: pytest>=7; extra == "test"
 Requires-Dist: pytest-cov>=4; extra == "test"
