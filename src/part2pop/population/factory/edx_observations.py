@@ -11,6 +11,7 @@ from typing import Any, Dict
 from part2pop.population.base import ParticlePopulation
 import pandas as pd
 import numpy as np
+from part2pop.population import build_population
 import warnings
 
 class ElementMasses:
@@ -32,6 +33,9 @@ class ElementMasses:
         self.Si = 28.085e-3
         self.K = 39.09e-3
         self.Ca = 40.078e-3
+        self.S = 32.065e-3
+        self.Na = 22.99e-3
+        self.Cl = 35.45e-3
         
 class Population_MassFracs:
     def __init__(self, diameters, elements, mass_fractions, ptypes):
@@ -44,43 +48,44 @@ class Population_MassFracs:
 @register("edx_observations")
 def build(config: Dict[str, Any]) -> ParticlePopulation:
 
-    required = ["edx_file", "elements"]
+    required = ["edx_file"]
     missing = [k for k in required if k not in config]
     if missing:
         raise KeyError(f"edx_observations missing required config keys: {missing}")
+    elements = config.get("elements", ['C','N','O','Na','Mg','Al','Si','P','S','Cl','K','Ca','Mn','Fe','Zn'])
 
-    raw_population = read_edx_file(config)
+    raw_population = read_edx_file(config, elements)
 
-    aerospecs = config.get('aerosol_species', None)
-    for ptype, MassFracs in zip(raw_population.ptype, raw_population.mass_fractions):
-        if ptype == 'dust':
-            masses = sample_dust_particle(aerospecs, MassFracs, raw_population.elements)
-            print(masses)
-            import sys
-            sys.exit()
+    aero_spec_names = config.get("aerosol_species", ['SO4','OIN','OC','NaCl','biological'])
+    aero_spec_masses = np.zeros((len(raw_population.ptype), len(aero_spec_names)))
+    for ii, (ptype, MassFracs) in enumerate(zip(raw_population.ptype, raw_population.mass_fractions)):
+        if ptype == 'biological':
+            aero_spec_masses[ii] = sample_bio_particle(aero_spec_names, MassFracs, raw_population.elements)
+        else:
+            aero_spec_masses[ii] = sample_particle(aero_spec_names, MassFracs, raw_population.elements)
 
-
-    # config = normalize_population_config(config)
-    # required = ["aimms_file", "splat_file", "ams_file", "z", "dz", "splat_species", "mass_thresholds"]
-    # missing = [k for k in required if k not in config]
-    # if missing:
-    #     raise KeyError(f"hiscale_observations missing required config keys: {missing}")
-    # if "fims_file" not in config and "beasd_file" not in config:
-    #     raise KeyError("hiscale_observations requires either 'fims_file' or 'beasd_file' in config.")
-    # if "fims_file" in config and "fims_bins_file" not in config:
-    #     raise KeyError("hiscale_observations with 'fims_file' requires 'fims_bins_file' in config.")
+    # make the particle population from the species mass fractions
+    new_aero_spec_names = [aero_spec_names.copy() for _ in range(len(aero_spec_masses))]
+    population_cfg = {
+        "type": "monodisperse",
+        "N": np.ones(len(aero_spec_masses)),
+        "D": raw_population.D,
+        "aero_spec_names": new_aero_spec_names,
+        "aero_spec_fracs": aero_spec_masses,
+    }
+    particle_population = build_population(population_cfg)
     
-    return 1
+    return particle_population
 
 
-def read_edx_file(config: Dict[str, Any]) -> Dict[str, float]:
+def read_edx_file(config: Dict[str, Any], elements: list[str]) -> Dict[str, float]:
     filename = config["edx_file"]
     extension = filename.split('.')[-1]
     if extension != 'csv':
         raise ValueError(f"edx_file must be .csv format supplied format is .{extension}")
     data = pd.read_csv(filename)
-    particle_massfracs = np.zeros((len(data), len(config['elements'])))
-    elements = np.array(config['elements'])
+    particle_massfracs = np.zeros((len(data), len(elements)))
+    elements = np.array(elements)
 
     # find element columns
     for jj, (spec) in enumerate(elements):
@@ -89,8 +94,15 @@ def read_edx_file(config: Dict[str, Any]) -> Dict[str, float]:
             if column.split("_")[-1] == spec:
                 idx = ii
                 particle_massfracs[:,jj]=np.array(data[column])
+            elif column[:-1] == spec:
+                idx = ii
+                particle_massfracs[:,jj]=np.array(data[column])
         if not idx:
             raise KeyError(f"Could not identify column for {spec} in {filename}")
+
+    # calculate mass fraction if in percent
+    if np.mean(np.sum(particle_massfracs, axis=1)) == 100.0:
+        particle_massfracs/=100.0
 
     # find size column
     matches = [k for k in data if "diam" in k.lower()]
@@ -112,13 +124,29 @@ def read_edx_file(config: Dict[str, Any]) -> Dict[str, float]:
     return Population_MassFracs(particle_diameters, elements, particle_massfracs, ptypes)
 
 
-def sample_dust_particle(aerospecs: list[str], mass_fraction: np.ndarray[float], elements: np.ndarray[str]) -> list[float]:
+def sample_particle(aerospecs: list[str], mass_fraction: np.ndarray[float], elements: np.ndarray[str]) -> list[float]:
+    aerospecs=np.array(aerospecs)
     sampled_masses = np.zeros(len(aerospecs))
     data_dict = dict(zip(elements, mass_fraction))
     molec_masses = ElementMasses()
 
+    # Assume that all sulfur exists as SO4
+    sulfate_O_fraction = data_dict['S']*((4*molec_masses.O)/molec_masses.S)
+    if sulfate_O_fraction <= data_dict['O']:
+        sulfate_mass_fraction = data_dict['S']+sulfate_O_fraction
+    else:
+        sulfate_mass_fraction = data_dict['S']+data_dict['O']
+        sulfate_O_fraction = data_dict['O']
+    try:
+        idx = np.where(aerospecs == 'SO4')[0][0]
+        sampled_masses[idx]=sulfate_mass_fraction
+    except:
+        raise ValueError(f"Could not find SO4 in provided aerospecs: {aerospecs}")
+
     # dust = Mg + Al + Si + P + K + Ca + Mn + Fe + Zn 
     # assume these elements are present as MgO, Al2O3, SiO2, K2O, CaO, Fe2O3, MnO
+    # unless the particle does not contain that much oxygen. In that case, assume the
+    # rest of the particle's oxygen forms metal oxides.
     dust_O_fraction = (
         data_dict['Mg']*(molec_masses.O/molec_masses.Mg)
         + data_dict['Al']*((3*molec_masses.O)/(2*molec_masses.Al))
@@ -128,19 +156,99 @@ def sample_dust_particle(aerospecs: list[str], mass_fraction: np.ndarray[float],
         + data_dict['Fe']*((3*molec_masses.O)/(2*molec_masses.Fe))
         + data_dict['Mn']*(molec_masses.O/molec_masses.Mn)
     )
+    if sulfate_O_fraction+dust_O_fraction > data_dict['O']:
+        dust_O_fraction = data_dict['O']-sulfate_O_fraction
+    dust_mass_fraction = dust_O_fraction
+    for kk in ['Mg','Al','Si','K','Ca','Fe','Mn','Zn']:
+        dust_mass_fraction += data_dict[kk]
+    try:
+        idx = np.where(aerospecs == 'OIN')[0][0]
+        sampled_masses[idx]=dust_mass_fraction
+    except:
+        raise ValueError(f"Could not find OIN in provided aerospecs: {aerospecs}")
 
-    print(dust_O_fraction, data_dict['O'])
-    # dust_fractions = (
-    #     raw_data['Mg'][idx]
-    #     + raw_data['Al'][idx]
-    #     + raw_data['Si'][idx]
-    #     + raw_data['K'][idx]
-    #     + raw_data['Ca'][idx]
-    #     + raw_data['Fe'][idx]
-    #     + raw_data['Mn'][idx]
-    #     + dust_O_fraction
-    # )
+    # Assume that the remaining carbon, oxygen, phosphorous, and nitrogen are organic
+    organic_mass_fraction = (
+        data_dict['C'] + data_dict['N'] + data_dict['P'] 
+        + data_dict['O'] - sulfate_O_fraction - dust_O_fraction
+    )
+    try:
+        idx = np.where(aerospecs == 'OC')[0][0]
+        sampled_masses[idx]=organic_mass_fraction
+    except:
+        raise ValueError(f"Could not find OC in provided aerospecs: {aerospecs}")
+
+    # Assume that all the Na and Cl exist as NaCl
+    NaCl_mass_fraction = data_dict['Na']+data_dict['Cl']
+    try:
+        idx = np.where(aerospecs == 'NaCl')[0][0]
+        sampled_masses[idx]=NaCl_mass_fraction
+    except:
+        raise ValueError(f"Could not find NaCl in provided aerospecs: {aerospecs}")
+
+    if np.sum(sampled_masses)>0.99 and np.sum(sampled_masses)<1.01:
+        sampled_masses/=np.sum(sampled_masses)
+    else:
+        raise ValueError(f"Sampled mass fractions sum to {np.sum(sampled_masses)}.")
     
+    return sampled_masses
+
+
+def sample_bio_particle(aerospecs: list[str], mass_fraction: np.ndarray[float], elements: np.ndarray[str]) -> np.ndarray[float]:
+    
+    aerospecs=np.array(aerospecs)
+    sampled_masses = np.zeros(len(aerospecs))
+    data_dict = dict(zip(elements, mass_fraction))
+    molec_masses = ElementMasses()
+
+    # dust = Al + Si + Mn + Fe + Zn 
+    # assume these elements are present as MgO, Al2O3, SiO2, K2O, CaO, Fe2O3, MnO
+    # unless the particle does not contain that much oxygen. In that case, assume the
+    # rest of the particle's oxygen forms metal oxides.
+    dust_O_fraction = (
+        + data_dict['Al']*((3*molec_masses.O)/(2*molec_masses.Al))
+        + data_dict['Si']*((2*molec_masses.O)/molec_masses.Si)
+        + data_dict['Fe']*((3*molec_masses.O)/(2*molec_masses.Fe))
+        + data_dict['Mn']*(molec_masses.O/molec_masses.Mn)
+    )
+    if dust_O_fraction > data_dict['O']:
+        dust_O_fraction = data_dict['O']
+    dust_mass_fraction = dust_O_fraction
+    for kk in ['Al','Si','Fe','Mn','Zn']:
+        dust_mass_fraction += data_dict[kk]
+    try:
+        idx = np.where(aerospecs == 'OIN')[0][0]
+        sampled_masses[idx]=dust_mass_fraction
+    except:
+        raise ValueError(f"Could not find OIN in provided aerospecs: {aerospecs}")
+    
+    # Assume that all the Na and Cl exist as NaCl
+    NaCl_mass_fraction = data_dict['Na']+data_dict['Cl']
+    try:
+        idx = np.where(aerospecs == 'NaCl')[0][0]
+        sampled_masses[idx]=NaCl_mass_fraction
+    except:
+        raise ValueError(f"Could not find NaCl in provided aerospecs: {aerospecs}")
+    
+    # usually found in biological particles: C, N, O, P, S, K, Mg, Ca
+    # Not usually found in biological particles: Na+Cl (salt coating), Si/Al/Fe/Mn/Zn (dust coating).
+    # Assume that bio mass = C + N + P + S + K + Mg + Ca + remaining O
+    bio_mass_fraction =  (
+        + data_dict['C'] + data_dict['N'] + data_dict['P']
+        + data_dict['S'] + data_dict['K'] + data_dict['Mg']
+        + data_dict['Ca'] + data_dict['O'] - dust_O_fraction
+    )
+    try:
+        idx = np.where(aerospecs == 'biological')[0][0]
+        sampled_masses[idx]=bio_mass_fraction
+    except:
+        raise ValueError(f"Could not find bio in provided aerospecs: {aerospecs}")
+   
+    # make sure sums to one
+    if np.sum(sampled_masses)>0.99 and np.sum(sampled_masses)<1.01:
+        sampled_masses/=np.sum(sampled_masses)
+    else:
+        raise ValueError(f"Sampled mass fractions sum to {np.sum(sampled_masses)}.")
 
     return sampled_masses
 
