@@ -175,6 +175,7 @@ src/part2pop/population/base.py
 src/part2pop/population/builder.py
 src/part2pop/population/utils.py
 src/part2pop/population/factory/binned_lognormals.py
+src/part2pop/population/factory/edx_observations.py
 src/part2pop/population/factory/hiscale_observations.py
 src/part2pop/population/factory/mam4.py
 src/part2pop/population/factory/monodisperse.py

@@ -55,10 +55,11 @@ def build(config: Dict[str, Any]) -> ParticlePopulation:
     elements = config.get("elements", ['C','N','O','Na','Mg','Al','Si','P','S','Cl','K','Ca','Mn','Fe','Zn'])
 
     raw_population = read_edx_file(config, elements)
-
+    particle_classes = []
     aero_spec_names = config.get("aerosol_species", ['SO4','OIN','OC','NaCl','biological'])
     aero_spec_masses = np.zeros((len(raw_population.ptype), len(aero_spec_names)))
     for ii, (ptype, MassFracs) in enumerate(zip(raw_population.ptype, raw_population.mass_fractions)):
+        particle_classes.append(ptype)
         if ptype == 'biological':
             aero_spec_masses[ii] = sample_bio_particle(aero_spec_names, MassFracs, raw_population.elements)
         else:
@@ -74,7 +75,7 @@ def build(config: Dict[str, Any]) -> ParticlePopulation:
         "aero_spec_fracs": aero_spec_masses,
     }
     particle_population = build_population(population_cfg)
-    
+    particle_population.classes=np.array(particle_classes)
     return particle_population
 
 

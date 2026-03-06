@@ -1,7 +1,7 @@
 # src/part2pop/population/base.py
 
 from dataclasses import dataclass, field
-from typing import Tuple, Dict
+from typing import Tuple, Dict, Optional
 from warnings import warn
 import numpy as np
 
@@ -17,6 +17,7 @@ class ParticlePopulation:
     spec_masses: np.array # shape = (N_particles, N_species)
     num_concs: np.array # shape = N_particles
     ids: Tuple[int, ...] # shape = N_particles
+    classes: Optional[Tuple[str, ...]] = None # shape = N_particles
     # Population-level species modifications (e.g., density, kappa overrides)
     species_modifications: Dict[str, dict] = field(default_factory=dict)
 
@@ -153,5 +154,5 @@ class ParticlePopulation:
         """Return a copy that shares immutable data but has detached numeric arrays."""
         return ParticlePopulation(
             species=self.species, spec_masses=self.spec_masses.copy(),
-            num_concs=self.num_concs.copy(), ids=self.ids, species_modifications=self.species_modifications
+            num_concs=self.num_concs.copy(), ids=self.ids, classes=self.classes, species_modifications=self.species_modifications
         )
