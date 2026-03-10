@@ -56,7 +56,7 @@ def build(config: Dict[str, Any]) -> ParticlePopulation:
 
     raw_population = read_edx_file(config, elements)
     particle_classes = []
-    aero_spec_names = config.get("aerosol_species", ['SO4','OIN','OC','NaCl','biological'])
+    aero_spec_names = config.get("aerosol_species", ['SO4','OIN','OC','Na','Cl','biological'])
     aero_spec_masses = np.zeros((len(raw_population.ptype), len(aero_spec_names)))
     for ii, (ptype, MassFracs) in enumerate(zip(raw_population.ptype, raw_population.mass_fractions)):
         particle_classes.append(ptype)
@@ -180,12 +180,13 @@ def sample_particle(aerospecs: list[str], mass_fraction: np.ndarray[float], elem
         raise ValueError(f"Could not find OC in provided aerospecs: {aerospecs}")
 
     # Assume that all the Na and Cl exist as NaCl
-    NaCl_mass_fraction = data_dict['Na']+data_dict['Cl']
     try:
-        idx = np.where(aerospecs == 'NaCl')[0][0]
-        sampled_masses[idx]=NaCl_mass_fraction
+        idx = np.where(aerospecs == 'Na')[0][0]
+        sampled_masses[idx]=data_dict['Na']
+        idx = np.where(aerospecs == 'Cl')[0][0]
+        sampled_masses[idx]=data_dict['Cl']
     except:
-        raise ValueError(f"Could not find NaCl in provided aerospecs: {aerospecs}")
+        raise ValueError(f"Could not find Na or Cl in provided aerospecs: {aerospecs}")
 
     if np.sum(sampled_masses)>0.99 and np.sum(sampled_masses)<1.01:
         sampled_masses/=np.sum(sampled_masses)
@@ -224,12 +225,13 @@ def sample_bio_particle(aerospecs: list[str], mass_fraction: np.ndarray[float], 
         raise ValueError(f"Could not find OIN in provided aerospecs: {aerospecs}")
     
     # Assume that all the Na and Cl exist as NaCl
-    NaCl_mass_fraction = data_dict['Na']+data_dict['Cl']
     try:
-        idx = np.where(aerospecs == 'NaCl')[0][0]
-        sampled_masses[idx]=NaCl_mass_fraction
+        idx = np.where(aerospecs == 'Na')[0][0]
+        sampled_masses[idx]=data_dict['Na']
+        idx = np.where(aerospecs == 'Cl')[0][0]
+        sampled_masses[idx]=data_dict['Cl']
     except:
-        raise ValueError(f"Could not find NaCl in provided aerospecs: {aerospecs}")
+        raise ValueError(f"Could not find Na or Cl in provided aerospecs: {aerospecs}")
     
     # usually found in biological particles: C, N, O, P, S, K, Mg, Ca
     # Not usually found in biological particles: Na+Cl (salt coating), Si/Al/Fe/Mn/Zn (dust coating).
