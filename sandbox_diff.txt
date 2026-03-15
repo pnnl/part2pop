@@ -1,0 +1,346 @@
+Only in tmp_viewer/part2pop: .DS_Store
+Binary files src/part2pop/__pycache__/__init__.cpython-312.pyc and tmp_viewer/part2pop/__pycache__/__init__.cpython-312.pyc differ
+Only in tmp_viewer/part2pop/__pycache__: __init__.cpython-313.pyc
+Binary files src/part2pop/__pycache__/__init__.cpython-314.pyc and tmp_viewer/part2pop/__pycache__/__init__.cpython-314.pyc differ
+Binary files src/part2pop/__pycache__/_patch.cpython-314.pyc and tmp_viewer/part2pop/__pycache__/_patch.cpython-314.pyc differ
+Binary files src/part2pop/__pycache__/aerosol_particle.cpython-312.pyc and tmp_viewer/part2pop/__pycache__/aerosol_particle.cpython-312.pyc differ
+Only in tmp_viewer/part2pop/__pycache__: aerosol_particle.cpython-313.pyc
+Binary files src/part2pop/__pycache__/aerosol_particle.cpython-314.pyc and tmp_viewer/part2pop/__pycache__/aerosol_particle.cpython-314.pyc differ
+Only in tmp_viewer/part2pop/__pycache__: constants.cpython-313.pyc
+Binary files src/part2pop/__pycache__/constants.cpython-314.pyc and tmp_viewer/part2pop/__pycache__/constants.cpython-314.pyc differ
+Binary files src/part2pop/__pycache__/utilities.cpython-312.pyc and tmp_viewer/part2pop/__pycache__/utilities.cpython-312.pyc differ
+Only in tmp_viewer/part2pop/__pycache__: utilities.cpython-313.pyc
+Binary files src/part2pop/__pycache__/utilities.cpython-314.pyc and tmp_viewer/part2pop/__pycache__/utilities.cpython-314.pyc differ
+Only in tmp_viewer/part2pop/analysis/__pycache__: __init__.cpython-313.pyc
+Binary files src/part2pop/analysis/__pycache__/__init__.cpython-314.pyc and tmp_viewer/part2pop/analysis/__pycache__/__init__.cpython-314.pyc differ
+Only in tmp_viewer/part2pop/analysis/__pycache__: base.cpython-313.pyc
+Binary files src/part2pop/analysis/__pycache__/base.cpython-314.pyc and tmp_viewer/part2pop/analysis/__pycache__/base.cpython-314.pyc differ
+Only in tmp_viewer/part2pop/analysis/__pycache__: builder.cpython-313.pyc
+Binary files src/part2pop/analysis/__pycache__/builder.cpython-314.pyc and tmp_viewer/part2pop/analysis/__pycache__/builder.cpython-314.pyc differ
+Only in tmp_viewer/part2pop/analysis/__pycache__: defaults.cpython-313.pyc
+Binary files src/part2pop/analysis/__pycache__/defaults.cpython-314.pyc and tmp_viewer/part2pop/analysis/__pycache__/defaults.cpython-314.pyc differ
+Binary files src/part2pop/analysis/__pycache__/distributions.cpython-312.pyc and tmp_viewer/part2pop/analysis/__pycache__/distributions.cpython-312.pyc differ
+Only in tmp_viewer/part2pop/analysis/__pycache__: distributions.cpython-313.pyc
+Binary files src/part2pop/analysis/__pycache__/distributions.cpython-314.pyc and tmp_viewer/part2pop/analysis/__pycache__/distributions.cpython-314.pyc differ
+diff -ru src/part2pop/analysis/defaults.py tmp_viewer/part2pop/analysis/defaults.py
+--- src/part2pop/analysis/defaults.py	2025-12-07 13:25:01
++++ tmp_viewer/part2pop/analysis/defaults.py	2026-03-09 19:47:27
+@@ -80,7 +80,12 @@
+         "T": 298.15,
+     },
+ 
+-    # relative-humidity axis
++    # temperature / humidity axes
++    "T_grid": {
++        "T_grid": np.asarray([298.15]),
++        "T": 298.15,
++        "T_units": "K",
++    },
+     "rh_grid": {"rh_grid": np.asarray([0.0])},
+ 
+     # other/legacy entries (keep for compatibility)
+Only in tmp_viewer/part2pop/analysis/particle/__pycache__: __init__.cpython-313.pyc
+Binary files src/part2pop/analysis/particle/__pycache__/__init__.cpython-314.pyc and tmp_viewer/part2pop/analysis/particle/__pycache__/__init__.cpython-314.pyc differ
+Only in tmp_viewer/part2pop/analysis/particle/__pycache__: base.cpython-313.pyc
+Binary files src/part2pop/analysis/particle/__pycache__/base.cpython-314.pyc and tmp_viewer/part2pop/analysis/particle/__pycache__/base.cpython-314.pyc differ
+Only in tmp_viewer/part2pop/analysis/particle/factory/__pycache__: Dwet.cpython-313.pyc
+Only in tmp_viewer/part2pop/analysis/particle/factory/__pycache__: Dwet.cpython-314.pyc
+Only in tmp_viewer/part2pop/analysis/particle/factory/__pycache__: P_frz.cpython-313.pyc
+Only in tmp_viewer/part2pop/analysis/particle/factory/__pycache__: P_frz.cpython-314.pyc
+Only in tmp_viewer/part2pop/analysis/particle/factory/__pycache__: kappa.cpython-313.pyc
+Only in tmp_viewer/part2pop/analysis/particle/factory/__pycache__: kappa.cpython-314.pyc
+Only in tmp_viewer/part2pop/analysis/particle/factory/__pycache__: registry.cpython-313.pyc
+Binary files src/part2pop/analysis/particle/factory/__pycache__/registry.cpython-314.pyc and tmp_viewer/part2pop/analysis/particle/factory/__pycache__/registry.cpython-314.pyc differ
+diff -ru src/part2pop/analysis/particle/factory/registry.py tmp_viewer/part2pop/analysis/particle/factory/registry.py
+--- src/part2pop/analysis/particle/factory/registry.py	2025-12-07 13:25:01
++++ tmp_viewer/part2pop/analysis/particle/factory/registry.py	2026-03-09 19:48:24
+@@ -110,13 +110,24 @@
+     if not meta:
+         raise UnknownParticleVariableError(name, suggestions=None)
+ 
++    axis_names = meta.axis_names
++    if isinstance(axis_names, str):
++        axis_names = [axis_names]
++    else:
++        axis_names = list(axis_names)
++
++    units = getattr(meta, "units", None)
++    if isinstance(units, dict):
++        units = dict(units)
++
+     return {
+         "name": meta.name,
+         "value_key": meta.name,
+-        "axis_keys": list(meta.axis_names),
++        "axis_keys": list(axis_names),
++        "axis_names": list(axis_names),
+         "description": meta.description,
+         "aliases": list(meta.aliases),
+         "defaults": dict(meta.default_cfg),
+-        "units": dict(meta.units) if getattr(meta, "units", None) else None,
++        "units": units,
+     }
+ 
+Only in tmp_viewer/part2pop/analysis/population/__pycache__: __init__.cpython-313.pyc
+Binary files src/part2pop/analysis/population/__pycache__/__init__.cpython-314.pyc and tmp_viewer/part2pop/analysis/population/__pycache__/__init__.cpython-314.pyc differ
+Only in tmp_viewer/part2pop/analysis/population/__pycache__: base.cpython-313.pyc
+Binary files src/part2pop/analysis/population/__pycache__/base.cpython-314.pyc and tmp_viewer/part2pop/analysis/population/__pycache__/base.cpython-314.pyc differ
+Only in tmp_viewer/part2pop/analysis/population/factory/__pycache__: Nccn.cpython-313.pyc
+Binary files src/part2pop/analysis/population/factory/__pycache__/Nccn.cpython-314.pyc and tmp_viewer/part2pop/analysis/population/factory/__pycache__/Nccn.cpython-314.pyc differ
+Only in tmp_viewer/part2pop/analysis/population/factory/__pycache__: T_grid.cpython-313.pyc
+Binary files src/part2pop/analysis/population/factory/__pycache__/T_grid.cpython-314.pyc and tmp_viewer/part2pop/analysis/population/factory/__pycache__/T_grid.cpython-314.pyc differ
+Only in tmp_viewer/part2pop/analysis/population/factory/__pycache__: avg_Jhet.cpython-313.pyc
+Binary files src/part2pop/analysis/population/factory/__pycache__/avg_Jhet.cpython-314.pyc and tmp_viewer/part2pop/analysis/population/factory/__pycache__/avg_Jhet.cpython-314.pyc differ
+Only in tmp_viewer/part2pop/analysis/population/factory/__pycache__: b_abs.cpython-313.pyc
+Binary files src/part2pop/analysis/population/factory/__pycache__/b_abs.cpython-314.pyc and tmp_viewer/part2pop/analysis/population/factory/__pycache__/b_abs.cpython-314.pyc differ
+Only in tmp_viewer/part2pop/analysis/population/factory/__pycache__: b_ext.cpython-313.pyc
+Binary files src/part2pop/analysis/population/factory/__pycache__/b_ext.cpython-314.pyc and tmp_viewer/part2pop/analysis/population/factory/__pycache__/b_ext.cpython-314.pyc differ
+Only in tmp_viewer/part2pop/analysis/population/factory/__pycache__: b_scat.cpython-313.pyc
+Binary files src/part2pop/analysis/population/factory/__pycache__/b_scat.cpython-314.pyc and tmp_viewer/part2pop/analysis/population/factory/__pycache__/b_scat.cpython-314.pyc differ
+Only in tmp_viewer/part2pop/analysis/population/factory/__pycache__: dNdlnD.cpython-313.pyc
+Binary files src/part2pop/analysis/population/factory/__pycache__/dNdlnD.cpython-314.pyc and tmp_viewer/part2pop/analysis/population/factory/__pycache__/dNdlnD.cpython-314.pyc differ
+Only in tmp_viewer/part2pop/analysis/population/factory/__pycache__: diam_grid.cpython-313.pyc
+Binary files src/part2pop/analysis/population/factory/__pycache__/diam_grid.cpython-314.pyc and tmp_viewer/part2pop/analysis/population/factory/__pycache__/diam_grid.cpython-314.pyc differ
+Only in tmp_viewer/part2pop/analysis/population/factory/__pycache__: frac_ccn.cpython-313.pyc
+Binary files src/part2pop/analysis/population/factory/__pycache__/frac_ccn.cpython-314.pyc and tmp_viewer/part2pop/analysis/population/factory/__pycache__/frac_ccn.cpython-314.pyc differ
+Only in tmp_viewer/part2pop/analysis/population/factory/__pycache__: frozen_frac.cpython-313.pyc
+Binary files src/part2pop/analysis/population/factory/__pycache__/frozen_frac.cpython-314.pyc and tmp_viewer/part2pop/analysis/population/factory/__pycache__/frozen_frac.cpython-314.pyc differ
+Only in tmp_viewer/part2pop/analysis/population/factory/__pycache__: nucleating_sites.cpython-313.pyc
+Binary files src/part2pop/analysis/population/factory/__pycache__/nucleating_sites.cpython-314.pyc and tmp_viewer/part2pop/analysis/population/factory/__pycache__/nucleating_sites.cpython-314.pyc differ
+Only in tmp_viewer/part2pop/analysis/population/factory/__pycache__: registry.cpython-313.pyc
+Binary files src/part2pop/analysis/population/factory/__pycache__/registry.cpython-314.pyc and tmp_viewer/part2pop/analysis/population/factory/__pycache__/registry.cpython-314.pyc differ
+Only in tmp_viewer/part2pop/analysis/population/factory/__pycache__: rh_grid.cpython-313.pyc
+Binary files src/part2pop/analysis/population/factory/__pycache__/rh_grid.cpython-314.pyc and tmp_viewer/part2pop/analysis/population/factory/__pycache__/rh_grid.cpython-314.pyc differ
+Only in tmp_viewer/part2pop/analysis/population/factory/__pycache__: s_grid.cpython-313.pyc
+Binary files src/part2pop/analysis/population/factory/__pycache__/s_grid.cpython-314.pyc and tmp_viewer/part2pop/analysis/population/factory/__pycache__/s_grid.cpython-314.pyc differ
+Only in tmp_viewer/part2pop/analysis/population/factory/__pycache__: spec_mass_conc.cpython-313.pyc
+Binary files src/part2pop/analysis/population/factory/__pycache__/spec_mass_conc.cpython-314.pyc and tmp_viewer/part2pop/analysis/population/factory/__pycache__/spec_mass_conc.cpython-314.pyc differ
+Only in tmp_viewer/part2pop/analysis/population/factory/__pycache__: wvl_grid.cpython-313.pyc
+Binary files src/part2pop/analysis/population/factory/__pycache__/wvl_grid.cpython-314.pyc and tmp_viewer/part2pop/analysis/population/factory/__pycache__/wvl_grid.cpython-314.pyc differ
+Binary files src/part2pop/data/__pycache__/__init__.cpython-312.pyc and tmp_viewer/part2pop/data/__pycache__/__init__.cpython-312.pyc differ
+Only in tmp_viewer/part2pop/data/__pycache__: __init__.cpython-313.pyc
+Binary files src/part2pop/data/__pycache__/__init__.cpython-314.pyc and tmp_viewer/part2pop/data/__pycache__/__init__.cpython-314.pyc differ
+Only in tmp_viewer/part2pop/freezing/__pycache__: __init__.cpython-313.pyc
+Binary files src/part2pop/freezing/__pycache__/__init__.cpython-314.pyc and tmp_viewer/part2pop/freezing/__pycache__/__init__.cpython-314.pyc differ
+Only in tmp_viewer/part2pop/freezing/__pycache__: base.cpython-313.pyc
+Binary files src/part2pop/freezing/__pycache__/base.cpython-314.pyc and tmp_viewer/part2pop/freezing/__pycache__/base.cpython-314.pyc differ
+Only in tmp_viewer/part2pop/freezing/__pycache__: builder.cpython-313.pyc
+Binary files src/part2pop/freezing/__pycache__/builder.cpython-314.pyc and tmp_viewer/part2pop/freezing/__pycache__/builder.cpython-314.pyc differ
+Only in tmp_viewer/part2pop/freezing/factory/__pycache__: __init__.cpython-313.pyc
+Binary files src/part2pop/freezing/factory/__pycache__/__init__.cpython-314.pyc and tmp_viewer/part2pop/freezing/factory/__pycache__/__init__.cpython-314.pyc differ
+Binary files src/part2pop/freezing/factory/__pycache__/homogeneous.cpython-314.pyc and tmp_viewer/part2pop/freezing/factory/__pycache__/homogeneous.cpython-314.pyc differ
+Only in tmp_viewer/part2pop/freezing/factory/__pycache__: registry.cpython-313.pyc
+Binary files src/part2pop/freezing/factory/__pycache__/registry.cpython-314.pyc and tmp_viewer/part2pop/freezing/factory/__pycache__/registry.cpython-314.pyc differ
+Binary files src/part2pop/freezing/factory/__pycache__/utils.cpython-314.pyc and tmp_viewer/part2pop/freezing/factory/__pycache__/utils.cpython-314.pyc differ
+Binary files src/part2pop/optics/__pycache__/__init__.cpython-312.pyc and tmp_viewer/part2pop/optics/__pycache__/__init__.cpython-312.pyc differ
+Only in tmp_viewer/part2pop/optics/__pycache__: __init__.cpython-313.pyc
+Binary files src/part2pop/optics/__pycache__/__init__.cpython-314.pyc and tmp_viewer/part2pop/optics/__pycache__/__init__.cpython-314.pyc differ
+Binary files src/part2pop/optics/__pycache__/base.cpython-312.pyc and tmp_viewer/part2pop/optics/__pycache__/base.cpython-312.pyc differ
+Only in tmp_viewer/part2pop/optics/__pycache__: base.cpython-313.pyc
+Binary files src/part2pop/optics/__pycache__/base.cpython-314.pyc and tmp_viewer/part2pop/optics/__pycache__/base.cpython-314.pyc differ
+Binary files src/part2pop/optics/__pycache__/builder.cpython-312.pyc and tmp_viewer/part2pop/optics/__pycache__/builder.cpython-312.pyc differ
+Only in tmp_viewer/part2pop/optics/__pycache__: builder.cpython-313.pyc
+Binary files src/part2pop/optics/__pycache__/builder.cpython-314.pyc and tmp_viewer/part2pop/optics/__pycache__/builder.cpython-314.pyc differ
+Binary files src/part2pop/optics/__pycache__/refractive_index.cpython-312.pyc and tmp_viewer/part2pop/optics/__pycache__/refractive_index.cpython-312.pyc differ
+Only in tmp_viewer/part2pop/optics/__pycache__: refractive_index.cpython-313.pyc
+Binary files src/part2pop/optics/__pycache__/refractive_index.cpython-314.pyc and tmp_viewer/part2pop/optics/__pycache__/refractive_index.cpython-314.pyc differ
+Binary files src/part2pop/optics/__pycache__/utils.cpython-314.pyc and tmp_viewer/part2pop/optics/__pycache__/utils.cpython-314.pyc differ
+Binary files src/part2pop/optics/factory/__pycache__/__init__.cpython-312.pyc and tmp_viewer/part2pop/optics/factory/__pycache__/__init__.cpython-312.pyc differ
+Only in tmp_viewer/part2pop/optics/factory/__pycache__: __init__.cpython-313.pyc
+Binary files src/part2pop/optics/factory/__pycache__/__init__.cpython-314.pyc and tmp_viewer/part2pop/optics/factory/__pycache__/__init__.cpython-314.pyc differ
+Binary files src/part2pop/optics/factory/__pycache__/core_shell.cpython-314.pyc and tmp_viewer/part2pop/optics/factory/__pycache__/core_shell.cpython-314.pyc differ
+Binary files src/part2pop/optics/factory/__pycache__/fractal.cpython-314.pyc and tmp_viewer/part2pop/optics/factory/__pycache__/fractal.cpython-314.pyc differ
+Binary files src/part2pop/optics/factory/__pycache__/homogeneous.cpython-314.pyc and tmp_viewer/part2pop/optics/factory/__pycache__/homogeneous.cpython-314.pyc differ
+Binary files src/part2pop/optics/factory/__pycache__/registry.cpython-312.pyc and tmp_viewer/part2pop/optics/factory/__pycache__/registry.cpython-312.pyc differ
+Only in tmp_viewer/part2pop/optics/factory/__pycache__: registry.cpython-313.pyc
+Binary files src/part2pop/optics/factory/__pycache__/registry.cpython-314.pyc and tmp_viewer/part2pop/optics/factory/__pycache__/registry.cpython-314.pyc differ
+Binary files src/part2pop/population/__pycache__/__init__.cpython-312.pyc and tmp_viewer/part2pop/population/__pycache__/__init__.cpython-312.pyc differ
+Only in tmp_viewer/part2pop/population/__pycache__: __init__.cpython-313.pyc
+Binary files src/part2pop/population/__pycache__/__init__.cpython-314.pyc and tmp_viewer/part2pop/population/__pycache__/__init__.cpython-314.pyc differ
+Binary files src/part2pop/population/__pycache__/base.cpython-312.pyc and tmp_viewer/part2pop/population/__pycache__/base.cpython-312.pyc differ
+Only in tmp_viewer/part2pop/population/__pycache__: base.cpython-313.pyc
+Binary files src/part2pop/population/__pycache__/base.cpython-314.pyc and tmp_viewer/part2pop/population/__pycache__/base.cpython-314.pyc differ
+Binary files src/part2pop/population/__pycache__/builder.cpython-311.pyc and tmp_viewer/part2pop/population/__pycache__/builder.cpython-311.pyc differ
+Binary files src/part2pop/population/__pycache__/builder.cpython-312.pyc and tmp_viewer/part2pop/population/__pycache__/builder.cpython-312.pyc differ
+Only in tmp_viewer/part2pop/population/__pycache__: builder.cpython-313.pyc
+Binary files src/part2pop/population/__pycache__/builder.cpython-314.pyc and tmp_viewer/part2pop/population/__pycache__/builder.cpython-314.pyc differ
+Binary files src/part2pop/population/__pycache__/utils.cpython-312.pyc and tmp_viewer/part2pop/population/__pycache__/utils.cpython-312.pyc differ
+Only in tmp_viewer/part2pop/population/__pycache__: utils.cpython-313.pyc
+Binary files src/part2pop/population/__pycache__/utils.cpython-314.pyc and tmp_viewer/part2pop/population/__pycache__/utils.cpython-314.pyc differ
+Only in tmp_viewer/part2pop/population/factory/__pycache__: binned_lognormals.cpython-313.pyc
+Binary files src/part2pop/population/factory/__pycache__/binned_lognormals.cpython-314.pyc and tmp_viewer/part2pop/population/factory/__pycache__/binned_lognormals.cpython-314.pyc differ
+Binary files src/part2pop/population/factory/__pycache__/hiscale_observations.cpython-311.pyc and tmp_viewer/part2pop/population/factory/__pycache__/hiscale_observations.cpython-311.pyc differ
+Binary files src/part2pop/population/factory/__pycache__/hiscale_observations.cpython-312.pyc and tmp_viewer/part2pop/population/factory/__pycache__/hiscale_observations.cpython-312.pyc differ
+Only in tmp_viewer/part2pop/population/factory/__pycache__: hiscale_observations.cpython-313.pyc
+Binary files src/part2pop/population/factory/__pycache__/hiscale_observations.cpython-314.pyc and tmp_viewer/part2pop/population/factory/__pycache__/hiscale_observations.cpython-314.pyc differ
+Only in tmp_viewer/part2pop/population/factory/__pycache__: mam4.cpython-313.pyc
+Binary files src/part2pop/population/factory/__pycache__/mam4.cpython-314.pyc and tmp_viewer/part2pop/population/factory/__pycache__/mam4.cpython-314.pyc differ
+Only in tmp_viewer/part2pop/population/factory/__pycache__: monodisperse.cpython-313.pyc
+Binary files src/part2pop/population/factory/__pycache__/monodisperse.cpython-314.pyc and tmp_viewer/part2pop/population/factory/__pycache__/monodisperse.cpython-314.pyc differ
+Only in tmp_viewer/part2pop/population/factory/__pycache__: partmc.cpython-313.pyc
+Binary files src/part2pop/population/factory/__pycache__/partmc.cpython-314.pyc and tmp_viewer/part2pop/population/factory/__pycache__/partmc.cpython-314.pyc differ
+Binary files src/part2pop/population/factory/__pycache__/registry.cpython-311.pyc and tmp_viewer/part2pop/population/factory/__pycache__/registry.cpython-311.pyc differ
+Binary files src/part2pop/population/factory/__pycache__/registry.cpython-312.pyc and tmp_viewer/part2pop/population/factory/__pycache__/registry.cpython-312.pyc differ
+Only in tmp_viewer/part2pop/population/factory/__pycache__: registry.cpython-313.pyc
+Binary files src/part2pop/population/factory/__pycache__/registry.cpython-314.pyc and tmp_viewer/part2pop/population/factory/__pycache__/registry.cpython-314.pyc differ
+Binary files src/part2pop/population/factory/__pycache__/sampled_lognormals.cpython-314.pyc and tmp_viewer/part2pop/population/factory/__pycache__/sampled_lognormals.cpython-314.pyc differ
+diff -ru src/part2pop/population/factory/hiscale_observations.py tmp_viewer/part2pop/population/factory/hiscale_observations.py
+--- src/part2pop/population/factory/hiscale_observations.py	2026-02-20 17:52:30
++++ tmp_viewer/part2pop/population/factory/hiscale_observations.py	2026-02-20 17:41:04
+@@ -288,12 +288,12 @@
+     Parse a bins file and return (Dp_lowers_nm, Dp_uppers_nm) with length expected_bins.
+     Works for:
+       - 2-column tables (lower upper)
++      - 3-column tables (min, mean, max) where we use first/last columns
+       - numeric streams that are interleaved lo,hi,lo,hi...
+       - numeric streams that are concatenated all-lo then all-hi
+     """
+     lines = _read_lines(fims_bins_file)
+ 
+-    # Try per-line 2-col parse first
+     lo_list: List[float] = []
+     hi_list: List[float] = []
+     for line in lines:
+@@ -303,14 +303,16 @@
+         vals = re.findall(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?", s)
+         if len(vals) >= 2:
+             lo_list.append(float(vals[0]))
+-            hi_list.append(float(vals[1]))
++            hi_list.append(float(vals[-1]))
++        if len(vals) >= 3 and vals[0] != vals[-1]:
++            lo_list[-1] = float(vals[0])
++            hi_list[-1] = float(vals[-1])
+     if len(lo_list) == expected_bins and len(hi_list) == expected_bins:
+         lo = np.array(lo_list, dtype="float64")
+         hi = np.array(hi_list, dtype="float64")
+         if np.all(hi > lo) and np.all(np.diff(lo) >= 0) and np.all(np.diff(hi) >= 0):
+             return lo, hi
+ 
+-    # Global numeric stream heuristics
+     txt = "\n".join(lines)
+     all_vals = re.findall(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?", txt)
+     if len(all_vals) < 2 * expected_bins:
+@@ -320,19 +322,16 @@
+ 
+     x = np.array([float(v) for v in all_vals], dtype="float64")
+ 
+-    # Interleaved
+     lo = x[0:2 * expected_bins:2]
+     hi = x[1:2 * expected_bins:2]
+     if lo.size == expected_bins and np.all(hi > lo) and np.all(np.diff(lo) >= 0) and np.all(np.diff(hi) >= 0):
+         return lo, hi
+ 
+-    # Concatenated
+     lo = x[:expected_bins]
+     hi = x[expected_bins:2 * expected_bins]
+     if lo.size == expected_bins and np.all(hi > lo) and np.all(np.diff(lo) >= 0) and np.all(np.diff(hi) >= 0):
+         return lo, hi
+ 
+-    # Last resort: if the file contains multiple blocks, try sliding windows
+     n_needed = 2 * expected_bins
+     for start in range(0, len(x) - n_needed + 1):
+         block = x[start:start + n_needed]
+@@ -957,6 +956,15 @@
+     if s <= 0:
+         return {}
+     return {k: v / s for k, v in fracs2.items()}
++
++
++def _ensure_species_dict(fracs: Any, keys: List[str]) -> Dict[str, float]:
++    if isinstance(fracs, dict):
++        return {k: float(v) for k, v in fracs.items()}
++    if isinstance(fracs, (list, tuple, np.ndarray)):
++        fracs = list(fracs)
++        return {key: float(fracs[idx]) for idx, key in enumerate(keys) if idx < len(fracs)}
++    return {key: float(fracs) for key in keys}
+ 
+ 
+ def _default_template_for_type(
+diff -ru src/part2pop/population/factory/partmc.py tmp_viewer/part2pop/population/factory/partmc.py
+--- src/part2pop/population/factory/partmc.py	2025-12-07 13:25:01
++++ tmp_viewer/part2pop/population/factory/partmc.py	2026-03-13 15:34:56
+@@ -53,10 +53,12 @@
+ 
+     if n_particles is None:
+         idx = np.arange(len(part_ids))
+-    elif n_particles <= len(part_ids):
+-        idx = np.random.choice(np.arange(len(part_ids)), size=n_particles, replace=False)
+     else:
+-        raise IndexError('n_particles > len(part_ids)')
++        n_particles = int(n_particles)
++        capped = min(n_particles, len(part_ids))
++        if capped < n_particles:
++            n_particles = capped
++        idx = np.random.choice(np.arange(len(part_ids)), size=n_particles, replace=False)
+     
+     partmc_population = ParticlePopulation(
+         species=species_list,
+Binary files src/part2pop/species/__pycache__/__init__.cpython-312.pyc and tmp_viewer/part2pop/species/__pycache__/__init__.cpython-312.pyc differ
+Only in tmp_viewer/part2pop/species/__pycache__: __init__.cpython-313.pyc
+Binary files src/part2pop/species/__pycache__/__init__.cpython-314.pyc and tmp_viewer/part2pop/species/__pycache__/__init__.cpython-314.pyc differ
+Binary files src/part2pop/species/__pycache__/base.cpython-312.pyc and tmp_viewer/part2pop/species/__pycache__/base.cpython-312.pyc differ
+Only in tmp_viewer/part2pop/species/__pycache__: base.cpython-313.pyc
+Binary files src/part2pop/species/__pycache__/base.cpython-314.pyc and tmp_viewer/part2pop/species/__pycache__/base.cpython-314.pyc differ
+Binary files src/part2pop/species/__pycache__/registry.cpython-312.pyc and tmp_viewer/part2pop/species/__pycache__/registry.cpython-312.pyc differ
+Only in tmp_viewer/part2pop/species/__pycache__: registry.cpython-313.pyc
+Binary files src/part2pop/species/__pycache__/registry.cpython-314.pyc and tmp_viewer/part2pop/species/__pycache__/registry.cpython-314.pyc differ
+Only in tmp_viewer/part2pop/viz/__pycache__: __init__.cpython-313.pyc
+Binary files src/part2pop/viz/__pycache__/__init__.cpython-314.pyc and tmp_viewer/part2pop/viz/__pycache__/__init__.cpython-314.pyc differ
+Binary files src/part2pop/viz/__pycache__/base.cpython-314.pyc and tmp_viewer/part2pop/viz/__pycache__/base.cpython-314.pyc differ
+Only in tmp_viewer/part2pop/viz/__pycache__: builder.cpython-313.pyc
+Binary files src/part2pop/viz/__pycache__/builder.cpython-314.pyc and tmp_viewer/part2pop/viz/__pycache__/builder.cpython-314.pyc differ
+Only in tmp_viewer/part2pop/viz/factory/__pycache__: registry.cpython-313.pyc
+Binary files src/part2pop/viz/factory/__pycache__/registry.cpython-314.pyc and tmp_viewer/part2pop/viz/factory/__pycache__/registry.cpython-314.pyc differ
+Binary files src/part2pop/viz/factory/__pycache__/state_line.cpython-314.pyc and tmp_viewer/part2pop/viz/factory/__pycache__/state_line.cpython-314.pyc differ
+Binary files src/part2pop/viz/factory/__pycache__/state_scatter.cpython-314.pyc and tmp_viewer/part2pop/viz/factory/__pycache__/state_scatter.cpython-314.pyc differ
+diff -ru src/part2pop/viz/factory/state_scatter.py tmp_viewer/part2pop/viz/factory/state_scatter.py
+--- src/part2pop/viz/factory/state_scatter.py	2025-12-07 13:25:01
++++ tmp_viewer/part2pop/viz/factory/state_scatter.py	2026-03-13 19:10:38
+@@ -1,4 +1,6 @@
+ # viz/factory/state_scatter.py
++import numpy as np
++
+ from .registry import register
+ from ..base import Plotter
+ from ...analysis import build_variable
+@@ -32,6 +34,8 @@
+         self.yname = config.get("yvar")
+         self.cname = config.get("cvar",None)
+         self.sname = config.get("svar",None)
++        self.xscale = config.get("xscale")
++        self.yscale = config.get("yscale")
+         if not (self.xname and self.yname):
+             raise ValueError("StateScatterPlotter requires 'xvar' and 'yvar' in config.")
+         
+@@ -43,9 +47,19 @@
+         # fixme: make these particle variables -- different function?
+         xvar = build_variable(self.xname, 'particle', self.var_cfg)
+         yvar = build_variable(self.yname, 'particle', self.var_cfg)
+-        x = xvar.compute_all(population)
+-        y = yvar.compute_all(population)
++        x = np.asarray(xvar.compute_all(population))
++        y = np.asarray(yvar.compute_all(population))
+ 
++        if y.ndim > 1 and x.ndim == 1:
++            target_len = len(x)
++            candidate_axes = [axis for axis, size in enumerate(y.shape) if size == target_len]
++            if candidate_axes:
++                axis_to_keep = candidate_axes[0]
++                other_axes = [axis for axis in range(y.ndim) if axis != axis_to_keep]
++                for axis in sorted(other_axes, reverse=True):
++                    y = np.take(y, 0, axis=axis)
++                y = np.asarray(y)
++
+         if len(x) != len(y):
+             raise ValueError(f"x and y must be same length, got {len(x)} vs {len(y)}.")
+ 
+@@ -70,7 +84,8 @@
+             "xlabel": self._fmt_label(xvar.meta.long_label, getattr(xvar.meta, "units", "")),
+             "ylabel": self._fmt_label(yvar.meta.long_label, getattr(yvar.meta, "units", "")),
+             "clabel": self.config.get("clabel", clabel),
+-            "xscale": xvar.meta.scale, "yscale": yvar.meta.scale
++            "xscale": self.xscale or getattr(xvar.meta, "scale", "linear"),
++            "yscale": self.yscale or getattr(yvar.meta, "scale", "linear")
+         }
+ 
+     def plot(self, population, ax, **kwargs):
