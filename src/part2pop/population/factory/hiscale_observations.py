@@ -288,12 +288,12 @@ def _read_fims_bins_file(fims_bins_file: str, expected_bins: int) -> Tuple[np.nd
     Parse a bins file and return (Dp_lowers_nm, Dp_uppers_nm) with length expected_bins.
     Works for:
       - 2-column tables (lower upper)
+      - 3-column tables (min, mean, max) where we use first/last columns
       - numeric streams that are interleaved lo,hi,lo,hi...
       - numeric streams that are concatenated all-lo then all-hi
     """
     lines = _read_lines(fims_bins_file)
 
-    # Try per-line 2-col parse first
     lo_list: List[float] = []
     hi_list: List[float] = []
     for line in lines:
@@ -303,7 +303,10 @@ def _read_fims_bins_file(fims_bins_file: str, expected_bins: int) -> Tuple[np.nd
         vals = re.findall(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?", s)
         if len(vals) >= 2:
             lo_list.append(float(vals[0]))
-            hi_list.append(float(vals[1]))
+            hi_list.append(float(vals[-1]))
+        if len(vals) >= 3 and vals[0] != vals[-1]:
+            lo_list[-1] = float(vals[0])
+            hi_list[-1] = float(vals[-1])
     if len(lo_list) == expected_bins and len(hi_list) == expected_bins:
         lo = np.array(lo_list, dtype="float64")
         hi = np.array(hi_list, dtype="float64")

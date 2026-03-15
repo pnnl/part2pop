@@ -1,0 +1,16 @@
+name: part2pop
+channels:
+  - conda-forge
+dependencies:
+  - python>=3.10
+  - numpy
+  - scipy
+  - matplotlib
+  - netCDF4
+  - importlib-resources
+  - pymiescatt
+  - tqdm
+  - streamlit
+  - pip
+  - pip:
+    - -r requirements.txt
