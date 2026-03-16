@@ -1,6 +1,9 @@
 import sys
 import pytest
 
+import sys
+import pytest
+
 from part2pop.analysis.base import VariableMeta
 from part2pop.analysis.particle.base import ParticleVariable
 from part2pop.analysis.particle.factory import registry as reg
@@ -11,11 +14,99 @@ def test_particle_registry_exposes_known_variables():
     assert "Dwet" in names
     assert "wet_diameter" in names
     assert "kappa" in names  # alias for the hygroscopicity variable
+    # newly added particle variables
+    assert "Ddry" in names
+    assert "dry_diameter" in names
+    assert "mass_dry" in names
+    assert "dry_mass" in names
+    assert "mass_tot" in names
+    assert "total_mass" in names
+    assert "s_critical" in names
+    assert "s_c" in names
+    assert "D_critical" in names
+    assert "D_c" in names
+    assert "abs_crossect" in names
+    assert "Cabs" in names
+    assert "scat_crossect" in names
+    assert "Csca" in names
+    assert "ext_crossect" in names
+    assert "Cext" in names
+    assert "SSA" in names
+    assert "ssa" in names
+
+    canonical_only = reg.list_particle_variables()
+    assert "ssa" not in canonical_only
+    assert "Dwet" in canonical_only
 
 
 def test_resolve_alias_returns_canonical_name():
     assert reg.resolve_particle_name("wet_diameter") == "Dwet"
     assert reg.resolve_particle_name("kappa") == "kappa"
+    assert reg.resolve_particle_name("dry_diameter") == "Ddry"
+    assert reg.resolve_particle_name("dry_mass") == "mass_dry"
+    assert reg.resolve_particle_name("total_mass") == "mass_tot"
+    assert reg.resolve_particle_name("s_c") == "s_critical"
+    assert reg.resolve_particle_name("D_c") == "D_critical"
+    assert reg.resolve_particle_name("Cabs") == "abs_crossect"
+    assert reg.resolve_particle_name("Csca") == "scat_crossect"
+    assert reg.resolve_particle_name("Cext") == "ext_crossect"
+    assert reg.resolve_particle_name("ssa") == "SSA"
+
+
+def test_describe_new_particle_variables_returns_expected_metadata():
+    ddry = reg.describe_particle_variable("Ddry")
+    assert ddry["name"] == "Ddry"
+    assert ddry["units"] == "m"
+    assert "dry_diameter" in ddry["aliases"]
+
+    mdry = reg.describe_particle_variable("mass_dry")
+    assert mdry["name"] == "mass_dry"
+    assert mdry["units"] == "kg"
+    assert "dry_mass" in mdry["aliases"]
+
+    mtot = reg.describe_particle_variable("mass_tot")
+    assert mtot["name"] == "mass_tot"
+    assert mtot["units"] == "kg"
+    assert "total_mass" in mtot["aliases"]
+
+    sc = reg.describe_particle_variable("s_critical")
+    assert sc["name"] == "s_critical"
+    assert sc["units"] == "%"
+    assert sc["defaults"].get("T") == 293.15
+    assert "s_c" in sc["aliases"]
+
+    dc = reg.describe_particle_variable("D_critical")
+    assert dc["name"] == "D_critical"
+    assert dc["units"] == "m"
+    assert dc["defaults"].get("T") == 293.15
+    assert "D_c" in dc["aliases"]
+
+    cabs = reg.describe_particle_variable("abs_crossect")
+    assert cabs["name"] == "abs_crossect"
+    assert cabs["units"] == "m^2"
+    assert cabs["defaults"].get("morphology") == "core-shell"
+    assert "Cabs" in cabs["aliases"]
+
+    csca = reg.describe_particle_variable("scat_crossect")
+    assert csca["name"] == "scat_crossect"
+    assert csca["units"] == "m^2"
+    assert "Csca" in csca["aliases"]
+
+    cext = reg.describe_particle_variable("ext_crossect")
+    assert cext["name"] == "ext_crossect"
+    assert cext["units"] == "m^2"
+    assert "Cext" in cext["aliases"]
+
+    ssa = reg.describe_particle_variable("SSA")
+    assert ssa["name"] == "SSA"
+    assert ssa["units"] == ""
+    assert "ssa" in ssa["aliases"]
+
+
+def test_describe_particle_variable_with_alias():
+    info = reg.describe_particle_variable("s_c")
+    assert info["name"] == "s_critical"
+    assert "s_c" in info["aliases"]
 
 
 def test_particle_builder_instantiation_provides_meta():
