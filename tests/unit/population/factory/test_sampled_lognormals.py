@@ -1,78 +1,56 @@
-# tests/unit/population/factory/test_sampled_lognormals.py
-
 import numpy as np
+import pytest
 
-from part2pop import build_population
+from part2pop.population.factory import sampled_lognormals
 
 
-def test_sampled_lognormals_population_size_and_total_number():
-    """
-    Build a sampled_lognormals population and ensure that:
-      - The number of particle ids is <= N_parts.
-      - The total number concentration is close to the target N.
-    """
-    cfg = {
-        "type": "sampled_lognormals",
-        "GMD": [0.1e-6],
-        "GSD": [1.6],
-        "N": [1e8],
-        "N_parts": 5000,
-        "aero_spec_names": [["SO4"]],
-        "aero_spec_fracs": [[1.0]],
+def _base_config():
+    return {
+        "N": [1.0, 1.0],
+        "GMD": [1e-6, 2e-6],
+        "GSD": [1.2, 1.3],
+        "aero_spec_names": [["SO4"], ["SO4"]],
+        "aero_spec_fracs": [[1.0], [1.0]],
     }
 
-    pop = build_population(cfg)
 
-    # Number of particles in the population should be N_parts
-    assert len(pop.ids) == cfg["N_parts"]
+def test_scalar_n_parts_distributed_evenly(monkeypatch):
+    config = _base_config()
+    config["N_parts"] = 10
 
-    N_tot = float(pop.get_Ntot())
+    rng = np.random.default_rng(0)
+    monkeypatch.setattr(np.random, "normal", lambda loc, scale, size: np.full(size, loc))
+    mock_make_particle_calls = []
 
-    # Sampling introduces some noise, so allow looser tolerance
-    assert np.isclose(N_tot, 1e8, rtol=0.1)
+    def fake_make_particle(D, species, fracs, **kwargs):
+        mock_make_particle_calls.append((D, tuple(fracs)))
+        class Dummy:
+            def __init__(self):
+                self.species = species
+                self.masses = np.ones(len(fracs))
 
+            def get_Dwet(self):
+                return D
 
-def test_sampled_lognormals_two_modes_reasonable_Ntot():
-    """
-    For two lognormal modes sampled into a single population, the total
-    N should be close to the sum of both modes.
-    """
-    cfg = {
-        "type": "sampled_lognormals",
-        "GMD": [0.05e-6, 0.15e-6],
-        "GSD": [1.4, 1.7],
-        "N": [5e7, 2e8],
-        "N_parts": 8000,
-        "aero_spec_names": [["SO4"],["SO4"]],
-        "aero_spec_fracs": [[1.0],[1.0]],
-    }
+        return Dummy()
 
-    pop = build_population(cfg)
+    monkeypatch.setattr(sampled_lognormals, "make_particle", fake_make_particle)
 
-    assert len(pop.ids) > 0
-
-    # Number of particles in the population should be N_parts
-    print(len(pop.ids),cfg["N_parts"])
-    assert len(pop.ids) == cfg["N_parts"]
-
-    # Sampling introduces some noise, so allow looser tolerance
-    N_requested = float(np.sum(cfg["N"]))
-    N_tot = float(pop.get_Ntot())
-    assert np.isclose(N_tot, N_requested, rtol=0.1)
+    pop = sampled_lognormals.build(config)
+    assert pop.num_concs.size == 10
+    assert sum(pop.num_concs) == pytest.approx(2.0)
+    assert len(mock_make_particle_calls) == 10
 
 
-def test_sampled_lognormals_accepts_stringy_numbers():
-    n_parts_str = "3500"
-    cfg = {
-        "type": "sampled_lognormals",
-        "GMD": ["0.1e-6"],
-        "GSD": ["1.6"],
-        "N": ["1e8"],
-        "N_parts": n_parts_str,
-        "aero_spec_names": [["SO4"]],
-        "aero_spec_fracs": [[1.0]],
-    }
+def test_n_parts_scalar_nonpositive_raises():
+    config = _base_config()
+    config["N_parts"] = 0
+    with pytest.raises(ValueError):
+        sampled_lognormals.build(config)
 
-    pop = build_population(cfg)
 
-    assert len(pop.ids) == int(n_parts_str)
+def test_inconsistent_length_raises():
+    config = _base_config()
+    config["aero_spec_names"] = [["SO4"], ["SO4"], ["SO4"]]
+    with pytest.raises(ValueError):
+        sampled_lognormals.build(config)

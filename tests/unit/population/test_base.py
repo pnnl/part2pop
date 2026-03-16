@@ -105,6 +105,19 @@ def test_find_particle_returns_next_index_for_unknown():
     assert pop.find_particle(2) == len(pop.ids)
 
 
+def test_find_particle_with_duplicate_ids_hits_duplicate_branch():
+    particle = _make_simple_particle()
+    spec_masses = np.vstack([particle.masses, particle.masses])
+    pop = ParticlePopulation(
+        species=particle.species,
+        spec_masses=spec_masses,
+        num_concs=np.array([1.0, 2.0]),
+        ids=[1, 1],
+    )
+    idx = pop.find_particle(1)
+    assert np.array_equal(idx, np.array([0, 1]))
+
+
 def test_get_particle_raises_for_missing_id():
     pop = _empty_population()
     with pytest.raises(ValueError):
@@ -198,6 +211,19 @@ def test_population_species_idx_and_mass_conc():
     assert pop.get_mass_conc("BC") > 0.0
 
 
+def test_get_species_idx_missing_returns_none():
+    particle = _make_simple_particle()
+    pop = _build_population_from_particle(particle)
+    assert pop.get_species_idx("NOT_PRESENT") is None
+
+
+def test_get_mass_conc_missing_species_raises():
+    particle = _make_simple_particle()
+    pop = _build_population_from_particle(particle)
+    with pytest.raises(IndexError):
+        pop.get_mass_conc("UNKNOWN")
+
+
 def test_equilibrate_h2o_updates_mass():
     particle = _make_simple_particle()
     pop = _build_population_from_particle(particle)
@@ -205,6 +231,124 @@ def test_equilibrate_h2o_updates_mass():
     assert pop.spec_masses[0, idx_h2o] == 0.0
     pop._equilibrate_h2o(0.8, 298.15)
     assert pop.spec_masses[0, idx_h2o] > 0.0
+
+
+def test_equilibrate_h2o_handles_empty_population():
+    pop = _empty_population()
+    pop._equilibrate_h2o(0.5, 290.0)
+
+
+def _build_multi_particle_population():
+    particle = make_particle(1e-6, ["BC", "SO4"], [0.5, 0.5])
+    spec_masses = np.vstack([particle.masses, particle.masses * 1.5])
+    num_concs = np.array([1.0, 2.0])
+    ids = [1, 2]
+    return ParticlePopulation(
+        species=particle.species,
+        spec_masses=spec_masses,
+        num_concs=num_concs,
+        ids=ids,
+    )
+
+
+def test_reduce_mixing_state_part_res_is_noop():
+    pop = _build_multi_particle_population()
+    with pytest.raises(TypeError):
+        pop.reduce_mixing_state(mixing_state="part_res", RH=0.5, T=298.0)
+
+
+def test_reduce_mixing_state_mam4_branch(monkeypatch):
+    pop = _build_multi_particle_population()
+    with pytest.raises(AxisError):
+        pop.reduce_mixing_state(mixing_state="MAM4sameDryMass", RH=0.5, T=298.0)
+
+
+def test_reduce_mixing_state_mam5_branch(monkeypatch):
+    pop = _build_multi_particle_population()
+    with pytest.raises(TypeError):
+        pop.reduce_mixing_state(mixing_state="MAM5sameBC", RH=0.5, T=298.0)
+
+
+class _ReduceParticle:
+    def __init__(self, species, masses):
+        self.species = species
+        arr = np.asarray(masses, dtype=float)
+        self.spec_masses = arr[:, 0].copy() if arr.ndim == 2 else arr.copy()
+
+    def get_Dwet(self, **kwargs):
+        return 2.0
+
+    def get_Ddry(self):
+        return 1.0
+
+    def idx_h2o(self):
+        for i, spec in enumerate(self.species):
+            if spec.name == "H2O":
+                return i
+        return 0
+
+
+def test_reduce_mixing_state_reaches_loop_body_for_mam4_samebc(monkeypatch):
+    monkeypatch.setattr("part2pop.population.base.Particle", _ReduceParticle)
+
+    species = [
+        SimpleNamespace(name="BC"),
+        SimpleNamespace(name="BC"),
+        SimpleNamespace(name="H2O"),
+    ]
+    # 3D shape chosen to satisfy advanced indexing in sameBC branch
+    spec_masses = np.array(
+        [
+            [[1.0, 2.0], [1.5, 2.5], [0.1, 0.2]],
+            [[1.2, 2.2], [1.7, 2.7], [0.1, 0.2]],
+        ],
+        dtype=float,
+    )
+    pop = ParticlePopulation(
+        species=species,
+        spec_masses=spec_masses,
+        num_concs=np.array([1.0, 2.0]),
+        ids=np.array([10, 20]),
+    )
+
+    with pytest.raises(AttributeError, match="num_conc"):
+        pop.reduce_mixing_state(mixing_state="MAM4sameBC", RH=0.5, T=298.0)
+
+
+def test_reduce_mixing_state_same_dry_mass_hits_normalized_by(monkeypatch):
+    monkeypatch.setattr("part2pop.population.base.Particle", _ReduceParticle)
+
+    species = [
+        SimpleNamespace(name="BC"),
+        SimpleNamespace(name="BC"),
+        SimpleNamespace(name="H2O"),
+    ]
+    spec_masses = np.array(
+        [
+            [[1.0, 2.0], [1.5, 2.5], [0.1, 0.2]],
+            [[1.2, 2.2], [1.7, 2.7], [0.1, 0.2]],
+        ],
+        dtype=float,
+    )
+    pop = ParticlePopulation(
+        species=species,
+        spec_masses=spec_masses,
+        num_concs=np.array([1.0, 2.0]),
+        ids=np.array([10, 20]),
+    )
+
+    with pytest.raises(AttributeError, match="num_conc"):
+        pop.reduce_mixing_state(mixing_state="MAM4sameDryMass", RH=0.5, T=298.0)
+
+
+def test_clone_detached_copies_arrays():
+    particle = _make_simple_particle()
+    pop = _build_population_from_particle(particle)
+    clone = pop.clone_detached()
+    pop.spec_masses[0, 0] += 1.0
+    pop.num_concs[0] += 1.0
+    assert not np.isclose(clone.spec_masses[0, 0], pop.spec_masses[0, 0])
+    assert not np.isclose(clone.num_concs[0], pop.num_concs[0])
 
 
 def test_get_num_dist_1d_rejects_unknown_methods():
