@@ -1,0 +1,1 @@
+MOLAR_MASS_DRY_AIR = 0.02897 # kg/molDENSITY_LIQUID_WATER = 1000. # kg/m^3try:    from scipy.constants import Rexcept:    R = 8.31446261815324            
