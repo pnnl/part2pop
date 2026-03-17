@@ -58,6 +58,7 @@ import re
 
 import numpy as np
 
+import matplotlib.pyplot as plt
 from ..utils import normalize_population_config
 from part2pop import build_population
 from pathlib import Path
@@ -287,12 +288,12 @@ def _read_fims_bins_file(fims_bins_file: str, expected_bins: int) -> Tuple[np.nd
     Parse a bins file and return (Dp_lowers_nm, Dp_uppers_nm) with length expected_bins.
     Works for:
       - 2-column tables (lower upper)
-      - 3-column tables (min, mean, max) where we use first/last columns
       - numeric streams that are interleaved lo,hi,lo,hi...
       - numeric streams that are concatenated all-lo then all-hi
     """
     lines = _read_lines(fims_bins_file)
 
+    # Try per-line 2-col parse first
     lo_list: List[float] = []
     hi_list: List[float] = []
     for line in lines:
@@ -302,10 +303,7 @@ def _read_fims_bins_file(fims_bins_file: str, expected_bins: int) -> Tuple[np.nd
         vals = re.findall(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?", s)
         if len(vals) >= 2:
             lo_list.append(float(vals[0]))
-            hi_list.append(float(vals[-1]))
-        if len(vals) >= 3 and vals[0] != vals[-1]:
-            lo_list[-1] = float(vals[0])
-            hi_list[-1] = float(vals[-1])
+            hi_list.append(float(vals[1]))
     if len(lo_list) == expected_bins and len(hi_list) == expected_bins:
         lo = np.array(lo_list, dtype="float64")
         hi = np.array(hi_list, dtype="float64")
@@ -1166,16 +1164,16 @@ def optimize_splat_species_distributions(
         # sample the BC and dust
         params=[splat_number_fractions['BC'], Dpg_BC, sigma_BC]
         spec_Ns=size_dependent_composition(measured_Dp, measured_N, 1,
-                                               splat_cutoff_nm, 
-                                               splat_number_fractions['BC'], 
-                                               [1.0], params)
+                                                splat_cutoff_nm, 
+                                                splat_number_fractions[model_species[spec]], 
+                                                [1.0], params)
         total_Ns+=spec_Ns        
         
         params=[splat_number_fractions['OIN'], Dpg_dust, sigma_dust]
         spec_Ns=size_dependent_composition(measured_Dp, measured_N, 1,
-                                               splat_cutoff_nm, 
-                                               splat_number_fractions['OIN'], 
-                                               [1.0], params)
+                                                splat_cutoff_nm, 
+                                                splat_number_fractions[model_species[spec]], 
+                                                [1.0], params)
         total_Ns+=spec_Ns
         
         # match the measured number concentration
@@ -1439,29 +1437,96 @@ def classify_particles(particle_population, mass_thresholds):
     return particle_classes
 
 def number_fraction_comparison(
-    particle_population, mass_thresholds, measured_number_fractions,
-    measured_number_fraction_errors, splat_cutoff_nm=85
-):
+    particle_population, mass_thresholds, measured_number_fractions, 
+    measured_number_fraction_errors, splat_cutoff_nm=85):
     """ Compares sampled population with the miniSPLAT measurements. """
     particle_classes = classify_particles(particle_population, mass_thresholds)
     particle_diameters = particle_population.get_particle_var('Ddry')
     particle_num_concs = particle_population.num_concs
-    all_idx = np.where(particle_diameters >= splat_cutoff_nm * 1e-9)
+    all_idx=np.where(particle_diameters>=splat_cutoff_nm*1e-9)
     sampled_number_fractions = {}
     checks = []
     for species in mass_thresholds.keys():
-        if species not in measured_number_fractions:
-            continue
-        spec_idx = np.where(
-            (particle_classes == species) & (particle_diameters >= splat_cutoff_nm * 1e-9)
-        )
-        sampled = np.sum(particle_num_concs[spec_idx[0]]) / np.sum(particle_num_concs[all_idx[0]])
-        measured = measured_number_fractions[species]
-        measured_error = measured_number_fraction_errors[species]
-        sampled_number_fractions[species] = sampled
-        checks.append(measured - measured_error <= sampled <= measured + measured_error)
-
+        spec_idx=np.where((particle_classes==species) & (particle_diameters>=splat_cutoff_nm*1e-9))
+        sampled=np.sum(particle_num_concs[spec_idx[0]])/np.sum(particle_num_concs[all_idx[0]])
+        measured=measured_number_fractions[species]
+        measured_error=measured_number_fraction_errors[species]
+        sampled_number_fractions[species]=sampled
+        if sampled >= measured-measured_error and sampled <= measured+measured_error:
+            checks.append(True)
+        else:
+            checks.append(False)
+    
     return sampled_number_fractions, checks
+
+def _plot_size_distribution(
+    particle_population, mass_thresholds, Dp_lo_nm, Dp_hi_nm, N_cm3, N_std_cm3,
+    outpath, size_dist_grid=3):
+    """ plot the measured and sampled size distribution. """
+    
+    # make sparser size distribution grid
+    if size_dist_grid > 1:
+        n_blocks = len(N_cm3) // size_dist_grid
+        m = n_blocks * size_dist_grid
+        N_b = N_cm3[:m].reshape(n_blocks, size_dist_grid)
+        N_b_error = N_std_cm3[:m].reshape(n_blocks, size_dist_grid)
+        measured_N = N_b.sum(axis=1)
+        measured_N_error = N_b_error.sum(axis=1)
+        Dp_lowers = Dp_lo_nm[:m].reshape(n_blocks, size_dist_grid)[:, 0]
+        Dp_uppers = Dp_hi_nm[:m].reshape(n_blocks, size_dist_grid)[:, -1]
+    else:
+        measured_N = N_cm3
+        measured_N_error = N_std_cm3
+        Dp_uppers = Dp_hi_nm
+        Dp_lowers = Dp_lo_nm
+    Dp_mids = Dp_lowers + 0.5 * (Dp_uppers - Dp_lowers)
+
+    # get particle classes
+    particle_classes = classify_particles(particle_population, mass_thresholds)
+    bottom=np.zeros(len(Dp_uppers)-1)
+    plt.errorbar(Dp_mids, measured_N/np.max(measured_N), fmt='o', yerr=measured_N_error/np.max(measured_N), mfc='w', mec='k', ecolor='k')
+    
+    particle_diameters_nm = 1e9*particle_population.get_particle_var('Ddry')
+    particle_num_concs_cm3 = 1e-6*particle_population.num_concs
+    hist=np.histogram(particle_diameters_nm, bins=Dp_uppers, weights=particle_num_concs_cm3)
+    hist_max=np.max(hist[0])
+    for t, c in zip(['BC','OIN','SO4','NO3','OC','IEPOX_SOA'], ['grey','gold','r','b','g','C6']):
+        idx=np.where(particle_classes==t)[0]
+        hist=np.histogram(particle_diameters_nm[idx], bins=Dp_uppers, weights=particle_num_concs_cm3[idx])
+        widths=hist[1][1:]-hist[1][:-1]
+        plt.bar(Dp_uppers[:-1], hist[0]/hist_max, width=widths, align='edge', bottom=bottom, facecolor=c, edgecolor='k', label=t)
+        bottom+=hist[0]/hist_max
+    plt.xscale('log')
+    plt.ylabel(r'Normalized Number Concentration (cm$^{-3}$)', labelpad=10)
+    plt.xlabel('Dry Diameter (nm)', labelpad=10)
+    plt.legend()
+    plt.ylim(0,)
+    plt.savefig(outpath, bbox_inches='tight')
+    plt.close()
+
+    return
+
+def _plot_bar_compare(d_true: dict, d_pop: dict, title: str, outpath: str):
+
+    keys = sorted(set(d_true.keys()) | set(d_pop.keys()))
+    true = np.array([d_true.get(k, 0.0) for k in keys], dtype="float64")
+    pop = np.array([d_pop.get(k, 0.0) for k in keys], dtype="float64")
+
+    x = np.arange(len(keys))
+    w = 0.40
+
+    plt.figure()
+    plt.bar(x - w / 2, true, width=w, label="Observed")
+    plt.bar(x + w / 2, pop, width=w, label="Reconstructed")
+    plt.xticks(x, keys, rotation=45, ha="right")
+    plt.ylabel("Fraction")
+    plt.title(title)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(outpath, dpi=200)
+    plt.close()
+
+    return
 
 
 
@@ -1796,6 +1861,26 @@ def build(config: Dict[str, Any]) -> ParticlePopulation:
             f.write(f"  {kk}: {v:.4f}\n")
 
         
+    # plot the size distribution
+    _plot_size_distribution(
+        particle_population, mass_thresholds, Dp_lo_nm, Dp_hi_nm, 
+        N_cm3, N_std_cm3, Path(outdir) / f"{prefix}diag_size_dist.png", 
+        size_dist_grid=size_dist_grid)
+
+    # plot the number fractions
+    _plot_bar_compare(
+        tf, sampled_number_fractions, 
+        "miniSPLAT number fractions (observed vs reconstructed)", 
+        Path(outdir) / f"{prefix}diag_minisplat_type_fracs.png")
+    
+    # plot mass fractions
+    _plot_bar_compare(
+        ams_mass_frac,
+        sampled_mass_fractions,
+        "AMS bulk mass fractions (observed vs reconstructed)",
+        Path(outdir) / f"{prefix}diag_ams_mass_fracs.png",
+    )
+
     # Save particle population metadata
     particle_population.metadata = {
         "source": "hiscale_observations",

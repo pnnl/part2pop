@@ -6,7 +6,6 @@ pyproject.toml
 setup.cfg
 setup.py
 examples/example_data/.DS_Store
-examples/example_data/model_output/.DS_Store
 examples/example_data/model_output/mam4/fort.130
 examples/example_data/model_output/mam4/fort.150
 examples/example_data/model_output/mam4/fort.30
@@ -21,7 +20,6 @@ examples/example_data/model_output/mam4/mam_output.nc
 examples/example_data/model_output/mam4/namelist
 examples/example_data/model_output/mam4/stderr.log
 examples/example_data/model_output/mam4/stdout.log
-examples/example_data/model_output/partmc/.DS_Store
 examples/example_data/model_output/partmc/1.spec
 examples/example_data/model_output/partmc/aero_back.dat
 examples/example_data/model_output/partmc/aero_data.dat
@@ -175,6 +173,7 @@ src/part2pop/population/base.py
 src/part2pop/population/builder.py
 src/part2pop/population/utils.py
 src/part2pop/population/factory/binned_lognormals.py
+src/part2pop/population/factory/edx_observations.py
 src/part2pop/population/factory/hiscale_observations.py
 src/part2pop/population/factory/mam4.py
 src/part2pop/population/factory/monodisperse.py

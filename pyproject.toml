@@ -51,6 +51,7 @@ dependencies = [
   "pyBCabs",
   "tqdm",
   "streamlit",
+  "pandas"
 ]
 
 [project.optional-dependencies]
