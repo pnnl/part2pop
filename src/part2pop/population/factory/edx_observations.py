@@ -67,12 +67,14 @@ def build(config: Dict[str, Any]) -> ParticlePopulation:
 
     # make the particle population from the species mass fractions
     new_aero_spec_names = [aero_spec_names.copy() for _ in range(len(aero_spec_masses))]
+    species_modifications = config.get("species_modifications",{})
     population_cfg = {
         "type": "monodisperse",
         "N": np.ones(len(aero_spec_masses)),
         "D": raw_population.D,
         "aero_spec_names": new_aero_spec_names,
         "aero_spec_fracs": aero_spec_masses,
+        "species_modifications": species_modifications
     }
     particle_population = build_population(population_cfg)
     particle_population.classes=np.array(particle_classes)
