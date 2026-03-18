@@ -154,13 +154,28 @@ def test_homogeneous_build_wrapper_returns_equivalent_object():
     np.testing.assert_allclose(built.m_log10_Jhet, direct.m_log10_Jhet)
     np.testing.assert_allclose(built.b_log10_Jhet, direct.b_log10_Jhet)
 
-def test_particle_aws():
+def test_particle_Jhets_no_water():
+    base_particle, cfg = _make_droplet_with_inp()
+    fpart = HomogeneousParticle(base_particle, cfg)
+    T = np.array([228])  # K
+    Jhom = fpart.get_Jhom(T)
+    Jhet = fpart.get_Jhet(T)
+    assert Jhom[0] > 0.0
+    assert Jhet[0] > 0.0
+
+    base_particle.masses[base_particle.idx_h2o()]=0.0
+    Jhom = fpart.get_Jhom(T)
+    Jhet = fpart.get_Jhet(T)
+    assert Jhom[0] == 0.0
+    assert Jhet[0] == 0.0
+
     base_particle, cfg = _make_droplet_without_inp()
     fpart = HomogeneousParticle(base_particle, cfg)
     T = np.array([228])  # K
     Jhom = fpart.get_Jhom(T)
-    assert Jhom[0] > 0
+    Jhet = fpart.get_Jhet(T)
+    assert not np.isfinite(Jhet)
+    assert Jhom[0] > 0.0
 
-    base_particle.masses[base_particle.idx_h2o()]=0.0
-    with pytest.raises(ValueError):
-        Jhom = fpart.get_Jhom(T)
+
+

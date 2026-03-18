@@ -34,7 +34,7 @@ class avgJhetVar(PopulationVariable):
         if T_units=="K" and np.min(T_grid)<=0:
             raise ValueError(f"One or more temperatures in T_grid is < 0.0 K when plotting avg_Jhet.")
         elif T_units not in ("K", "C"):
-            raise ValueError(f"Unrecognized temperature units: f{T_units}.")       
+            raise ValueError(f"Unrecognized temperature units: {T_units}.")       
         
         # equilibrate population to RH
         if T_units=="C":

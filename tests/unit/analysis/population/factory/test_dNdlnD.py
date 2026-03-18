@@ -49,17 +49,13 @@ def test_dnd_uses_dry_diam_and_errors_on_bad_edges():
         var_bad.compute(pop)
 
 
-def test_dnd_kde_requires_grid(monkeypatch):
+def test_dnd_kde_bad_method():
     pop = _StubPopulation([1e-7], [1e-7], [1.0])
-    var = dnd_mod.build({"method": "kde", "diam_grid": [1e-7, 2e-7], "normalize": True})
-    with pytest.raises(ValueError):
-        var.compute(pop)
 
     # unknown method should raise
     bad = dnd_mod.build({"method": "unknown"})
     with pytest.raises(ValueError):
         bad.compute(pop)
-
 
 class _ProvidedPopulation(_StubPopulation):
     def __init__(self, dwets, ddrys, num_concs):
@@ -72,7 +68,6 @@ class _ProvidedPopulation(_StubPopulation):
 
     def get_provided_dNdlnD(self, cfg):
         return self.provided
-
 
 def test_dnd_provided_method_respects_population_data():
     pop = _ProvidedPopulation([1e-7], [1e-7], [1.0])

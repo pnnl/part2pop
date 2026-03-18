@@ -1,6 +1,7 @@
 from __future__ import annotations
 from ..base import PopulationVariable, VariableMeta
 from .registry import register_variable
+from part2pop.freezing.builder import build_freezing_population
 import numpy as np
 
 @register_variable("frozen_frac")
@@ -23,9 +24,41 @@ class FrozenFraction(PopulationVariable):
         t_max = cfg.get("t_max", 360.0)
         dt = cfg.get("dt", 0.5)
         stochastic = cfg.get("stochastic", False)
+        species_modifications = cfg.get("species_modifications", None)
+        morphology = cfg.get("morphology", "homogeneous")
+        T = cfg.get("T", None)
+        RH = cfg.get("RH", None)
+        T_units = cfg.get("T_units", "K")
+        if not T:
+            raise ValueError("Need to specify T in cfg['var_cfg'] when plotting unfrozen fraction.")
+        if T_units not in ("C","K"):
+            raise ValueError(f"Unknown temperature unit: '{T_units}'.")
+        if T <= 0 and T_units == "K":
+             raise ValueError(f"T provided is <= 0 K.")
+
+        # override the underlying population species_modifications if one is supplied
+        if species_modifications:
+            population.species_modifications = species_modifications
+        else:
+            species_modifications = population.species_modifications
+
+        # equilibrate population to RH if provided
+        if RH:
+            if T_units=="C":
+                 population._equilibrate_h2o(RH, T+273.15)
+            else:
+                population._equilibrate_h2o(RH, T)
+
+        # make freezing population
+        freezing_config={"morphology": morphology,
+                         "T_grid": np.array([T]),
+                         "T_units": T_units,
+                         "species_modifications": species_modifications}
+        freezing_pop = build_freezing_population(population, freezing_config)
+                
         time = np.arange(t_min, t_max+dt, dt)
-        FrozenFrac_PerPart = np.zeros((len(time), len(population.T_grid), population.num_concs.shape[0]))
-        P_frz = population.get_freezing_probs(dt=dt)        
+        FrozenFrac_PerPart = np.zeros((len(time), len(freezing_pop.T_grid), freezing_pop.num_concs.shape[0]))
+        P_frz = freezing_pop.get_freezing_probs(dt=dt)        
         if stochastic:
             for t in range (1, len(time)):
                     k = np.random.binomial(100, P_frz)  # shape like P_frz
