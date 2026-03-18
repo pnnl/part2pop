@@ -21,10 +21,11 @@ class TemperatureGridVar(PopulationVariable):
     def compute(self, population=None,as_dict=False):
         cfg = self.cfg
         units = cfg.get("T_units", "K")
+        T_grid = cfg.get("T_grid", population.T_grid)
         if units=="C":        
-            out = np.asarray(cfg.get("T_grid", []))+273.15
+            out = np.asarray(T_grid)-273.15
         elif units=="K":
-            out = np.asarray(cfg.get("T_grid", []))
+            out = np.asarray(T_grid)
         else:
             raise ValueError(f"Unknown temperature unit: '{units}'.")
         if as_dict:
@@ -32,5 +33,7 @@ class TemperatureGridVar(PopulationVariable):
         return out
     
 def build(cfg=None):
-    cfg = cfg or {}
-    return TemperatureGridVar(cfg)
+    var = TemperatureGridVar(cfg or {})
+    if var.cfg.get("T_units")=="C":
+        var.meta.units = "C"
+    return var

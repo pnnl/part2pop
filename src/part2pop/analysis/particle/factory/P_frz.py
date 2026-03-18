@@ -19,17 +19,28 @@ class FreezingProb(ParticleVariable):
     )
     
     def compute_all(self, population):
-        cfg = self.cfg
-        if not cfg["T"]:
+        config = self.cfg
+        T = config.get("T",None)
+        T_units = config.get("T_units", "K")
+        if not T:
             raise ValueError("Need to specify temperature in cfg['var_cfg'] when plotting freezing probability.")
-        freezing_cfg = {
-            "T_grid": list(np.array([cfg["T"]])),
-            "morphology": cfg.get("morphology", "homogeneous"),
-            "species_modifications": cfg.get("species_modifications", {}),
-            "T_units": cfg.get("T_units", "K")
-        }
-        freezing_pop = build_freezing_population(population, freezing_cfg) 
-        return freezing_pop.get_freezing_probs()[0]
+        if T_units=="C":        
+            T = T+273.15
+        elif T_units not in ("C","K"):
+            raise ValueError(f"Unknown temperature unit: '{T_units}'.")
+        if T < population.T_grid.min() or T > population.T_grid.max():
+            if T_units=="C":
+                raise ValueError(f"T provided ({T-273.15} C) to P_frz plotter is outside of T_grid: {population.T_grid.min()-273.15} C to {population.T_grid.max()-273.15} C")
+            else:
+                raise ValueError(f"T provided ({T} K) to P_frz plotter is outside of T_grid: {population.T_grid.min()} K to {population.T_grid.max()} K")
+        
+        freezing_probs = population.get_freezing_probs()
+        xp = population.T_grid
+        out = np.zeros(len(population.num_concs))
+        for ii in range(len(out)):
+            fp = freezing_probs[:,ii]
+            out[ii] = np.interp(T, xp=xp, fp=fp)
+        return out
     
     
 def build(cfg=None):

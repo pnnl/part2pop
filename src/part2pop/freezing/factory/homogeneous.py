@@ -3,6 +3,7 @@ from ..base import FreezingParticle, retrieve_Jhet_val
 from .registry import register
 from ...aerosol_particle import Particle
 from .utils import calculate_Psat
+import warnings
 
 @register("homogeneous")
 class HomogeneousParticle(FreezingParticle):
@@ -94,7 +95,9 @@ class HomogeneousParticle(FreezingParticle):
         """
         water_mass = self.base_particle.get_spec_mass("H2O")
         if water_mass <= 0:
-            raise ValueError("water mass must be > 0")
+            warnings.warn("Water mass is 0.0, freezing will not occur!", UserWarning)
+            return np.nan
+            #raise ValueError("water mass must be > 0")
 
         # sum molalities of ions
         sum_b = 0.0

@@ -64,6 +64,15 @@ STATE_LINE_VARIABLES: Dict[str, Dict[str, Any]] = {
         "default_method": "kde",
         "notes": "Size distribution vs. diameter",
     },
+    "dNdlnINSA": {
+        "type": "distribution",
+        "method_options": ["kde", "hist"],
+        "N_bins_range": (20, 200),
+        "INSA_min": 1e-15,
+        "INSA_max": 2e-3,
+        "default_method": "kde",
+        "notes": "Size distribution vs. ice nucleating surface area",
+    }
 }
 
 

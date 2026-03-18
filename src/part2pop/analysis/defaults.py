@@ -80,12 +80,7 @@ _DEFAULTS_BY_VAR: Dict[str, Dict[str, Any]] = {
         "T": 298.15,
     },
 
-    # temperature / humidity axes
-    "T_grid": {
-        "T_grid": np.asarray([298.15]),
-        "T": 298.15,
-        "T_units": "K",
-    },
+    # humidity axes
     "rh_grid": {"rh_grid": np.asarray([0.0])},
 
     # other/legacy entries (keep for compatibility)

@@ -61,6 +61,9 @@ def build_freezing_population(base_population, config, T=None):
         T = config.get("T_grid", None)
         T = np.array(T)
     
+    spec_mod = config.get("species_modifications", base_population.species_modifications)
+    config["species_modifications"]=spec_mod
+    
     if T_units=="C":
         freezing_population = FreezingPopulation(base_population, T+273.15)
         for part_id in base_population.ids:

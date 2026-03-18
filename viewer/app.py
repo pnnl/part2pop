@@ -260,6 +260,10 @@ def run_viewer() -> None:
                 }
             else:
                 plot_config = {"varname": state_line_var, "var_cfg": var_cfg}
+            
+            print("HERE")
+            import sys
+            sys.exit()
             plotter = PlotBuilder(plot_type, plot_config).build()
 
         fig, ax = plt.subplots()

@@ -153,6 +153,13 @@ def render_var_controls(varname: str) -> Dict[str, Any]:
         cfg.setdefault("D_max", meta.get("D_max", 2e-6))
         cfg.setdefault("normalize", False)
         cfg.setdefault("wetsize", defaults.get("wetsize", True))
+    elif varname == "dNdlnINSA":
+        method = st.selectbox("Method", meta.get("method_options", [meta.get("default_method")]), index=0, key="dNdlnINSA_method")
+        cfg["method"] = method
+        cfg.setdefault("N_bins", st.slider("Bins", *meta.get("N_bins_range", (20, 200)), value=80, key="dNdlnD_bins"))
+        cfg.setdefault("INSA_min", meta.get("D_min", 1e-15))
+        cfg.setdefault("INSA_max", meta.get("D_max", 1e-3))
+        cfg.setdefault("normalize", False)
     return cfg
 
 

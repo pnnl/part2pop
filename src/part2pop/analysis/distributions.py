@@ -359,13 +359,19 @@ def kde1d_in_measure(
     u = _u_from_x(x, measure)
     u_q = _u_from_x(xq, measure)
 
-    kde = gaussian_kde(u, weights=w)
-    dens = kde(u_q)  # dens(u) per du
+    # kde doesn't work on monodisperse populations
+    if len(u)==1 and len(w)==1:
+        dens = np.zeros(u_q.shape)
+        idx = np.argmin(np.abs(u_q - u[0]))
+        dens[idx]=w[0]
+    else:
+        kde = gaussian_kde(u, weights=w)
+        dens = kde(u_q)  # dens(u) per du
 
     if normalize:
-        total = _trapezoid_integrate(dens, u_q)
-        if total > 0:
-            dens = dens / total
+       total = _trapezoid_integrate(dens, u_q)
+       if total > 0:
+           dens = dens / total
 
     return dens
 
