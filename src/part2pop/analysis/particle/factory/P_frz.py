@@ -11,7 +11,7 @@ class FreezingProb(ParticleVariable):
         description='Probability that a particle will freeze over 1 s.',
         units = 'over 1s time step',
         axis_names=("T_grid"),
-        default_cfg={},
+        default_cfg={"RH": 0.85, "T": 243.0, "T_units": "K"},
         aliases = ('P_frz',),
         scale = 'log',
         short_label = 'P_{frz}',
@@ -19,28 +19,36 @@ class FreezingProb(ParticleVariable):
     )
     
     def compute_all(self, population):
-        config = self.cfg
-        T = config.get("T",None)
+        config = self.cfg        
+        T = config.get("T", None)
+        RH = config.get("RH", None)
+        species_modifications = config.get("species_modifications", None)
+        morphology = config.get("morphology", "homogeneous")
         T_units = config.get("T_units", "K")
         if not T:
             raise ValueError("Need to specify temperature in cfg['var_cfg'] when plotting freezing probability.")
-        if T_units=="C":        
-            T = T+273.15
         elif T_units not in ("C","K"):
             raise ValueError(f"Unknown temperature unit: '{T_units}'.")
-        if T < population.T_grid.min() or T > population.T_grid.max():
+        if RH:
             if T_units=="C":
-                raise ValueError(f"T provided ({T-273.15} C) to P_frz plotter is outside of T_grid: {population.T_grid.min()-273.15} C to {population.T_grid.max()-273.15} C")
+                 population._equilibrate_h2o(RH, T+273.15)
             else:
-                raise ValueError(f"T provided ({T} K) to P_frz plotter is outside of T_grid: {population.T_grid.min()} K to {population.T_grid.max()} K")
-        
-        freezing_probs = population.get_freezing_probs()
-        xp = population.T_grid
-        out = np.zeros(len(population.num_concs))
-        for ii in range(len(out)):
-            fp = freezing_probs[:,ii]
-            out[ii] = np.interp(T, xp=xp, fp=fp)
-        return out
+                population._equilibrate_h2o(RH, T)
+
+        # override the underlying population species_modifications if one is supplied
+        if species_modifications:
+            population.species_modifications = species_modifications
+        else:
+            species_modifications = population.species_modifications
+
+        # make freezing population
+        freezing_config={"morphology": morphology,
+                         "T_grid": np.array([T]),
+                         "T_units": T_units,
+                         "species_modifications": species_modifications}
+        freezing_pop = build_freezing_population(population, freezing_config)
+        freezing_probs = freezing_pop.get_freezing_probs()
+        return freezing_probs
     
     
 def build(cfg=None):

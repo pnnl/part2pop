@@ -18,10 +18,10 @@ class TemperatureGridVar(PopulationVariable):
         default_cfg={},
         aliases=('T','temp','temperature', 'T_eval'),
     )
-    def compute(self, population=None,as_dict=False):
+    def compute(self, population=None, as_dict=False):
         cfg = self.cfg
         units = cfg.get("T_units", "K")
-        T_grid = cfg.get("T_grid", population.T_grid)
+        T_grid = cfg.get("T_grid", np.linspace(233.15, 273.15, 50))
         if units=="C":        
             out = np.asarray(T_grid)-273.15
         elif units=="K":

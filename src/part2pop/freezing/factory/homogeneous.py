@@ -42,16 +42,21 @@ class HomogeneousParticle(FreezingParticle):
         P_wv, P_ice = calculate_Psat(T)
         aw_ice = P_ice/P_wv
         aw = self.get_aw()
-        delta_aw = aw - aw_ice
-        for ii, (species, m, b) in enumerate(zip(self.base_particle.species, self.m_log10_Jhet, self.b_log10_Jhet)):
-            spec_Jhets[ii] = 10**(m * delta_aw + b)
-            vks[ii] = self.base_particle.get_spec_vol(species.name)[0]
-        vks=np.array(vks)
-        spec_Jhets=np.array(spec_Jhets)
-        mask = ~np.isnan(spec_Jhets)
-        weighted_sum = np.nansum(spec_Jhets * vks, axis=0)
-        weight_sum = np.sum(vks * mask, axis=0)
-        return weighted_sum / weight_sum
+        # no water
+        if np.isnan(aw):
+            return np.zeros(len(T))
+        # some water
+        else:
+            delta_aw = aw - aw_ice
+            for ii, (species, m, b) in enumerate(zip(self.base_particle.species, self.m_log10_Jhet, self.b_log10_Jhet)):
+                spec_Jhets[ii] = 10**(m * delta_aw + b)
+                vks[ii] = self.base_particle.get_spec_vol(species.name)[0]
+            vks=np.array(vks)
+            spec_Jhets=np.array(spec_Jhets)
+            mask = ~np.isnan(spec_Jhets)
+            weighted_sum = np.nansum(spec_Jhets * vks, axis=0)
+            weight_sum = np.sum(vks * mask, axis=0)
+            return weighted_sum / weight_sum
     
     def get_Jhom(self, T):
         """ Homogeneous ice nucleation rate following Koop et al. 2000 """

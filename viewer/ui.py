@@ -93,7 +93,7 @@ def render_var_controls(varname: str) -> Dict[str, Any]:
         cfg["s_eval"] = cfg["s_grid"]
         cfg.setdefault("T", meta.get("default_T", 298.15))
     elif meta.get("type") == "temperature":
-        t_range = tuple(float(val) for val in defaults.get("T_range", (273.15, 258.15)))
+        t_range = tuple(float(val) for val in defaults.get("T_range", (273.15, 233.15)))
         if len(t_range) < 2:
             t_range = (t_range[0], t_range[0])
         slider_res = st.slider(
@@ -110,8 +110,14 @@ def render_var_controls(varname: str) -> Dict[str, Any]:
             t_hi = slider_res
         points = st.slider("Points", 5, 200, value=defaults.get("T_points", 20), key=f"{varname}_Tpoints")
         cfg["T_grid"] = slider_grid("T_grid", t_hi, t_lo, points)
-        cfg["cooling_rate"] = st.number_input("Cooling rate (K/s)", value=float(defaults.get("cooling_rate", 0.1)), key=f"{varname}_cooling")
+        #cfg["cooling_rate"] = st.number_input("Cooling rate (K/s)", value=float(defaults.get("cooling_rate", 0.1)), key=f"{varname}_cooling")
         cfg.setdefault("T_units", defaults.get("T_units", "K"))
+    elif meta.get("type") == "time":
+        cfg["t_min"] = st.number_input("Start time (s)", value=float(defaults.get("t_min", 0.0)), key=f"{varname}_start")
+        cfg["t_max"] = st.number_input("End time (s)", value=float(defaults.get("t_max", 600.0)), key=f"{varname}_end")
+        cfg["T"] = st.number_input("Fixed Temperature (K)", value=float(meta.get("default_T")), min_value=0.0, max_value=273.0, step=5.0, key=f"{varname}_temp")
+        if varname=="unfrozen_frac":
+            cfg["RH"] = meta.get("default_RH")
     elif meta.get("type") == "optics":
         cfg.setdefault("T", defaults.get("T", 298.15))
         morphology = st.selectbox("Morphology", meta.get("morphology_options", [meta.get("default_morphology")]), index=0, key=f"{varname}_morph")
@@ -153,12 +159,12 @@ def render_var_controls(varname: str) -> Dict[str, Any]:
         cfg.setdefault("D_max", meta.get("D_max", 2e-6))
         cfg.setdefault("normalize", False)
         cfg.setdefault("wetsize", defaults.get("wetsize", True))
-    elif varname == "dNdlnINSA":
+    elif varname == "INSA_distribution":
         method = st.selectbox("Method", meta.get("method_options", [meta.get("default_method")]), index=0, key="dNdlnINSA_method")
         cfg["method"] = method
-        cfg.setdefault("N_bins", st.slider("Bins", *meta.get("N_bins_range", (20, 200)), value=80, key="dNdlnD_bins"))
-        cfg.setdefault("INSA_min", meta.get("D_min", 1e-15))
-        cfg.setdefault("INSA_max", meta.get("D_max", 1e-3))
+        cfg.setdefault("N_bins", st.slider("Bins", *meta.get("N_bins_range", (20, 200)), value=80, key="INSA_bins"))
+        cfg.setdefault("INSA_min", meta.get("INSA_min", 1e-15))
+        cfg.setdefault("INSA_max", meta.get("INSA_max", 1e-3))
         cfg.setdefault("normalize", False)
     return cfg
 
