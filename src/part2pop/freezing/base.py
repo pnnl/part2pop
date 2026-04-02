@@ -24,9 +24,6 @@ class FreezingParticle(Particle):
     def compute_Jhet(self, T):
         """Compute per-particle heterogeneous ice nucleation rate.
         """
-    
-
-    
 
 class FreezingPopulation(ParticlePopulation):
     """
@@ -93,15 +90,12 @@ class FreezingPopulation(ParticlePopulation):
         P_frz = 1-np.exp(-(self.Jhet*self.INSA + self.Jhom*drop_volume)*dt) 
         return P_frz
 
-        
 
-
-def retrieve_Jhet_val(name, spec_modifications={}):
+def retrieve_Jhet_val(name, spec_modifications={}, specdata_path='species_data'):
     # 'specdata_path' kept for backwards compatibility but ignored
     
     # todo: do we want to add Jhets to the species? Make "FreezingSpecies" class under base and update building?
-    
-    with open_dataset('species_data/freezing_data.dat') as fh:
+    with open_dataset(specdata_path+'/freezing_data.dat') as fh:
         for line in fh:
             if line.strip().startswith("#"):
                 continue
@@ -109,4 +103,6 @@ def retrieve_Jhet_val(name, spec_modifications={}):
                 name_in_file, m_Jhet, b_Jhet = line.split()
                 m_Jhet_val = spec_modifications.get('m_log10Jhet', m_Jhet)
                 b_Jhet_val = spec_modifications.get('b_log10Jhet', b_Jhet)
+                    
     return m_Jhet_val, b_Jhet_val
+    

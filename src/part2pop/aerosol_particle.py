@@ -90,6 +90,8 @@ class Particle:
         spec_densities = self.get_spec_rhos()
         if idx_h2o == -1:
             idx_not_h2o = np.hstack([idx for idx in idx_all[:-1] if idx != idx_h2o and spec_densities[idx]>0])
+        elif (idx_all == idx_h2o).all():
+            return np.array([])
         else:
             idx_not_h2o = np.hstack([idx for idx in idx_all if idx != idx_h2o and spec_densities[idx]>0])
         return idx_not_h2o
@@ -181,12 +183,16 @@ class Particle:
 
     def get_vol_tot(self):
         vks = self.get_vks()
-        vol_tot = np.nansum(vks[self.idx_dry()]) + vks[self.idx_h2o()]
+        # vol_tot = np.nansum(vks[self.idx_dry()]) + vks[self.idx_h2o()]
+        vol_tot = np.nansum(vks)
         return vol_tot
         
     def get_vol_dry(self):
-        vks = self.get_vks()
-        vol_dry = np.sum(vks[self.idx_dry()])
+        if len(self.idx_dry())>0:
+            vks = self.get_vks()
+            vol_dry = np.sum(vks[self.idx_dry()])
+        else:
+            vol_dry = 0.0
         return vol_dry
         
     def get_vol_core(self):
@@ -340,7 +346,7 @@ class Particle:
     
 def make_particle(
         D, aero_spec_names, aero_spec_frac,
-        # specdata_path= data_path / 'species_data',
+        specdata_path=None,
         species_modifications={},
         D_is_wet=True):
 
@@ -360,7 +366,7 @@ def make_particle(
     AeroSpecs = []
     for name in aero_spec_names:
         mods = species_modifications.get(name, {})
-        AeroSpecs.append(get_species(name, **mods))
+        AeroSpecs.append(get_species(name, specdata_path, **mods))
     
     assert(len(aero_spec_frac) == len(AeroSpecs))
     if D_is_wet:# or 'H2O' not in aero_spec_names or 'h2o' not in aero_spec_names:
