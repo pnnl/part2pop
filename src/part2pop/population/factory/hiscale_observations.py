@@ -1019,7 +1019,7 @@ def Nmodal_lognormal(x, *params):
         N=N+lognormal_distribution(x, Ntot, Dpg, sigma)
     return N
 
-def fit_Nmodal_distibution(
+def fit_Nmodal_distribution(
     Dp: np.ndarray, 
     N: np.ndarray):
     modes=0
