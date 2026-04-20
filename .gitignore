@@ -9,6 +9,7 @@
 scripts/
 archive/
 tmp*
+*old*
 
 *.zip
 *.png
