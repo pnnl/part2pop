@@ -107,7 +107,7 @@ def test_make_particle_from_masses_round_trip():
     )
 
     p2 = make_particle_from_masses(
-        aero_spec_names=[sulfate.name],
+        aero_spec_names=[spec.name for spec in p.species],
         spec_masses=p.masses.copy(),
     )
 
