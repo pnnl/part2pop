@@ -4,12 +4,20 @@
 .DS_Store
 *.DS_Store
 
-*.egg-info
 # Local-only tooling
 scripts/
 archive/
 tmp*
 *old*
+
+
+# Build / packaging
+dist/
+build/
+*.egg-info/
+
+# Jupyter
+.ipynb_checkpoints/
 
 *.zip
 *.png
@@ -20,3 +28,6 @@ tmp*
 venv/
 env/
 
+# Coverage
+.coverage
+coverage.xml
