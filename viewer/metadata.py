@@ -1,10 +1,11 @@
-"""Metadata helpers for the part2pop Streamlit viewer."""
+"""Metadata helpers for the tmp_viewer Streamlit sandbox."""
 
 from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from part2pop.analysis.defaults import get_defaults_for_variable
+import numpy as np
+from part2pop.analysis.defaults import get_defaults_for_variable, all_defaults
 
 
 STATE_LINE_VARIABLES: Dict[str, Dict[str, Any]] = {
@@ -56,11 +57,11 @@ STATE_LINE_VARIABLES: Dict[str, Dict[str, Any]] = {
     },
     "dNdlnD": {
         "type": "distribution",
-        "method_options": ["hist", "kde"],
+        "method_options": ["kde", "hist"],
         "N_bins_range": (20, 200),
         "D_min": 1e-9,
         "D_max": 2e-6,
-        "default_method": "hist",
+        "default_method": "kde",
         "notes": "Size distribution vs. diameter",
     },
 }
@@ -108,7 +109,6 @@ POPULATION_METADATA: Dict[str, Dict[str, Any]] = {
             {"name": "N_bins", "label": "Number of bins", "widget": "number", "default": 20},
             {"name": "GSD", "label": "GSD list", "widget": "number_list", "default": [1.3, 1.5, 1.5, 1.5]},
             {"name": "GMD_init", "label": "Initial GMDs (m)", "widget": "number_list", "default": [1.1e-7, 2.6e-8, 2e-6, 5e-8]},
-            {"name": "D_is_wet", "label": "Diameters wet", "widget": "select", "default": "True", "options": ["True", "False"]},
         ],
         "config_file_label": "MAM4 JSON config",
     },
@@ -143,6 +143,14 @@ def get_variable_metadata(varname: str) -> Dict[str, Any]:
 def list_state_line_variables() -> List[str]:
     """Return the list of supported state_line variables."""
     return list(STATE_LINE_VARIABLES)
+
+
+STATE_SCATTER_VARIABLES = sorted([name for name in all_defaults().keys() if name != "__fallback__"])
+
+
+def list_state_scatter_variables() -> List[str]:
+    """Return the list of supported state_scatter variables."""
+    return list(STATE_SCATTER_VARIABLES)
 
 
 def get_population_metadata() -> Dict[str, Dict[str, Any]]:

@@ -69,10 +69,7 @@ def test_describe_variable_returns_meta(monkeypatch):
 
 def test_describe_variable_raises_without_meta(monkeypatch):
     def builder(cfg=None):
-        class Dummy:
-            meta = None
-
-        return Dummy()
+        return SimpleNamespace(meta=None)
 
     monkeypatch.setattr(
         analysis_factory_registry,

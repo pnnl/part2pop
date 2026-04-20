@@ -10,12 +10,37 @@ class _FakeSpecies:
         self.molar_mass = molar_mass
 
 
+def test_convert_config_value_scalar_iterable_and_none():
+    assert utils._convert_config_value(None, float) is None
+    assert utils._convert_config_value("2.5", float) == 2.5
+    assert utils._convert_config_value(["1", "2"], int) == [1, 2]
+    assert utils._convert_config_value(("3", "4"), int) == [3, 4]
+
+    arr = np.array(["5", "6"])
+    assert utils._convert_config_value(arr, int) == [5, 6]
+
+
+def test_normalize_population_config_converts_supported_keys():
+    cfg = {
+        "N": "1.5",
+        "D": ["1e-7", "2e-7"],
+        "N_bins": "20",
+        "N_parts": ["3", "4"],
+        "other": "unchanged",
+    }
+    out = utils.normalize_population_config(cfg)
+    assert out["N"] == 1.5
+    assert out["D"] == [1e-7, 2e-7]
+    assert out["N_bins"] == 20
+    assert out["N_parts"] == [3, 4]
+    assert out["other"] == "unchanged"
+
+
 def test_parse_formula_with_parentheses_and_unknown(monkeypatch):
     tokens = ["Na", "Cl", "SO4", "NH4"]
 
     counts = utils._parse_formula("(NH4)2SO4", tokens)
     assert counts == {"NH4": 2, "SO4": 1}
-
     with pytest.raises(ValueError):
         utils._parse_formula("BadToken", tokens)
 

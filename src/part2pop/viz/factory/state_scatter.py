@@ -1,4 +1,6 @@
 # viz/factory/state_scatter.py
+import numpy as np
+
 from .registry import register
 from ..base import Plotter
 from ...analysis import build_variable
@@ -32,6 +34,8 @@ class StateScatterPlotter(Plotter):
         self.yname = config.get("yvar")
         self.cname = config.get("cvar",None)
         self.sname = config.get("svar",None)
+        self.xscale = config.get("xscale")
+        self.yscale = config.get("yscale")
         if not (self.xname and self.yname):
             raise ValueError("StateScatterPlotter requires 'xvar' and 'yvar' in config.")
         
@@ -43,8 +47,18 @@ class StateScatterPlotter(Plotter):
         # fixme: make these particle variables -- different function?
         xvar = build_variable(self.xname, 'particle', self.var_cfg)
         yvar = build_variable(self.yname, 'particle', self.var_cfg)
-        x = xvar.compute_all(population)
-        y = yvar.compute_all(population)
+        x = np.asarray(xvar.compute_all(population))
+        y = np.asarray(yvar.compute_all(population))
+
+        if y.ndim > 1 and x.ndim == 1:
+            target_len = len(x)
+            candidate_axes = [axis for axis, size in enumerate(y.shape) if size == target_len]
+            if candidate_axes:
+                axis_to_keep = candidate_axes[0]
+                other_axes = [axis for axis in range(y.ndim) if axis != axis_to_keep]
+                for axis in sorted(other_axes, reverse=True):
+                    y = np.take(y, 0, axis=axis)
+                y = np.asarray(y)
 
         if len(x) != len(y):
             raise ValueError(f"x and y must be same length, got {len(x)} vs {len(y)}.")
@@ -70,7 +84,8 @@ class StateScatterPlotter(Plotter):
             "xlabel": self._fmt_label(xvar.meta.long_label, getattr(xvar.meta, "units", "")),
             "ylabel": self._fmt_label(yvar.meta.long_label, getattr(yvar.meta, "units", "")),
             "clabel": self.config.get("clabel", clabel),
-            "xscale": xvar.meta.scale, "yscale": yvar.meta.scale
+            "xscale": self.xscale or getattr(xvar.meta, "scale", "linear"),
+            "yscale": self.yscale or getattr(yvar.meta, "scale", "linear"),
         }
 
     def plot(self, population, ax, **kwargs):

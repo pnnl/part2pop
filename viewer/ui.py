@@ -1,16 +1,16 @@
-"""UI helpers for Streamlit controls in the part2pop viewer."""
+"""UI helpers for Streamlit controls in the tmp_viewer sandbox."""
 
 from __future__ import annotations
 
 import json
 import re
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import streamlit as st
 
-from .metadata import POPULATION_METADATA, get_variable_metadata
+from .metadata import STATE_LINE_VARIABLES, POPULATION_METADATA, get_variable_metadata
 
 
 def _normalize_numeric_key_dict(value: Any) -> Any:
@@ -113,15 +113,38 @@ def render_var_controls(varname: str) -> Dict[str, Any]:
         cfg["cooling_rate"] = st.number_input("Cooling rate (K/s)", value=float(defaults.get("cooling_rate", 0.1)), key=f"{varname}_cooling")
         cfg.setdefault("T_units", defaults.get("T_units", "K"))
     elif meta.get("type") == "optics":
-        cfg.setdefault("rh_grid", slider_grid("RH grid", *meta.get("rh_range", (0.0, 1.0)), meta.get("rh_points", 5)))
-        cfg.setdefault("wvl_grid", slider_grid("Wavelength grid", *meta.get("wvl_range", (350e-9, 1150e-9)), meta.get("wvl_points", 6)))
-        cfg.setdefault("wvls", list(cfg["wvl_grid"]))
         cfg.setdefault("T", defaults.get("T", 298.15))
         morphology = st.selectbox("Morphology", meta.get("morphology_options", [meta.get("default_morphology")]), index=0, key=f"{varname}_morph")
         cfg["morphology"] = morphology
         cfg.setdefault("species_modifications", {})
-        cfg["vary_rh"] = st.checkbox("Vary RH", value=defaults.get("vary_rh", True), key=f"{varname}_vary_rh")
-        cfg["vary_wvl"] = st.checkbox("Vary wavelength", value=defaults.get("vary_wvl", True), key=f"{varname}_vary_wvl")
+        sweep_mode = st.radio("Sweep mode", ["RH", "Wavelength"], index=0, key=f"{varname}_sweep_mode")
+        if sweep_mode == "RH":
+            rh_lo = st.number_input("RH min", value=meta.get("rh_range", (0.0, 1.0))[0], key=f"{varname}_rh_min")
+            rh_hi = st.number_input("RH max", value=meta.get("rh_range", (0.0, 1.0))[1], key=f"{varname}_rh_max")
+            rh_points = st.number_input("RH points", value=meta.get("rh_points", 5), min_value=2, step=1, key=f"{varname}_rh_points", format="%d")
+            cfg["rh_grid"] = slider_grid("RH grid", min(rh_lo, rh_hi), max(rh_lo, rh_hi), int(rh_points))
+            fixed_wvl = st.text_input("Fixed wavelength", value=str(defaults.get("wvl_grid", [350e-9])[0]), key=f"{varname}_fixed_wvl")
+            try:
+                wvl_val = float(fixed_wvl)
+            except ValueError:
+                wvl_val = defaults.get("wvl_grid", [350e-9])[0]
+            cfg["wvl_grid"] = [wvl_val]
+            cfg["wvls"] = [wvl_val]
+            cfg["rh_grid"] = cfg["rh_grid"]
+            cfg.pop("wvl_grid_only", None)
+        else:
+            wvl_lo = st.number_input("Wavelength min", value=meta.get("wvl_range", (350e-9, 1150e-9))[0], key=f"{varname}_wvl_min")
+            wvl_hi = st.number_input("Wavelength max", value=meta.get("wvl_range", (350e-9, 1150e-9))[1], key=f"{varname}_wvl_max")
+            wvl_points = st.number_input("Wavelength points", value=meta.get("wvl_points", 6), min_value=2, step=1, key=f"{varname}_wvl_points", format="%d")
+            cfg["wvl_grid"] = slider_grid("Wavelength grid", min(wvl_lo, wvl_hi), max(wvl_lo, wvl_hi), int(wvl_points))
+            cfg["wvls"] = list(cfg["wvl_grid"])
+            fixed_rh = st.text_input("Fixed RH", value=str(defaults.get("rh_grid", [0.0])[0]), key=f"{varname}_fixed_rh")
+            try:
+                rh_val = float(fixed_rh)
+            except ValueError:
+                rh_val = defaults.get("rh_grid", [0.0])[0]
+            cfg["rh_grid"] = [rh_val]
+        cfg["sweep_mode"] = sweep_mode
     elif varname == "dNdlnD":
         method = st.selectbox("Method", meta.get("method_options", [meta.get("default_method")]), index=0, key="dNdlnD_method")
         cfg["method"] = method
@@ -133,29 +156,24 @@ def render_var_controls(varname: str) -> Dict[str, Any]:
     return cfg
 
 
-def render_population_controls(pop_type: str) -> Dict[str, Any]:
-    meta = POPULATION_METADATA.get(pop_type, {})
+def _render_interactive_fields(pop_type: str, meta: Dict[str, Any]) -> Dict[str, Any]:
     cfg: Dict[str, Any] = {"type": pop_type}
-    st.subheader(f"Population: {meta.get('label', pop_type)}")
-    use_config = False
-    if meta.get("config_modes"):
-        modes = meta["config_modes"]
-        use_config = st.radio("Configuration mode", modes, index=0, key=f"{pop_type}_mode") == "config_file"
-    if use_config:
-        cfg_path = st.text_input(meta.get("config_file_label", "Config file"), key=f"{pop_type}_file")
-        cfg["config_file"] = cfg_path
-        return cfg
-
     for field in meta.get("fields", []):
         widget = field["widget"]
+        name = field["name"]
         label = field["label"]
         default = field.get("default")
-        key = f"{pop_type}_{field['name']}"
+        key = f"{pop_type}_{name}"
+        if pop_type == "partmc" and name == "N_sampled":
+            continue
+        if pop_type == "partmc" and name == "n_particles":
+            # Render this control conditionally below when subset sampling is selected
+            continue
         if widget == "number":
             is_int = field.get("int", False)
             default_val = default if default is not None else (1 if is_int else 0)
             if is_int:
-                cfg[field["name"]] = st.number_input(
+                cfg[name] = st.number_input(
                     label,
                     value=int(default_val),
                     min_value=field.get("min"),
@@ -164,7 +182,7 @@ def render_population_controls(pop_type: str) -> Dict[str, Any]:
                     format="%d",
                 )
             else:
-                cfg[field["name"]] = st.number_input(
+                cfg[name] = st.number_input(
                     label,
                     value=float(default_val),
                     min_value=field.get("min"),
@@ -173,21 +191,95 @@ def render_population_controls(pop_type: str) -> Dict[str, Any]:
                 )
         elif widget == "select":
             options = field.get("options", [])
-            cfg[field["name"]] = st.selectbox(label, options, index=options.index(default) if default in options else 0, key=key)
+            cfg[name] = st.selectbox(label, options, index=options.index(default) if default in options else 0, key=key)
         elif widget == "json":
             text_val = json.dumps(default, indent=2) if default is not None else ""
             user_input = st.text_area(label, value=text_val, key=key)
             try:
                 parsed = json.loads(user_input) if user_input else {}
-                cfg[field["name"]] = _normalize_numeric_key_dict(parsed)
+                cfg[name] = _normalize_numeric_key_dict(parsed)
             except json.JSONDecodeError as exc:
                 st.error(f"Invalid JSON for {field['name']}: {exc}")
-                cfg[field["name"]] = default or {}
+                cfg[name] = default or {}
         elif widget == "number_list":
             values = default or []
             display = ", ".join(map(str, values))
             user_input = st.text_input(label, value=display, key=key)
-            cfg[field["name"]] = [float(v) for v in re.split(r"[\s,;]+", user_input.strip()) if v]
+            cfg[name] = [float(v) for v in re.split(r"[\s,;]+", user_input.strip()) if v]
         else:
-            cfg[field["name"]] = st.text_input(label, value=str(default or ""), key=key)
+            cfg[name] = st.text_input(label, value=str(default or ""), key=key)
     return cfg
+
+
+def _load_json_file(path: str) -> Dict[str, Any]:
+    try:
+        with open(path, "r", encoding="utf-8") as fp:
+            return json.load(fp)
+    except Exception as exc:
+        st.error(f"Failed to load config file '{path}': {exc}")
+        return {}
+
+
+def _default_interactive_cfg(pop_type: str, meta: Dict[str, Any]) -> Dict[str, Any]:
+    cfg: Dict[str, Any] = {"type": pop_type}
+    for field in meta.get("fields", []):
+        name = field["name"]
+        default = field.get("default")
+        if field.get("widget") == "select":
+            options = field.get("options", [])
+            cfg[name] = default if default in options else (options[0] if options else default)
+        else:
+            cfg[name] = default
+    return cfg
+
+
+def render_population_controls(pop_type: str) -> Dict[str, Any]:
+    meta = POPULATION_METADATA.get(pop_type, {})
+    st.subheader(f"Population: {meta.get('label', pop_type)}")
+    mode = st.selectbox(
+        "Configuration mode",
+        ["Interactive", "JSON text", "JSON file path"],
+        index=0,
+        key=f"{pop_type}_mode",
+    )
+
+    final_cfg: Dict[str, Any] = {}
+    if mode == "Interactive":
+        interactive_cfg = _render_interactive_fields(pop_type, meta)
+        final_cfg = dict(interactive_cfg)
+
+        if pop_type == "partmc":
+            selection = interactive_cfg.get("particle_selection")
+            n_particles_field = next((field for field in meta.get("fields", []) if field.get("name") == "n_particles"), {})
+            n_particles_default = int(n_particles_field.get("default", 1000))
+            if selection == "sub-select":
+                final_cfg["n_particles"] = st.number_input(
+                    "Particles to sample",
+                    value=final_cfg.get("n_particles", n_particles_default),
+                    min_value=1,
+                    step=1,
+                    key=f"{pop_type}_n_particles",
+                    format="%d",
+                )
+            else:
+                final_cfg.pop("n_particles", None)
+    elif mode == "JSON text":
+        text_defaults = _default_interactive_cfg(pop_type, meta)
+        text = st.text_area(
+            "Population JSON",
+            value=json.dumps(text_defaults, indent=2),
+            key=f"{pop_type}_json_text",
+            height=300,
+        )
+        if text:
+            try:
+                overrides = json.loads(text)
+                final_cfg.update(_normalize_numeric_key_dict(overrides))
+            except json.JSONDecodeError as exc:
+                st.error(f"Invalid JSON: {exc}")
+    else:
+        path = st.text_input("JSON config file", value="", key=f"{pop_type}_json_path")
+        if path:
+            overrides = _load_json_file(path)
+            final_cfg.update(_normalize_numeric_key_dict(overrides))
+    return final_cfg
