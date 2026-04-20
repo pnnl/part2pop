@@ -2,18 +2,18 @@ Diagnostics summary
 ===================
 
 Fitted size distribution (Dpg_nm, sigma):
-  Mode 0: 73.9811, 1.682
-  Mode 1: 207.28, 1.357
+  Mode 0: 71.5359, 1.682
+  Mode 1: 200.48, 1.357
 
 Optimized fraction of particles in each mode:
-  OC: 0.209 0.791 
-  SO4: 0.569 0.431 
-  NO3: 0.853 0.147 
-  IEPOX_SOA: 0.239 0.761 
+  OC: 0.228 0.772 
+  SO4: 0.528 0.472 
+  NO3: 0.816 0.184 
+  IEPOX_SOA: 0.753 0.247 
 
-Total N (FIMS, cm^-3): 1582.01
-Total N (pop,  cm^-3): 1707.48
-Ratio (pop/FIMS):      1.07931
+Total N (FIMS, cm^-3): 791.002
+Total N (pop,  cm^-3): 1903.34
+Ratio (pop/FIMS):      2.40624
 
 AMS mass fractions (observed, normalized over available keys):
   OC: 0.4764
@@ -22,10 +22,10 @@ AMS mass fractions (observed, normalized over available keys):
   NH4: 0.1383
 
 AMS mass fractions (reconstructed, normalized over available keys):
-  OC: 0.5267
-  NO3: 0.0481
-  SO4: 0.3226
-  NH4: 0.1026
+  OC: 0.4960
+  NO3: 0.0521
+  SO4: 0.3376
+  NH4: 0.1143
 
 miniSPLAT number fractions (observed, normalized):
   BC: 0.0108

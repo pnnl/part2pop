@@ -1,0 +1,22 @@
+{
+  "type": "partmc",
+  "partmc_dir": "/Users/fier887/Downloads/partmc_runs/01",
+  "timestep": 10,
+  "repeat": 1,
+  "species_modifications": {
+    "BC": {
+      "density": 1800,
+      "k_550": 0.8,
+      "n_550": 1.85
+    },
+    "SO4": {
+      "density": 1770,
+      "k_550": 0.0,
+      "n_550": 1.45,
+      "kappa": 0.6
+    }
+  },
+  "specdata_path": null,
+  "suppress_warning": true,
+  "add_mixing_ratios": true
+}

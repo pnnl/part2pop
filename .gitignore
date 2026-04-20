@@ -11,3 +11,11 @@ archive/
 tmp*
 
 *.zip
+*.png
+
+# Virtual environments
+.venv/
+.venv-test/
+venv/
+env/
+
