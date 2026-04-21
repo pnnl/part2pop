@@ -34,7 +34,7 @@ def calculate_Psat(T):
                   + tanh(0.0415*(T-218.8)) *
                     (53.878 - 1331.22/T - 9.44523*ln(T) + 0.014025*T)
     """
-    if (T <= 0).any():
+    if T <= 0:
         raise ValueError("Temperature in Kelvin must be > 0.")
 
     lnT = np.log(T)
@@ -57,10 +57,13 @@ def calculate_Psat(T):
     p_liq = np.exp(ln_p_liq)
     
     # Saturation vapor pressure over ice (Pa)
-    p_ice = p_liq.copy()
-    idx_in_range = np.where(T <=273.15)
-    ln_p_ice = 9.550426 - (5723.265 / T[idx_in_range]) + 3.53068 * lnT[idx_in_range] - 0.00728332 * T[idx_in_range]
-    p_ice[idx_in_range] = np.exp(ln_p_ice)
+    # p_ice = p_liq.copy()
+    # idx_in_range = np.where(T <=273.15)
+    if T <= 273.15:
+        ln_p_ice = 9.550426 - (5723.265 / T) + 3.53068 * lnT - 0.00728332 * T
+        p_ice = np.exp(ln_p_ice)
+    else:
+        p_ice = p_liq
 
     return p_liq, p_ice
     
@@ -79,8 +82,8 @@ def calculate_dPsat_dT(T):
     dp_dT_ice : Pa/K
     dp_dT_liq : Pa/K
     """
-    T = np.asarray(T)
-    if (T <= 0).any():
+    # T = np.asarray(T)
+    if T <= 0:
         raise ValueError("Temperature in Kelvin must be > 0.")
     lnT = np.log(T)
 

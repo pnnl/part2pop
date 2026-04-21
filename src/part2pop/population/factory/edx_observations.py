@@ -62,7 +62,7 @@ def build(config: Dict[str, Any]) -> ParticlePopulation:
         particle_classes.append(ptype)
         if ptype == 'biological':
             aero_spec_masses[ii] = sample_bio_particle(aero_spec_names, MassFracs, raw_population.elements)
-        elif ptype in ('carbonaceous', 'carbonaceous mixed dust'):
+        elif ptype in ('carbonaceous', 'carbonaceous mixed dust','dust-carbonaceous'):
             aero_spec_masses[ii] = sample_carbonaceous_particle(aero_spec_names, MassFracs, raw_population.elements)
         else:
             aero_spec_masses[ii] = sample_particle(aero_spec_names, MassFracs, raw_population.elements)
@@ -99,14 +99,14 @@ def read_edx_file(config: Dict[str, Any], elements: list[str]) -> Dict[str, floa
             if column.split("_")[-1] == spec:
                 idx = ii
                 particle_massfracs[:,jj]=np.array(data[column])
-            elif column[:-1] == spec:
+            elif column == spec:
                 idx = ii
                 particle_massfracs[:,jj]=np.array(data[column])
         if not idx:
             raise KeyError(f"Could not identify column for {spec} in {filename}")
 
     # calculate mass fraction if in percent
-    if np.mean(np.sum(particle_massfracs, axis=1)) == 100.0:
+    if np.isclose(np.average(np.sum(particle_massfracs, axis=1)), 100.0):
         particle_massfracs/=100.0
 
     # find size column
