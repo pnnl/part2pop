@@ -25,9 +25,8 @@ STATE_LINE_VARIABLES: Dict[str, Dict[str, Any]] = {
         "default_T": 298.15,
         "notes": "CCN activation fraction",
     },
-    "avg_Jhet": {"type": "temperature", "default_T": 298.15},
-    "nucleating_sites": {"type": "temperature", "default_T": 273.15},
-    "frozen_frac": {"type": "temperature", "default_T": 273.15},
+    #"nucleating_sites": {"type": "temperature", "default_T": 273.15},
+    #"frozen_frac": {"type": "temperature", "default_T": 273.15},
     "b_abs": {
         "type": "optics",
         "morphology_options": ["core-shell", "homogeneous", "fractal"],
@@ -63,6 +62,30 @@ STATE_LINE_VARIABLES: Dict[str, Dict[str, Any]] = {
         "D_max": 2e-6,
         "default_method": "kde",
         "notes": "Size distribution vs. diameter",
+    },
+    "INSA_distribution": {
+        "type": "distribution",
+        "morphology_options": ["homogeneous"],
+        "method_options": ["kde", "hist"],
+        "N_bins_range": (20, 200),
+        "INSA_min": 1e-15,
+        "INSA_max": 2e-3,
+        "default_method": "kde",
+        "notes": "Size distribution vs. ice nucleating surface area",
+    },
+    "avg_Jhet": {
+        "type": "temperature", 
+        "T_range": (233, 273), 
+        "T_units": ["K","C"]
+    },
+    "unfrozen_frac": {
+        "type": "time",
+        "morphology_options": ["homogeneous"],
+        "time_range": (0.0, 600.0),
+        "time_points": 6000.0,
+        "default_T": 243.0,
+        "default_RH": 0.85,
+        "notes": "Unfrozen fraction vs. time",
     },
 }
 

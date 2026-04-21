@@ -119,11 +119,16 @@ class FreezingPopulation(ParticlePopulation):
                 out[ii]=1-np.sum(weights*np.exp(-1.0*ns*self.INSA[ii]))
         return out
     
+    def get_species_idx(self, spec_name):
+        names = [spec.name for spec in self.species]
+        try:
+            return np.where(np.array(names) == spec_name)[0][0]
+        except:
+            return None
+    
     def get_freezing_probs(self, dt=1.0):
-        drop_volume = 0.0
-        for spec, mass in zip(self.species, self.spec_masses):
-            drop_volume+=mass/spec.density
-        P_frz = 1-np.exp(-(self.Jhet*self.INSA + self.Jhom*drop_volume)*dt) 
+        water_volumes = self.spec_masses[:,self.get_species_idx("H2O")]/self.species[self.get_species_idx("H2O")].density
+        P_frz = 1-np.exp(-(self.Jhet*self.INSA + self.Jhom*water_volumes)*dt)
         return P_frz
 
 

@@ -55,6 +55,7 @@ class _StubPopulation:
     def __init__(self, ids=(1, 2)):
         self.ids = ids
         self._particles = {pid: _StubParticle(d=pid, k=pid * 0.1) for pid in ids}
+        self.species_modifications = {}
 
     def get_particle(self, part_id):
         return self._particles[part_id]

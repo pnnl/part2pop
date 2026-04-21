@@ -4,26 +4,22 @@ from .registry import register_variable
 from part2pop.freezing.builder import build_freezing_population
 import numpy as np
 
-@register_variable("frozen_frac")
-class FrozenFraction(PopulationVariable):
+@register_variable("unfrozen_frac")
+class UnfrozenFraction(PopulationVariable):
     meta = VariableMeta(
-        name="frozen_frac",
-        description="Fraction of frozen particles as a function of time for a given temperature.",
+        name="unfrozen_frac",
+        description="Fraction of unfrozen particles for a given temperature as a function of time.",
         units = r'',
         axis_names=("time_grid"),
         default_cfg={},
-        aliases = ("F_frz",),
-        scale = "linear",
-        short_label = "frozen_frac",
-        long_label = "frozen fraction",
+        aliases = ("F_unfrz",),
+        scale = "log",
+        short_label = "unfrozen_frac",
+        long_label = "unfrozen fraction",
     )
     
     def compute(self, population, as_dict=False):
         cfg = self.cfg
-        t_min = cfg.get("t_min", 0.0)
-        t_max = cfg.get("t_max", 360.0)
-        dt = cfg.get("dt", 0.5)
-        stochastic = cfg.get("stochastic", False)
         species_modifications = cfg.get("species_modifications", None)
         morphology = cfg.get("morphology", "homogeneous")
         T = cfg.get("T", None)
@@ -35,7 +31,7 @@ class FrozenFraction(PopulationVariable):
             raise ValueError(f"Unknown temperature unit: '{T_units}'.")
         if T <= 0 and T_units == "K":
              raise ValueError(f"T provided is <= 0 K.")
-
+        
         # override the underlying population species_modifications if one is supplied
         if species_modifications:
             population.species_modifications = species_modifications
@@ -55,10 +51,14 @@ class FrozenFraction(PopulationVariable):
                          "T_units": T_units,
                          "species_modifications": species_modifications}
         freezing_pop = build_freezing_population(population, freezing_config)
-                
+        t_min = cfg.get("t_min", 0.0)
+        t_max = cfg.get("t_max", 360.0)
+        dt = cfg.get("dt", 0.5)
+        stochastic = cfg.get("stochastic", False)
         time = np.arange(t_min, t_max+dt, dt)
         FrozenFrac_PerPart = np.zeros((len(time), len(freezing_pop.T_grid), freezing_pop.num_concs.shape[0]))
-        P_frz = freezing_pop.get_freezing_probs(dt=dt)        
+        P_frz = freezing_pop.get_freezing_probs(dt=dt)    
+        
         if stochastic:
             for t in range (1, len(time)):
                     k = np.random.binomial(100, P_frz)  # shape like P_frz
@@ -70,10 +70,10 @@ class FrozenFraction(PopulationVariable):
         FrozenFrac_population = np.sum(population.num_concs*FrozenFrac_PerPart, axis=2)/np.sum(population.num_concs)
 
         if as_dict:
-            return {"time": np.asarray(time), "frozen_fraction": np.asarray(FrozenFrac_population)}
-        return FrozenFrac_population
+            return {"time": np.asarray(time), "frozen_fraction": 1.0-np.asarray(FrozenFrac_population)}
+        return 1.0-FrozenFrac_population
     
     
 def build(cfg=None):
     cfg = cfg or {}
-    return FrozenFraction(cfg)
+    return UnfrozenFraction(cfg)
