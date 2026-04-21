@@ -1,0 +1,13 @@
+{
+  // Use the pyparticle conda environment Python as the workspace interpreter.
+  "python.defaultInterpreterPath": "/Users/fier887/miniforge3/envs/pyparticle/bin/python",
+
+  // Backwards-compat key (some older extensions/VS Code versions still read this).
+  "python.pythonPath": "/Users/fier887/miniforge3/envs/pyparticle/bin/python",
+
+  // Ensure the Python extension activates the environment automatically in integrated terminals.
+  "python.terminal.activateEnvironment": true,
+
+  // Path to conda executable (keep if you rely on conda run in terminals).
+  "python.condaPath": "/Users/fier887/miniforge3/bin/conda"
+}

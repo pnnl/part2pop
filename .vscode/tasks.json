@@ -1,0 +1,14 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "PyParticle Reference Comparison",
+      "type": "shell",
+      "command": "conda run -n pyparticle python -m pytest tests/run_all_comparisons.py --input examples/configs/ccn_single_na_cl.yml --compare both --output reports/reference_report.json",
+      "presentation": {
+        "reveal": "always"
+      },
+      "problemMatcher": []
+    }
+  ]
+}
