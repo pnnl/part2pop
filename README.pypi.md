@@ -51,6 +51,17 @@ print(pop)
 
 More examples are available in the project repository.
 
+## Interactive viewer
+
+An experimental Streamlit UI lets you build populations through the factory registries and render existing visualization builders.
+
+```bash
+pip install -e .
+streamlit run scripts/launch_viewer.py
+```
+
+The viewer source lives under `viewer/`. The sidebar lists every registered population and plot type; choose any combination, adjust the metadata-driven controls, and the figure plus diagnostics render inline.
+
 ## Contributing
 
 `part2pop` is designed so that **all extensibility happens through factories**.

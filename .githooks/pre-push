@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "Pre-push: running test suite"
+
+# Allow skipping locally via environment variable
+if [[ "${SKIP_PRE_PUSH:-0}" == "1" ]]; then
+  echo "SKIP_PRE_PUSH=1 -> skipping pre-push checks"
+  exit 0
+fi
+
+# Find conda env name from environment.yml if present
+ENV_NAME=""
+if [[ -f environment.yml ]]; then
+  # simple grep to avoid requiring PyYAML in the hook
+  ENV_NAME=$(grep -E '^name:' environment.yml | head -1 | awk '{print $2}') || true
+fi
+
+run_pytest_current() {
+  echo "Running pytest with current python..."
+  python -m pytest -q
+}
+
+if command -v conda >/dev/null 2>&1 && [[ -n "$ENV_NAME" ]]; then
+  echo "Detected conda env name in environment.yml: $ENV_NAME"
+  # check if env exists
+  if conda env list --json 2>/dev/null | grep -q "\"name\": \"$ENV_NAME\""; then
+    echo "Conda env '$ENV_NAME' found."
+    # Optionally update the existing env from environment.yml (default: enabled)
+    if [[ "${DO_UPDATE_CONDA_ENV:-1}" == "1" ]]; then
+      echo "Updating conda env '$ENV_NAME' from environment.yml (DO_UPDATE_CONDA_ENV=1)..."
+      # Use --prune to remove packages no longer required by the environment file
+      conda env update -n "$ENV_NAME" -f environment.yml --prune || echo "Warning: conda env update failed; continuing to run tests using existing env."
+    else
+      echo "DO_UPDATE_CONDA_ENV=0 -> skipping env update"
+    fi
+    echo "Running tests inside conda env '$ENV_NAME'..."
+    conda run -n "$ENV_NAME" --no-capture-output python -m pytest -q
+  else
+    echo "Conda env '$ENV_NAME' not found."
+    if [[ "${DO_CREATE_CONDA_ENV:-0}" == "1" ]]; then
+      echo "DO_CREATE_CONDA_ENV=1 -> creating conda env from environment.yml..."
+      scripts/create-conda-env.sh
+      echo "Running tests inside newly created env..."
+      conda run -n "$ENV_NAME" --no-capture-output python -m pytest -q
+    else
+      echo "To create it automatically, run: DO_CREATE_CONDA_ENV=1 scripts/create-conda-env.sh"
+      echo "Falling back to running pytest in the current Python interpreter."
+      run_pytest_current
+    fi
+  fi
+else
+  if [[ -z "$ENV_NAME" ]]; then
+    echo "No environment.yml found or no name specified; running pytest with current python"
+  else
+    echo "conda is not available; running pytest with current python"
+  fi
+  run_pytest_current
+fi
+
+# Optionally run regression checks unless explicitly skipped
+if [[ "${SKIP_REGRESSION:-0}" != "1" ]]; then
+  if [[ -f tests/regression/run_regressions.py ]]; then
+    echo "Running regression checks..."
+    # prefer running regressions in the same conda env if possible
+    if command -v conda >/dev/null 2>&1 && [[ -n "$ENV_NAME" ]] && conda env list --json 2>/dev/null | grep -q "\"name\": \"$ENV_NAME\""; then
+      conda run -n "$ENV_NAME" --no-capture-output python tests/regression/run_regressions.py
+    else
+      python tests/regression/run_regressions.py
+    fi
+    echo "Regression checks passed."
+  else
+    echo "No regression runner found at tests/regression/run_regressions.py; skipping."
+  fi
+else
+  echo "SKIP_REGRESSION=1 -> skipping regression checks"
+fi
+
+echo "Pre-push checks completed successfully."
+exit 0

@@ -1,0 +1,80 @@
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "fontSize": "22px",
+    "fontFamily": "Helvetica, Arial, sans-serif",
+    "primaryColor": "#E6E1C5",
+    "primaryBorderColor": "#A8A27A",
+    "primaryTextColor": "#000000",
+    "lineColor": "#333333"
+  },
+  "flowchart": {
+    "nodeSpacing": 60,
+    "rankSpacing": 90,
+    "curve": "basis"
+  }
+}}%%
+
+flowchart LR
+
+%% ======================
+%% USER INPUT
+%% ======================
+subgraph USER["User-defined"]
+    PCFG["population configuration (pop_cfg)"]
+    SCFG["optional overrides for aerosol species"]
+    VCFG["variable configuration (var_cfg)"]
+end
+
+%% ======================
+%% BUILDERS
+%% ======================
+subgraph BUILD["Builders"]
+    PB["PopulationBuilder"]
+    VB["VariableBuilder"]
+end
+
+%% ======================
+%% CORE STRUCTURES
+%% ======================
+subgraph CORE["Core structures"]
+    POP["ParticlePopulation"]
+    PART["Particle"]
+end
+
+%% ======================
+%% ANALYSIS STRUCTURES
+%% ======================
+subgraph ANALYSIS["Analysis structures"]
+    PVAR["PopulationVariable"]
+    TVAR["ParticleVariable"]
+end
+
+%% ======================
+%% DIAGNOSTICS
+%% ======================
+subgraph DIAG["Diagnostics"]
+    PDIAG["population-level diagnostics"]
+    TDIAG["particle-level diagnostics"]
+end
+
+%% ======================
+%% CONNECTIONS
+%% ======================
+
+PCFG --> PB
+SCFG --> PB
+PB --> POP
+
+POP -->|get_particle| PART
+PART -->|set_particle| POP
+
+VCFG --> VB
+
+POP --> PVAR
+PART --> TVAR
+VB --> PVAR
+VB --> TVAR
+
+PVAR --> PDIAG
+TVAR --> TDIAG
