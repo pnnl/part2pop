@@ -29,11 +29,9 @@ class FreezingProb(ParticleVariable):
             raise ValueError("Need to specify temperature in cfg['var_cfg'] when plotting freezing probability.")
         elif T_units not in ("C","K"):
             raise ValueError(f"Unknown temperature unit: '{T_units}'.")
-        if RH:
-            if T_units=="C":
-                 population._equilibrate_h2o(RH, T+273.15)
-            else:
-                population._equilibrate_h2o(RH, T)
+        if T_units=="C":
+             T += 273.15
+        population._equilibrate_h2o(RH, T)
 
         # override the underlying population species_modifications if one is supplied
         if species_modifications:
@@ -43,11 +41,9 @@ class FreezingProb(ParticleVariable):
 
         # make freezing population
         freezing_config={"morphology": morphology,
-                         "T_grid": np.array([T]),
-                         "T_units": T_units,
                          "species_modifications": species_modifications}
         freezing_pop = build_freezing_population(population, freezing_config)
-        freezing_probs = freezing_pop.get_freezing_probs()
+        freezing_probs = freezing_pop.get_freezing_probs(T, freezing_config)        
         return freezing_probs
     
     

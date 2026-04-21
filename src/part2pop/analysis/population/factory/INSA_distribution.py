@@ -61,7 +61,7 @@ class InsaDistVar(PopulationVariable):
         # ------------------------------------------------------------------
         # 1. Gather particle INSA and weights
         # ------------------------------------------------------------------
-        INSAs = np.asarray(freezing_pop.INSA[0], dtype=float)
+        INSAs = np.asarray(freezing_pop.INSA, dtype=float)
         weights = np.asarray(freezing_pop.num_concs, dtype=float)
 
         # ------------------------------------------------------------------

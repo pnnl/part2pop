@@ -29,8 +29,8 @@ class avgJhetVar(PopulationVariable):
         if T_grid is None and T_units is None:
             T_grid = np.linspace(233.15, 273.15, 50)
             T_units = "K"
-        elif T_grid is None and T_units == "C":
-            T_grid = np.linspace(-40, 0.0, 50)
+        # elif T_grid is None and T_units == "C":
+        #     T_grid = np.linspace(-40, 0.0, 50)
         if T_units=="K" and np.min(T_grid)<=0:
             raise ValueError(f"One or more temperatures in T_grid is < 0.0 K when plotting avg_Jhet.")
         elif T_units not in ("K", "C"):
@@ -38,9 +38,8 @@ class avgJhetVar(PopulationVariable):
         
         # equilibrate population to RH
         if T_units=="C":
-            population._equilibrate_h2o(RH, T_grid[0])
-        else:
-            population._equilibrate_h2o(RH, T_grid[0])
+            T_grid += 273.15
+        population._equilibrate_h2o(RH, T_grid[0])
 
         # override the underlying population species_modifications if one is supplied
         if species_modifications:
@@ -50,11 +49,11 @@ class avgJhetVar(PopulationVariable):
 
         # make freezing population
         freezing_config={"morphology": morphology,
-                         "T_grid": np.asarray(T_grid),
-                         "T_units": T_units,
-                         "species_modifications": species_modifications}
+                         "species_modifications": species_modifications}        
         freezing_pop = build_freezing_population(population, freezing_config)
-        arr = freezing_pop.get_avg_Jhet()
+        arr = np.zeros(len(T_grid), dtype=float)
+        for ii, T in enumerate(T_grid):
+            arr[ii] = freezing_pop.get_avg_Jhet(T, freezing_config)
         if as_dict:
             return {"T_grid": np.asarray(T_grid), "T_units": T_grid, "avg_Jhet": arr}
         return arr

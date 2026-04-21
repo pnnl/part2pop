@@ -92,9 +92,10 @@ class FreezingPopulation(ParticlePopulation):
         self.b_log10_Jhet[idx,:] = freezing_particle.b_log10_Jhet
         self.INSA[idx] = freezing_particle.INSA
     
-    def get_avg_Jhet(self):
-        weights = np.tile(self.num_concs, (len(self.T_grid), 1))
-        return np.average(self.Jhet, weights=weights, axis=1)
+    def get_avg_Jhet(self, T, config):
+        weights = self.num_concs
+        Jhets = self.compute_Jhets(T, config)
+        return np.average(Jhets, weights=weights)
     
     def get_nucleating_sites(self, dT_dt):
         out = np.zeros(self.T_grid.shape)
@@ -126,9 +127,11 @@ class FreezingPopulation(ParticlePopulation):
         except:
             return None
     
-    def get_freezing_probs(self, dt=1.0):
+    def get_freezing_probs(self, T, config, dt=1.0):
         water_volumes = self.spec_masses[:,self.get_species_idx("H2O")]/self.species[self.get_species_idx("H2O")].density
-        P_frz = 1-np.exp(-(self.Jhet*self.INSA + self.Jhom*water_volumes)*dt)
+        Jhets = self.compute_Jhets(T, config)
+        Jhoms = self.compute_Jhoms(T, config)
+        P_frz = 1-np.exp(-(Jhets*self.INSA + Jhoms*water_volumes)*dt)
         return P_frz
 
 

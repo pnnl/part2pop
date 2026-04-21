@@ -31,7 +31,9 @@ class UnfrozenFraction(PopulationVariable):
             raise ValueError(f"Unknown temperature unit: '{T_units}'.")
         if T <= 0 and T_units == "K":
              raise ValueError(f"T provided is <= 0 K.")
-        
+        if T_units == "C":
+             T += 273.15
+
         # override the underlying population species_modifications if one is supplied
         if species_modifications:
             population.species_modifications = species_modifications
@@ -47,8 +49,8 @@ class UnfrozenFraction(PopulationVariable):
 
         # make freezing population
         freezing_config={"morphology": morphology,
-                         "T_grid": np.array([T]),
-                         "T_units": T_units,
+                         #"T_grid": np.array([T]),
+                         #"T_units": T_units,
                          "species_modifications": species_modifications}
         freezing_pop = build_freezing_population(population, freezing_config)
         t_min = cfg.get("t_min", 0.0)
@@ -56,9 +58,8 @@ class UnfrozenFraction(PopulationVariable):
         dt = cfg.get("dt", 0.5)
         stochastic = cfg.get("stochastic", False)
         time = np.arange(t_min, t_max+dt, dt)
-        FrozenFrac_PerPart = np.zeros((len(time), len(freezing_pop.T_grid), freezing_pop.num_concs.shape[0]))
-        P_frz = freezing_pop.get_freezing_probs(dt=dt)    
-        
+        FrozenFrac_PerPart = np.zeros((len(time), freezing_pop.num_concs.shape[0]))
+        P_frz = freezing_pop.get_freezing_probs(T, freezing_config, dt=dt)    
         if stochastic:
             for t in range (1, len(time)):
                     k = np.random.binomial(100, P_frz)  # shape like P_frz
@@ -67,7 +68,8 @@ class UnfrozenFraction(PopulationVariable):
             for t in range (1, len(time)):
                     FrozenFrac_PerPart[t] = FrozenFrac_PerPart[t-1] + P_frz * (1.0 - FrozenFrac_PerPart[t-1])
         
-        FrozenFrac_population = np.sum(population.num_concs*FrozenFrac_PerPart, axis=2)/np.sum(population.num_concs)
+
+        FrozenFrac_population = np.sum(population.num_concs*FrozenFrac_PerPart, axis=1)/np.sum(population.num_concs)
 
         if as_dict:
             return {"time": np.asarray(time), "frozen_fraction": 1.0-np.asarray(FrozenFrac_population)}
