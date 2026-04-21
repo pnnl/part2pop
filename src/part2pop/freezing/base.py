@@ -59,10 +59,10 @@ class FreezingPopulation(ParticlePopulation):
         self.b_log10_Jhet = np.zeros((N_part, len(base_population.species)), dtype=float)
         self.INSA = np.zeros(N_part, dtype=float) # m^2
     
-    def get_Jhets(self, T, config):
+    def compute_Jhets(self, T, config):
         return np.array([self.get_freezing_particle(part_id, config).compute_Jhet(T) for part_id in self.ids])
     
-    def get_Jhoms(self, T, config):
+    def compute_Jhoms(self, T, config):
         return np.array([self.get_freezing_particle(part_id, config).compute_Jhom(T) for part_id in self.ids])
         
     # def find_particle(self, part_id):
