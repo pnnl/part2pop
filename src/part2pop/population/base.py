@@ -153,5 +153,5 @@ class ParticlePopulation:
         """Return a copy that shares immutable data but has detached numeric arrays."""
         return ParticlePopulation(
             species=self.species, spec_masses=self.spec_masses.copy(),
-            num_concs=self.num_concs.copy(), ids=self.ids
+            num_concs=self.num_concs.copy(), ids=self.ids, species_modifications=self.species_modifications
         )

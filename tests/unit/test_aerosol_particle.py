@@ -1,9 +1,13 @@
-# tests/unit/test_aerosol_particle.py
+import importlib
 
 import numpy as np
 
-from part2pop.aerosol_particle import make_particle, make_particle_from_masses, Particle
+from part2pop.aerosol_particle import Particle, make_particle, make_particle_from_masses
 from part2pop.species.registry import get_species
+
+
+def test_import_aerosol_particle():
+    importlib.import_module("part2pop.aerosol_particle")
 
 
 def test_make_particle_basic_properties():

@@ -2,6 +2,16 @@ from __future__ import annotations
 
 import numpy as np
 
+_TRAPEZOID_FUNC = getattr(np, "trapezoid", None)
+_TRAPZ_FUNC = getattr(np, "trapz", None)
+
+if _TRAPZ_FUNC is None and _TRAPEZOID_FUNC is not None:
+    _TRAPZ_FUNC = _TRAPEZOID_FUNC
+    np.trapz = _TRAPZ_FUNC
+
+if _TRAPEZOID_FUNC is None and _TRAPZ_FUNC is not None:
+    _TRAPEZOID_FUNC = _TRAPZ_FUNC
+    np.trapezoid = _TRAPEZOID_FUNC
 
 def _trapezoid_integrate(y, x=None, dx=1.0, axis=-1):
     """
@@ -11,12 +21,17 @@ def _trapezoid_integrate(y, x=None, dx=1.0, axis=-1):
     releases only expose `np.trapz`.  This helper always calls whichever
     function exists so the rest of the module can rely on a single name.
     """
-    func = getattr(np, "trapezoid", None)
-    if func is None:
-        func = getattr(np, "trapz", None)
-    if func is None:
-        raise AttributeError("NumPy installation lacks trapezoid/trapz integrators")
-    return func(y, x=x, dx=dx, axis=axis)
+    if _TRAPEZOID_FUNC is not None:
+        return _TRAPEZOID_FUNC(y, x=x, dx=dx, axis=axis)
+    if _TRAPZ_FUNC is not None:
+        return _TRAPZ_FUNC(y, x=x, dx=dx, axis=axis)
+    raise AttributeError("NumPy installation lacks trapezoid/trapz integrators")
+    # func = getattr(np, "trapezoid", None)
+    # if func is None:
+    #     func = getattr(np, "trapz", None)
+    # if func is None:
+    #     raise AttributeError("NumPy installation lacks trapezoid/trapz integrators")
+    # return func(y, x=x, dx=dx, axis=axis)
 
 try:
     from scipy.interpolate import PchipInterpolator as _PCHIP

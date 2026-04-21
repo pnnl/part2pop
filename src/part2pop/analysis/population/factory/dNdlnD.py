@@ -59,7 +59,7 @@ class DNdlnDVar(PopulationVariable):
         - The variable is *always* defined w.r.t. ln(D), i.e. measure="ln".
         """
         cfg = self.cfg
-        method = cfg.get("method", "hist")
+        method = cfg.get("method", "kde")
         measure = "ln"  # this variable is per dlnD by definition
 
         # ------------------------------------------------------------------
@@ -201,7 +201,7 @@ def build(cfg=None) -> DNdlnDVar:
     Factory function used by the analysis population registry.
 
     Config keys (common ones):
-      - "method": "hist" (default) or "kde"
+      - "method": "kde" (default) or "hist"
       - "wetsize": bool (True = use wet diameters, False = dry)
       - "N_bins": int
       - "D_min", "D_max": floats in meters

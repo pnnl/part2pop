@@ -80,7 +80,12 @@ _DEFAULTS_BY_VAR: Dict[str, Dict[str, Any]] = {
         "T": 298.15,
     },
 
-    # relative-humidity axis
+    # temperature / humidity axes
+    "T_grid": {
+        "T_grid": np.asarray([298.15]),
+        "T": 298.15,
+        "T_units": "K",
+    },
     "rh_grid": {"rh_grid": np.asarray([0.0])},
 
     # other/legacy entries (keep for compatibility)
@@ -110,4 +115,3 @@ def get_defaults_for_variable(name: str) -> Dict[str, Any]:
 def all_defaults() -> Dict[str, Dict[str, Any]]:
     """Return a copy of the whole defaults mapping (diagnostic)."""
     return {k: dict(v) for k, v in _DEFAULTS_BY_VAR.items()}
-
