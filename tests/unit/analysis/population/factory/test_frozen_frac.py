@@ -21,9 +21,9 @@ def test_frozen_frac_no_h2o():
 def test_frozen_frac_species_modifications():
     config = {"type": "monodisperse", "D": [100e-9], "N": [1.0], "aero_spec_names": [["OC"]], "aero_spec_fracs": [[1.0]]}
     particle_pop = build_population(config)
-    var = ff_mod.build({"T": 253.0, "T_units": "K", "RH": 0.85, "species_modifications": {"OC": {"m_log10Jhet": 0.0, "b_log10Jhet": 1.0}}})
+    var = ff_mod.build({"T": 253.0, "T_units": "K", "RH": 0.85, "species_modifications": {"OC": {"m_log10_Jhet": 0.0, "b_log10_Jhet": 1.0}}})
     arr_1 = var.compute(particle_pop)
-    var = ff_mod.build({"T": 253.0, "T_units": "K", "RH": 0.85, "species_modifications": {"OC": {"m_log10Jhet": 10.0, "b_log10Jhet": 4.0}}})
+    var = ff_mod.build({"T": 253.0, "T_units": "K", "RH": 0.85, "species_modifications": {"OC": {"m_log10_Jhet": 10.0, "b_log10_Jhet": 4.0}}})
     arr_2 = var.compute(particle_pop)
     assert arr_1[-1] != arr_2[-1]
 

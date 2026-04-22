@@ -1635,7 +1635,7 @@ def build(config: Dict[str, Any]) -> ParticlePopulation:
     dNdln_m3 = N_m3 / dln
 
     # break the size distribution into N modes and provide fitting parameters
-    size_distribution_pars = fit_Nmodal_distibution(Dp_mid_m, N_m3)   
+    size_distribution_pars = fit_Nmodal_distribution(Dp_mid_m, N_m3)   
     
     # move the splat species into the different modes to optimize matching with the size distribution and measured mass fractions
     mode_fractions, N_multiplier = optimize_splat_species_distributions(

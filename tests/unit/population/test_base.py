@@ -33,7 +33,8 @@ def _empty_population():
 
 
 def _make_simple_particle():
-    sulfate = get_species("SO4")
+    specdata_path = None
+    sulfate = get_species("SO4", specdata_path)
     D_wet = 0.1e-6
     return make_particle(
         D=D_wet,
@@ -145,7 +146,8 @@ def test_add_particle_appends_to_population():
 
 
 def test_get_tot_dry_mass_without_h2o_equals_total():
-    dry_species = (get_species("BC"), get_species("SO4"))
+    specdata_path = None
+    dry_species = (get_species("BC", specdata_path), get_species("SO4", specdata_path))
     spec_masses = np.array([[1e-15, 2e-15]])
     num_concs = np.array([1e6])
     pop = ParticlePopulation(
@@ -373,6 +375,7 @@ def test_tot_dry_mass_and_reduce_mixing_state():
     )
     with pytest.raises(AxisError):
         multi.reduce_mixing_state(mixing_state="MAM4sameDryMass", RH=0.5, T=290.0)
+
 def test_particle_equilibration_updates_h2o_mass():
     particle = _make_simple_particle()
     assert np.isclose(particle.get_mass_h2o(), 0.0)

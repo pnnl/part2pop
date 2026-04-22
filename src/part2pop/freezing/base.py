@@ -65,17 +65,6 @@ class FreezingPopulation(ParticlePopulation):
     def compute_Jhoms(self, T, config):
         return np.array([self.get_freezing_particle(part_id, config).compute_Jhom(T) for part_id in self.ids])
         
-    # def find_particle(self, part_id):
-    #     if part_id in self.ids:
-    #         idx, = np.where([one_id == part_id for one_id in self.ids])
-    #         if len(idx)>1:
-    #             ValueError('part_id is listed more than once in self.ids')
-    #         else:
-    #             idx = idx[0]
-    #     else:
-    #         idx = len(self.ids)
-    #     return idx
-        
     def get_freezing_particle(self, part_id, config):
         if part_id in self.ids:
             idx_particle = self.find_particle(part_id)
@@ -96,29 +85,6 @@ class FreezingPopulation(ParticlePopulation):
         weights = self.num_concs
         Jhets = self.compute_Jhets(T, config)
         return np.average(Jhets, weights=weights)
-    
-    def get_nucleating_sites(self, dT_dt):
-        out = np.zeros(self.T_grid.shape)
-        if self.T_grid[-1]>self.T_grid[0]:
-            for ii in range(1, len(self.T_grid)+1):
-                out[-ii] = np.sum((self.num_concs/dT_dt)*trapezoid(np.flip(self.Jhet[-ii:]), x=np.flip(self.T_grid[-ii:]), axis=0))
-        else: 
-            for ii in range(0, len(self.T_grid)):
-                out[ii] = np.sum((self.num_concs/dT_dt)*trapezoid(self.Jhet[:ii], x=self.T_grid[:ii], axis=0))       
-        return out
-    
-    def get_frozen_fraction(self, dT_dt):
-        out = np.zeros(self.T_grid.shape)
-        weights = self.num_concs/np.sum(self.num_concs)
-        if self.T_grid[-1]>self.T_grid[0]:
-            for ii in range(1, len(self.T_grid)+1):
-                ns = (1/dT_dt)*trapezoid(np.flip(self.Jhet[-ii:]), x=np.flip(self.T_grid[-ii:]), axis=0)
-                out[-ii]=1-np.sum(weights*np.exp(-1.0*ns*self.INSA[-ii]))
-        else: 
-            for ii in range(0, len(self.T_grid)):
-                ns = (1/dT_dt)*trapezoid(self.Jhet[:ii], x=self.T_grid[:ii], axis=0)
-                out[ii]=1-np.sum(weights*np.exp(-1.0*ns*self.INSA[ii]))
-        return out
     
     def get_species_idx(self, spec_name):
         names = [spec.name for spec in self.species]

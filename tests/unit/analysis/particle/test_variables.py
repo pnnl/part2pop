@@ -21,6 +21,8 @@ import part2pop.analysis.particle.factory.P_frz as P_frz
 import part2pop.analysis.particle.factory.scat_crossect as scat_crossect
 import part2pop.analysis.particle.factory.s_critical as s_critical
 import part2pop.analysis.particle.factory.SSA as ssa_var
+from part2pop.freezing import build_freezing_population
+from part2pop.population import build_population
 
 
 class _StubParticle:
@@ -159,22 +161,23 @@ def test_ssa_returns_zero_when_cext_is_zero(monkeypatch):
     assert np.allclose(var.compute_all(pop), [0.0, 0.0])
 
 
-def test_p_frz_requires_temperature_and_uses_builder(monkeypatch):
-    pop = _StubPopulation(ids=(1,))
+def test_p_frz_requires_temperature_and_uses_builder():
+    pop_config = {
+        'type': 'monodisperse',
+        'morphology': 'homogeneous',
+        'N': [1e9],
+        'D': [1e-6],
+        'aero_spec_names': [['OC']],
+        'aero_spec_fracs': [[1.0]],
+        }
+    particle_pop = build_population(pop_config)
+    frz_pop = build_freezing_population(particle_pop, pop_config)
 
     # Missing T should raise
     var = P_frz.build({"T": None})
     with pytest.raises(ValueError):
-        var.compute_all(pop)
-
-    class _StubFreezePop:
-        def get_freezing_probs(self):
-            return np.array([[0.42]])
-
-    monkeypatch.setattr(
-        P_frz, "build_freezing_population", lambda population, cfg: _StubFreezePop()
-    )
+        var.compute_all(frz_pop)
 
     var_with_T = P_frz.build({"T": 250.0})
-    probs = var_with_T.compute_all(pop)
-    assert np.allclose(probs, 0.42)
+    probs = var_with_T.compute_all(frz_pop)
+    assert (probs>0).all() 

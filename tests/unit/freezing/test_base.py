@@ -28,53 +28,40 @@ def _base_population():
 
 def test_freezing_population_updates_and_aggregates():
     base_population = _base_population()
-    T_grid = np.array([270.0, 280.0])
-    config = {"T_units": "K",
-              "T_grid": T_grid,
-              "morphology": "homogeneous"}
-    freezing_pop = FreezingPop=build_freezing_population(base_population, config)
-    
-    avg = freezing_pop.get_avg_Jhet()
-    assert np.isfinite(avg.all())
-    assert avg.shape == T_grid.shape
-    
-    sites = freezing_pop.get_nucleating_sites(dT_dt=1.0)
-    assert not np.any(np.isnan(sites))
+    T = 270.0
+    config = {"morphology": "homogeneous"}
+    freezing_pop = build_freezing_population(base_population, config)
+    avg = freezing_pop.get_avg_Jhet(T, config)
+    assert np.isfinite(avg)
 
-    frozen = freezing_pop.get_frozen_fraction(dT_dt=1.0)
-    assert np.all(np.isfinite(frozen))
-    
-    probs = freezing_pop.get_freezing_probs(dt=1.0)
+    probs = freezing_pop.get_freezing_probs(T, config,dt=1.0)
     assert np.all((probs >= 0.0) & (probs <= 1.0))
-
 
 def test_freezing_population_with_decreasing_T_grid():
     base_population = _base_population()
-    T_grid = np.array([280.0, 230.0])
-    config = {"T_units": "K",
-              "T_grid": T_grid,
-              "morphology": "homogeneous"}
+    T_grid = np.array([230.0, 280.0])
+    config = {"morphology": "homogeneous"}
     freezing_pop = build_freezing_population(base_population, config)
-    sites = freezing_pop.get_nucleating_sites(dT_dt=2.0)
-    frozen = freezing_pop.get_frozen_fraction(dT_dt=2.0)
-    assert np.all(sites >= 0.0)
-    assert np.all((frozen >= 0.0) & (frozen <= 1.0))
+    avg_Jhet_cold = freezing_pop.get_avg_Jhet(T_grid[0], config)
+    avg_Jhet_warm = freezing_pop.get_avg_Jhet(T_grid[1], config)
+    freezing_probs_cold = freezing_pop.get_freezing_probs(T_grid[0], config, dt=1.0)
+    freezing_probs_warm = freezing_pop.get_freezing_probs(T_grid[1], config, dt=1.0)
+    assert avg_Jhet_cold >= 0.0 and avg_Jhet_warm >= 0.0
+    assert avg_Jhet_cold >= avg_Jhet_warm
+    assert freezing_probs_cold >= 0.0 and freezing_probs_warm >= 0.0
+    assert freezing_probs_cold >= freezing_probs_warm
 
 
 def test_retrieve_jhet_val_uses_modifications():
     base_population = _base_population()
-    T_grid = np.array([270.0])
-    config = {"T_units": "K",
-              "T_grid": T_grid,
-              "morphology": "homogeneous"}
+    T = 270.0
+    config = {"morphology": "homogeneous"}
     freezing_pop = build_freezing_population(base_population, config)
-    Jhet1 = freezing_pop.Jhet[0][0]
-    config = {"T_units": "K",
-              "T_grid": T_grid,
-              "morphology": "homogeneous",
-              "species_modifications": {"BC": {"m_log10Jhet": 0.0}}}
+    Jhet1 = freezing_pop.compute_Jhets(T, config)
+    config = {"morphology": "homogeneous",
+              "species_modifications": {"BC": {"m_log10_Jhet": 0.0}}}
     freezing_pop = build_freezing_population(base_population, config)
-    Jhet2 = freezing_pop.Jhet[0][0]
+    Jhet2 = freezing_pop.compute_Jhets(T, config)
     assert Jhet1 != Jhet2
 
 def particle_not_in_ids():

@@ -11,8 +11,8 @@ def test_species_modifications_override_density_and_kappa_in_particle():
     species_modifications in make_particle config should override base species
     properties (e.g., density, kappa) for that particle.
     """
-
-    base = get_species("SO4")
+    specdata_path = None
+    base = get_species("SO4", specdata_path)
     assert base.density is not None
     assert base.kappa is not None
 

@@ -11,7 +11,6 @@ def test_avg_Jhet_with_h2o():
     arr = var.compute(particle_pop)
     assert arr.all() > 0.0
 
-
 def test_avg_Jhet_no_h2o():
     config = {"type": "monodisperse", "D": [100e-9], "N": [1.0], "aero_spec_names": [["OC"]], "aero_spec_fracs": [[1.0]]}
     particle_pop = build_population(config)

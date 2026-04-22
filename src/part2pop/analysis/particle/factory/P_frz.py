@@ -21,7 +21,7 @@ class FreezingProb(ParticleVariable):
     def compute_all(self, population):
         config = self.cfg        
         T = config.get("T", None)
-        RH = config.get("RH", None)
+        RH = config.get("RH", 0.85)
         species_modifications = config.get("species_modifications", None)
         morphology = config.get("morphology", "homogeneous")
         T_units = config.get("T_units", "K")

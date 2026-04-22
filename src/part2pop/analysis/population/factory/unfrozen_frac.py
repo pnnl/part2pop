@@ -72,7 +72,7 @@ class UnfrozenFraction(PopulationVariable):
         FrozenFrac_population = np.sum(population.num_concs*FrozenFrac_PerPart, axis=1)/np.sum(population.num_concs)
 
         if as_dict:
-            return {"time": np.asarray(time), "frozen_fraction": 1.0-np.asarray(FrozenFrac_population)}
+            return {"time": np.asarray(time), "unfrozen_fraction": 1.0-np.asarray(FrozenFrac_population)}
         return 1.0-FrozenFrac_population
     
     
