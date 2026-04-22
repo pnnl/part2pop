@@ -132,50 +132,31 @@ def calculate_dPsat_dT(T):
 
     dp_dT_liq = p_liq * dlnp_dT_liq
     
-    
     # -------------------
     # ICE
     # -------------------
-    dp_dT_ice = dp_dT_liq.copy()
-    idx_in_range = np.where(T <=273.15)
-    ln_p_ice = (
+    if T <= 273.15:
+        # -------------------
+        # ICE
+        # -------------------
+        ln_p_ice = (
             9.550426
-            - 5723.265 / T[idx_in_range]
-            + 3.53068 * lnT[idx_in_range]
-            - 0.00728332 * T[idx_in_range]
+            - 5723.265 / T
+            + 3.53068 * lnT
+            - 0.00728332 * T
         )
-    p_ice = np.exp(ln_p_ice)
-    
-    dlnp_dT_ice = (
-            5723.265 / T[idx_in_range]**2
-            + 3.53068 / T[idx_in_range]
+
+        p_ice = np.exp(ln_p_ice)
+
+        dlnp_dT_ice = (
+            5723.265 / T**2
+            + 3.53068 / T
             - 0.00728332
         )
-    dp_dT_ice[idx_in_range] = p_ice * dlnp_dT_ice
-    
-    
-#    if T <= 273.15:
-#        # -------------------
-#        # ICE
-#        # -------------------
-#        ln_p_ice = (
-#            9.550426
-#            - 5723.265 / T
-#            + 3.53068 * lnT
-#            - 0.00728332 * T
-#        )
-#
-#        p_ice = np.exp(ln_p_ice)
-#
-#        dlnp_dT_ice = (
-#            5723.265 / T**2
-#            + 3.53068 / T
-#            - 0.00728332
-#        )
-#
-#        dp_dT_ice = p_ice * dlnp_dT_ice
-#    else:
-#        dp_dT_ice = dp_dT_liq
+
+        dp_dT_ice = p_ice * dlnp_dT_ice
+    else:
+        dp_dT_ice = dp_dT_liq
 
     return dp_dT_liq, dp_dT_ice
 
