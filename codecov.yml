@@ -4,7 +4,7 @@ coverage:
   status:
     project:
       default:
-        target: 70%
+        target: 75%
     patch: off # we can enable this if we figure out a reasonable policy
   ignore:
     - "launch_viewer.py"
