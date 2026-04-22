@@ -74,7 +74,7 @@ def test_homogeneous_particle_Jhet_positive():
     base_particle, cfg = _make_droplet_with_inp()
     fpart = HomogeneousParticle(base_particle, cfg)
 
-    T = np.array([233.15])  # K, clearly below freezing
+    T = 233.15
     Jhet = fpart.compute_Jhet(T)
 
     # Finite and strictly positive
