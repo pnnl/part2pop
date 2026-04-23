@@ -134,12 +134,12 @@ def _parse_formula(formula: str, known_tokens: List[str]) -> Dict[str, int]:
     return result
 
 
-def _mass_fraction_from_counts(counts: Dict[str, int]) -> Dict[str, float]:
+def _mass_fraction_from_counts(counts: Dict[str, int], specdata_path: str = None) -> Dict[str, float]:
     """Convert token counts into mass fractions using get_species(...).molar_mass."""
     total = 0.0
     molars: Dict[str, float] = {}
     for token, count in counts.items():
-        mm = get_species(token).molar_mass
+        mm = get_species(token, specdata_path).molar_mass
         molars[token] = mm
         total += count * mm
     if total <= 0.0:
@@ -214,13 +214,13 @@ def expand_compounds_for_population(
     return result
 
 
-def _mass_fraction_from_counts(counts: Dict[str, int]) -> Dict[str, float]:
+def _mass_fraction_from_counts(counts: Dict[str, int], specdata_path: str = None) -> Dict[str, float]:
     """Convert token counts into mass fractions using get_species(...).molar_mass."""
     # total molar mass
     total = 0.0
     molars: Dict[str, float] = {}
     for token, count in counts.items():
-        mm = get_species(token).molar_mass
+        mm = get_species(token, specdata_path).molar_mass
         molars[token] = mm
         total += count * mm
     if total <= 0.0:

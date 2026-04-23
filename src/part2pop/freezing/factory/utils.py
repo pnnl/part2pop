@@ -34,14 +34,10 @@ def calculate_Psat(T):
                   + tanh(0.0415*(T-218.8)) *
                     (53.878 - 1331.22/T - 9.44523*ln(T) + 0.014025*T)
     """
-    if (T <= 0).any():
+    if T <= 0:
         raise ValueError("Temperature in Kelvin must be > 0.")
 
     lnT = np.log(T)
-
-    # Saturation vapor pressure over ice (Pa)
-    ln_p_ice = 9.550426 - (5723.265 / T) + 3.53068 * lnT - 0.00728332 * T
-    p_ice = np.exp(ln_p_ice)
     
     # Saturation vapor pressure over liquid water (Pa)
     tanh_term = np.tanh(0.0415 * (T - 218.8))
@@ -59,6 +55,15 @@ def calculate_Psat(T):
         )
     )
     p_liq = np.exp(ln_p_liq)
+    
+    # Saturation vapor pressure over ice (Pa)
+    # p_ice = p_liq.copy()
+    # idx_in_range = np.where(T <=273.15)
+    if T <= 273.15:
+        ln_p_ice = 9.550426 - (5723.265 / T) + 3.53068 * lnT - 0.00728332 * T
+        p_ice = np.exp(ln_p_ice)
+    else:
+        p_ice = p_liq
 
     return p_liq, p_ice
     
@@ -77,30 +82,10 @@ def calculate_dPsat_dT(T):
     dp_dT_ice : Pa/K
     dp_dT_liq : Pa/K
     """
-    T = np.asarray(T)
-    if (T <= 0).any():
+    # T = np.asarray(T)
+    if T <= 0:
         raise ValueError("Temperature in Kelvin must be > 0.")
     lnT = np.log(T)
-
-    # -------------------
-    # ICE
-    # -------------------
-    ln_p_ice = (
-        9.550426
-        - 5723.265 / T
-        + 3.53068 * lnT
-        - 0.00728332 * T
-    )
-
-    p_ice = np.exp(ln_p_ice)
-
-    dlnp_dT_ice = (
-        5723.265 / T**2
-        + 3.53068 / T
-        - 0.00728332
-    )
-
-    dp_dT_ice = p_ice * dlnp_dT_ice
 
     # -------------------
     # LIQUID WATER
@@ -146,6 +131,32 @@ def calculate_dPsat_dT(T):
     )
 
     dp_dT_liq = p_liq * dlnp_dT_liq
+    
+    # -------------------
+    # ICE
+    # -------------------
+    if T <= 273.15:
+        # -------------------
+        # ICE
+        # -------------------
+        ln_p_ice = (
+            9.550426
+            - 5723.265 / T
+            + 3.53068 * lnT
+            - 0.00728332 * T
+        )
+
+        p_ice = np.exp(ln_p_ice)
+
+        dlnp_dT_ice = (
+            5723.265 / T**2
+            + 3.53068 / T
+            - 0.00728332
+        )
+
+        dp_dT_ice = p_ice * dlnp_dT_ice
+    else:
+        dp_dT_ice = dp_dT_liq
 
     return dp_dT_liq, dp_dT_ice
 

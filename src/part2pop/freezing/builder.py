@@ -7,7 +7,6 @@ Created on Mon Sep 22 14:35:25 2025
 """
 
 from .factory.registry import discover_morphology_types
-from .base import FreezingPopulation
 import numpy as np
 
 
@@ -38,7 +37,7 @@ def build_freezing_particle(base_particle, config):
     """Helper: build and return an optical particle from base particle and config."""
     return FreezingParticleBuilder(config).build(base_particle)
 
-def build_freezing_population(base_population, config, T=None):
+def build_freezing_population(base_population, config):
     """Build a FreezingPopulation from a base ParticlePopulation and config.
 
     Parameters
@@ -53,28 +52,13 @@ def build_freezing_population(base_population, config, T=None):
     FreezingPopulation
         INP properties of the population.
     """
-    
+    from .base import FreezingPopulation
     # Pass the base population so FreezingPopulation can inherit ids/num_concs/etc.
-    
-    T_units = config.get("T_units", None)
-    if not T:
-        T = config.get("T_grid", None)
-        T = np.array(T)
-    
-    if T_units=="C":
-        freezing_population = FreezingPopulation(base_population, T+273.15)
-        for part_id in base_population.ids:
-            base_particle = base_population.get_particle(part_id)
-            freezing_particle = build_freezing_particle(base_particle, config)
-            freezing_population.add_freezing_particle(freezing_particle, part_id, T+273.15)
-    elif T_units=="K":
-        freezing_population = FreezingPopulation(base_population, T)
-        for part_id in base_population.ids:
-            base_particle = base_population.get_particle(part_id)
-            freezing_particle = build_freezing_particle(base_particle, config)
-            freezing_population.add_freezing_particle(freezing_particle, part_id, T)
-    else:
-        raise ValueError(f"Unknown or unspecified temperature unit: {T_units}")
+    freezing_population = FreezingPopulation(base_population)
+    for part_id in base_population.ids:
+        base_particle = base_population.get_particle(part_id)
+        freezing_particle = build_freezing_particle(base_particle, config)
+        freezing_population.add_freezing_particle(freezing_particle, part_id)
     
     return freezing_population
 

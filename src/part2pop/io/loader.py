@@ -32,10 +32,11 @@ def load_population(
     with np.load(Path(filepath), allow_pickle=False) as archive:
         metadata = _recover_metadata(archive["metadata"])
         species_mods = metadata.get("species_modifications", {})
+        specdata_path = metadata.get("specdata_path", None)
 
         species_names = metadata.get("species_names", [])
         species = tuple(
-            get_species(name, **species_mods.get(name, {})) for name in species_names
+            get_species(name, specdata_path, **species_mods.get(name, {})) for name in species_names
         )
 
         spec_masses = np.asarray(archive["spec_masses"])

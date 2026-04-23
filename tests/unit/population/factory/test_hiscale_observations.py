@@ -833,7 +833,7 @@ def test_fit_nmodal_distribution_with_mocked_curve_fit(monkeypatch):
     n = hiscale.Nmodal_lognormal(dp, *true_pars)
 
     monkeypatch.setattr(hiscale, "curve_fit", lambda *args, **kwargs: (true_pars, np.eye(3)))
-    out = hiscale.fit_Nmodal_distibution(dp, n)
+    out = hiscale.fit_Nmodal_distribution(dp, n)
 
     assert len(out) == 1
     assert np.allclose(out[0], true_pars)
@@ -1073,7 +1073,7 @@ def test_build_input_validation_branches_and_preferred_matching(monkeypatch, tmp
             0.0,
         ),
     )
-    monkeypatch.setattr(hiscale, "fit_Nmodal_distibution", lambda *_args, **_kwargs: [[1.0, 1.0e-7, 1.5]])
+    monkeypatch.setattr(hiscale, "fit_Nmodal_distribution", lambda *_args, **_kwargs: [[1.0, 1.0e-7, 1.5]])
     monkeypatch.setattr(hiscale, "optimize_splat_species_distributions", lambda **kwargs: ({}, 1.0))
     monkeypatch.setattr(
         hiscale,
@@ -1135,7 +1135,7 @@ def test_builder_output_metadata_and_matching(tmp_path):
                 0.0,
             ),
         )
-        monkeypatch.setattr(hiscale, "fit_Nmodal_distibution", lambda *_args, **_kwargs: [[1.0, 1.0e-7, 1.5]])
+        monkeypatch.setattr(hiscale, "fit_Nmodal_distribution", lambda *_args, **_kwargs: [[1.0, 1.0e-7, 1.5]])
         monkeypatch.setattr(hiscale, "optimize_splat_species_distributions", lambda **kwargs: ({"BC": [1.0]}, 1.0))
         monkeypatch.setattr(
             hiscale,

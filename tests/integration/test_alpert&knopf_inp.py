@@ -36,7 +36,6 @@ AK_LOGN_BOUNDS = np.array([
      0.2872, 0.2798, 0.2752, 0.2699, 0.2635, 0.2585]
 ])
 
-@pytest.mark.integration
 def test_inp_freezing_comparison_to_alpert_knopf():
     """Compare simulated freezing behavior against bounds from Alpert & Knopf (2016)."""
 
@@ -45,13 +44,13 @@ def test_inp_freezing_comparison_to_alpert_knopf():
     INSA = np.random.lognormal(mean=np.log(1e-9), sigma=np.log(10.0), size=3000)
     Dps = list(2.0 * np.sqrt(INSA / (4 * np.pi)))
     Ns = [1e9 / len(Dps)] * len(Dps)
-    common_mod = {'SO4': {'m_log10Jhet': 0.0, 'b_log10Jhet': 7.0}}
+    common_mod = {'OC': {'m_log10_Jhet': 0.0, 'b_log10_Jhet': 7.0}}
 
     lognormal_cfg = {
         "type": "monodisperse",
         "N": Ns,
         "D": Dps,
-        "aero_spec_names": [["SO4"]] * len(Dps),
+        "aero_spec_names": [["OC"]] * len(Dps),
         "aero_spec_fracs": [[1.0]] * len(Dps),
         "species_modifications": common_mod
     }
@@ -60,7 +59,7 @@ def test_inp_freezing_comparison_to_alpert_knopf():
         "type": "monodisperse",
         "N": [1e9],
         "D": [1.78e-5],
-        "aero_spec_names": [["SO4"]],
+        "aero_spec_names": [["OC"]],
         "aero_spec_fracs": [[1.0]],
         "species_modifications": common_mod
     }
@@ -68,22 +67,29 @@ def test_inp_freezing_comparison_to_alpert_knopf():
     # Build freezing populations
     var_cfg = {
         "morphology": "homogeneous",
-        "T_grid": [-30],
-        "T_units": "C",
+        # "T_grid": [-30],
+        # "T_units": "C",
         "species_modifications": common_mod
     }
 
-    mono = build_freezing_population(build_population(monodisperse_cfg), var_cfg)
-    logn = build_freezing_population(build_population(lognormal_cfg), var_cfg)
+    T = 243
+    mono_particle_pop = build_population(monodisperse_cfg)
+    logn_particle_pop = build_population(lognormal_cfg)
+    mono_particle_pop._equilibrate_h2o(0.8, T)
+    logn_particle_pop._equilibrate_h2o(0.8, T)
+
+    mono = build_freezing_population(mono_particle_pop, var_cfg)
+    logn = build_freezing_population(logn_particle_pop, var_cfg)
 
     # Simulate freezing over time
     time = AK_TIME
     mono_Nfrz = np.zeros((len(time), mono.num_concs.shape[0]))
     logn_Nfrz = np.zeros((len(time), logn.num_concs.shape[0]))
-
+    Jhets_mono = mono.compute_Jhets(243, var_cfg)
+    Jhets_logn = logn.compute_Jhets(243, var_cfg)
     for i, dt in enumerate(time):
-        mono_Nfrz[i] = mono.num_concs * (1 - np.exp(-mono.Jhet * mono.INSA * dt))
-        logn_Nfrz[i] = logn.num_concs * (1 - np.exp(-logn.Jhet * logn.INSA * dt))
+        mono_Nfrz[i] = mono.num_concs * (1 - np.exp(-Jhets_mono * mono.INSA * dt))
+        logn_Nfrz[i] = logn.num_concs * (1 - np.exp(-Jhets_logn * logn.INSA * dt))
 
     mono_unfrz = (np.sum(mono.num_concs) - np.sum(mono_Nfrz, axis=1)) / np.sum(mono.num_concs)
     logn_unfrz = (np.sum(logn.num_concs) - np.sum(logn_Nfrz, axis=1)) / np.sum(logn.num_concs)

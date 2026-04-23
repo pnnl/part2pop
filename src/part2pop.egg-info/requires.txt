@@ -7,6 +7,7 @@ PyMieScatt
 pyBCabs
 tqdm
 streamlit
+pandas
 
 [test]
 pytest>=7

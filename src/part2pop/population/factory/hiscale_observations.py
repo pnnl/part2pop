@@ -53,7 +53,7 @@ from scipy.optimize import curve_fit
 from scipy.integrate import trapezoid
 from scipy.special import erf
 from typing import Any, Dict, List, Optional, Tuple
-import math, tqdm
+import math
 import re
 
 import numpy as np
@@ -1021,7 +1021,7 @@ def Nmodal_lognormal(x, *params):
         N=N+lognormal_distribution(x, Ntot, Dpg, sigma)
     return N
 
-def fit_Nmodal_distibution(
+def fit_Nmodal_distribution(
     Dp: np.ndarray, 
     N: np.ndarray):
     modes=0
@@ -1635,7 +1635,7 @@ def build(config: Dict[str, Any]) -> ParticlePopulation:
     dNdln_m3 = N_m3 / dln
 
     # break the size distribution into N modes and provide fitting parameters
-    size_distribution_pars = fit_Nmodal_distibution(Dp_mid_m, N_m3)   
+    size_distribution_pars = fit_Nmodal_distribution(Dp_mid_m, N_m3)   
     
     # move the splat species into the different modes to optimize matching with the size distribution and measured mass fractions
     mode_fractions, N_multiplier = optimize_splat_species_distributions(

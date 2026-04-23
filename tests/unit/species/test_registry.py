@@ -11,8 +11,9 @@ from part2pop.species.registry import (
 def test_get_species_loads_default_data_case_insensitive():
     """Check that SO4 parameters are loaded from aero_data and name handling is case-insensitive."""
 
-    so4_upper = get_species("SO4")
-    so4_lower = get_species("so4")
+    specdata_path = None
+    so4_upper = get_species("SO4", specdata_path)
+    so4_lower = get_species("so4",specdata_path)
 
     assert isinstance(so4_upper, AerosolSpecies)
     assert isinstance(so4_lower, AerosolSpecies)
@@ -42,8 +43,8 @@ def test_register_species_and_list_species_round_trip():
 
     names = list_species()
     assert new_name in names
-
-    retrieved = get_species(new_name)
+    specdata_path = None
+    retrieved = get_species(new_name, specdata_path)
     assert isinstance(retrieved, AerosolSpecies)
     assert retrieved.name == new_name
     assert retrieved.density == 1500.0

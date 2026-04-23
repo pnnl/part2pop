@@ -6,4 +6,10 @@ coverage:
       default:
         target: 75%
     patch: off # we can enable this if we figure out a reasonable policy
+  ignore:
+    - "launch_viewer.py"
+    - "setup.py"
+    - "viewer/app.py"
+    - "viewer/metadata.py"
+    - "viewer/ui.py"
 

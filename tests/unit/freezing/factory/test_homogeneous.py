@@ -74,8 +74,8 @@ def test_homogeneous_particle_Jhet_positive():
     base_particle, cfg = _make_droplet_with_inp()
     fpart = HomogeneousParticle(base_particle, cfg)
 
-    T = np.array([233.15])  # K, clearly below freezing
-    Jhet = fpart.get_Jhet(T)
+    T = 233.15
+    Jhet = fpart.compute_Jhet(T)
 
     # Finite and strictly positive
     assert np.isfinite(Jhet)
@@ -89,7 +89,7 @@ def test_homogeneous_particle_Jhom_positive():
     fpart = HomogeneousParticle(base_particle, cfg)
 
     T = np.array([233.15])  # K, clearly below freezing
-    Jhom = fpart.get_Jhom(T)
+    Jhom = fpart.compute_Jhom(T)
 
     # Finite and strictly positive
     assert np.isfinite(Jhom)
@@ -104,9 +104,8 @@ def test_homogeneous_Jhet_temperature_sensitivity():
     base_particle, cfg = _make_droplet_with_inp()
     fpart = HomogeneousParticle(base_particle, cfg)
     T = np.array([228.15, 238.15])  # K
-    Jhet = fpart.get_Jhet(T)
-    J_cold = Jhet[0]
-    J_warm = Jhet[1]
+    J_cold = fpart.compute_Jhet(T[0])
+    J_warm = fpart.compute_Jhet(T[1])
 
     # Both positive, and colder temperature gives larger rate.
     assert J_cold > 0.0
@@ -121,9 +120,8 @@ def test_homogeneous_Jhom_temperature_sensitivity():
     base_particle, cfg = _make_droplet_without_inp()
     fpart = HomogeneousParticle(base_particle, cfg)
     T = np.array([228.15, 238.15])  # K
-    Jhom = fpart.get_Jhom(T)
-    J_cold = Jhom[0]
-    J_warm = Jhom[1]
+    J_cold = fpart.compute_Jhom(T[0])
+    J_warm = fpart.compute_Jhom(T[1])
 
     # Both positive, and colder temperature gives larger rate.
     assert J_cold > 0.0
@@ -154,13 +152,28 @@ def test_homogeneous_build_wrapper_returns_equivalent_object():
     np.testing.assert_allclose(built.m_log10_Jhet, direct.m_log10_Jhet)
     np.testing.assert_allclose(built.b_log10_Jhet, direct.b_log10_Jhet)
 
-def test_particle_aws():
-    base_particle, cfg = _make_droplet_without_inp()
+def test_particle_Jhets_no_water():
+    base_particle, cfg = _make_droplet_with_inp()
     fpart = HomogeneousParticle(base_particle, cfg)
-    T = np.array([228])  # K
-    Jhom = fpart.get_Jhom(T)
-    assert Jhom[0] > 0
+    T = 228  # K
+    Jhom = fpart.compute_Jhom(T)
+    Jhet = fpart.compute_Jhet(T)
+    assert Jhom > 0.0
+    assert Jhet > 0.0
 
     base_particle.masses[base_particle.idx_h2o()]=0.0
-    with pytest.raises(ValueError):
-        Jhom = fpart.get_Jhom(T)
+    Jhom = fpart.compute_Jhom(T)
+    Jhet = fpart.compute_Jhet(T)
+    assert Jhom == 0.0
+    assert Jhet == 0.0
+
+    base_particle, cfg = _make_droplet_without_inp()
+    fpart = HomogeneousParticle(base_particle, cfg)
+    T = 228 # K
+    Jhom = fpart.compute_Jhom(T)
+    Jhet = fpart.compute_Jhet(T)
+    assert Jhet == 0.0
+    assert Jhom > 0.0
+
+
+

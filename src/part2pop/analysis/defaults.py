@@ -52,6 +52,32 @@ _DEFAULTS_BY_VAR: Dict[str, Dict[str, Any]] = {
         "D_max": 2e-6,
         "diam_scale": "log",
     },
+    "INSA_distribution": {
+        "insa_grid": np.logspace(-15, -3, 80),
+        "normalize": False,
+        "method": "kde",
+        "N_bins": 80,
+        "INSA_min": 1e-15,
+        "INSA_max": 1e-3,
+    },
+    "unfrozen_frac": {
+        "t_min": 0.0,
+        "t_max": 360.0,
+        "T": 243.15,
+        "dt": 0.5,
+        "RH": 0.85
+    },
+    "avg_Jhet": {
+        "T_grid": np.linspace(233.15, 273.15, 50),
+        "T_units": "K",
+        "morphology": "homogeneous",
+    },
+    "P_frz": {
+        "T": 243.15,
+        "RH": 0.85,
+        "T_units": "K",
+        "morphology": "homogeneous",
+    },
 
     # wavelength / optics defaults
     "wvl_grid": {"wvl_grid": [550e-9], "wvls": [550e-9]},
@@ -80,12 +106,7 @@ _DEFAULTS_BY_VAR: Dict[str, Dict[str, Any]] = {
         "T": 298.15,
     },
 
-    # temperature / humidity axes
-    "T_grid": {
-        "T_grid": np.asarray([298.15]),
-        "T": 298.15,
-        "T_units": "K",
-    },
+    # humidity axes
     "rh_grid": {"rh_grid": np.asarray([0.0])},
 
     # other/legacy entries (keep for compatibility)

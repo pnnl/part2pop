@@ -12,8 +12,8 @@ def test_import_aerosol_particle():
 
 def test_make_particle_basic_properties():
     """Create a simple SO4-only particle and check derived properties."""
-
-    sulfate = get_species("SO4")
+    specdata_path = None
+    sulfate = get_species("SO4", specdata_path)
 
     D_wet = 0.1e-6  # 100 nm
     aero_spec_names = [sulfate.name]
@@ -58,9 +58,9 @@ def test_particle_kappa_and_critical_supersaturation_monotonic():
 
     Uses two real species from the registry: SO4 (more hygroscopic) and OPOA.
     """
-
-    sulfate = get_species("SO4")
-    organics = get_species("OC")
+    specdata_path = None
+    sulfate = get_species("SO4", specdata_path)
+    organics = get_species("OC", specdata_path)
 
     D_dry = 0.1e-6  # 100 nm (treated as dry)
     T = 298.15
@@ -98,8 +98,8 @@ def test_particle_kappa_and_critical_supersaturation_monotonic():
 
 def test_make_particle_from_masses_round_trip():
     """Check that make_particle_from_masses reproduces total mass."""
-
-    sulfate = get_species("SO4")
+    specdata_path = None
+    sulfate = get_species("SO4", specdata_path)
     D_wet = 0.1e-6
 
     p = make_particle(

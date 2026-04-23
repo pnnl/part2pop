@@ -46,7 +46,7 @@ def test_parse_formula_with_parentheses_and_unknown(monkeypatch):
 
 
 def test_mass_fraction_from_counts(monkeypatch):
-    def fake_get_species(name):
+    def fake_get_species(name, specdata_path=None):
         return _FakeSpecies(molar_mass={"X": 10.0, "Y": 5.0}[name])
 
     monkeypatch.setattr(utils, "get_species", fake_get_species)
@@ -57,7 +57,7 @@ def test_mass_fraction_from_counts(monkeypatch):
 
 
 def test_mass_fraction_from_counts_requires_positive_total(monkeypatch):
-    monkeypatch.setattr(utils, "get_species", lambda name: _FakeSpecies(molar_mass=0.0))
+    monkeypatch.setattr(utils, "get_species", lambda name, specdata_path=None: _FakeSpecies(molar_mass=0.0))
 
     with pytest.raises(ValueError):
         utils._mass_fraction_from_counts({"X": 1})
@@ -119,7 +119,7 @@ def test_expand_compounds_for_population(monkeypatch):
     monkeypatch.setattr(
         utils,
         "get_species",
-        lambda name: _FakeSpecies({"Na": 23.0, "Cl": 35.0, "X": 10.0}[name]),
+        lambda name, specdata_path=None: _FakeSpecies({"Na": 23.0, "Cl": 35.0, "X": 10.0}[name]),
     )
 
     names_list = [["NaCl", "Na", "X2"]]
@@ -168,7 +168,7 @@ def test_expand_compounds_handles_multiple_modes(monkeypatch):
     monkeypatch.setattr(utils, "_read_available_species_tokens", lambda: tokens)
     mass_lookup = {"Na": 23.0, "Cl": 35.0, "BC": 1.0}
 
-    def fake_get_species(name):
+    def fake_get_species(name, specdata_path=None):
         return _FakeSpecies(molar_mass=mass_lookup[name])
 
     monkeypatch.setattr(utils, "get_species", fake_get_species)
