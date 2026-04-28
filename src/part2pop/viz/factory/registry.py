@@ -2,6 +2,7 @@
 import importlib
 import pkgutil
 import os
+import warnings
 
 _registry = {}
 
@@ -14,13 +15,28 @@ def register(name):
 
 
 def discover_plotter_types():
-    """Discover all population type modules in the types/ submodule."""
-    types_pkg = __package__  # The current package
+    """Discover plotter builders with decorator-first and safe fallback discovery."""
+    types_pkg = __package__
     types_path = os.path.dirname(__file__)
-    plotter_types = {}
+    plotter_types = dict(_registry)
     for _, module_name, _ in pkgutil.iter_modules([types_path]):
-        module = importlib.import_module(f"{types_pkg}.{module_name}")
+        if module_name in {"registry", "__init__"} or module_name.startswith("_"):
+            continue
+        try:
+            module = importlib.import_module(f"{types_pkg}.{module_name}")
+        except Exception as exc:
+            warnings.warn(
+                f"Skipping viz factory module '{module_name}' during discovery: {exc}",
+                RuntimeWarning,
+            )
+            continue
         if hasattr(module, "build") and callable(getattr(module, "build")):
-            plotter_types[module_name] = module.build
+            plotter_types.setdefault(module_name, module.build)
+        if _registry:
+            plotter_types.update(_registry)
 
     return plotter_types
+
+
+def list_plotter_types():
+    return sorted(discover_plotter_types().keys())

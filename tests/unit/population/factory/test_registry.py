@@ -79,3 +79,45 @@ def test_describe_variable_raises_without_meta(monkeypatch):
     )
     with pytest.raises(analysis_factory_registry.UnknownVariableError):
         analysis_factory_registry.describe_variable("tempvar")
+
+
+def test_discover_population_types_skips_private_and_broken_modules(monkeypatch):
+    monkeypatch.setattr(
+        factory_registry,
+        "pkgutil",
+        SimpleNamespace(
+            iter_modules=lambda paths: [
+                (None, "_private", False),
+                (None, "registry", False),
+                (None, "broken", False),
+                (None, "good", False),
+            ]
+        ),
+        raising=False,
+    )
+
+    def fake_import(fullname):
+        if fullname.endswith("broken"):
+            raise ImportError("missing optional dep")
+        if fullname.endswith("good"):
+            return SimpleNamespace(build=lambda cfg: cfg)
+        return SimpleNamespace()
+
+    monkeypatch.setattr(factory_registry.importlib, "import_module", fake_import)
+
+    with pytest.warns(RuntimeWarning):
+        discovered = factory_registry.discover_population_types()
+
+    assert "good" in discovered
+    assert "broken" not in discovered
+    assert "_private" not in discovered
+
+
+def test_list_population_types_sorted(monkeypatch):
+    monkeypatch.setattr(
+        factory_registry,
+        "discover_population_types",
+        lambda: {"z": object(), "a": object()},
+        raising=False,
+    )
+    assert factory_registry.list_population_types() == ["a", "z"]

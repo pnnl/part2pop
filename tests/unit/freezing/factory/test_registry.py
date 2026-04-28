@@ -92,3 +92,25 @@ def test_discover_includes_module_build(monkeypatch):
 
     morphs = freezing_registry.discover_morphology_types()
     assert "dummy_build" in morphs
+
+
+def test_discover_skips_private_modules(monkeypatch):
+    monkeypatch.setattr(
+        freezing_registry,
+        "pkgutil",
+        SimpleNamespace(iter_modules=lambda paths: [(None, "_private", False)]),
+        raising=False,
+    )
+    monkeypatch.setattr(freezing_registry, "_morphology_registry", {}, raising=False)
+    morphs = freezing_registry.discover_morphology_types()
+    assert "_private" not in morphs
+
+
+def test_list_freezing_types_sorted(monkeypatch):
+    monkeypatch.setattr(
+        freezing_registry,
+        "discover_morphology_types",
+        lambda: {"z": object(), "a": object()},
+        raising=False,
+    )
+    assert freezing_registry.list_freezing_types() == ["a", "z"]

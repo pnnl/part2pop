@@ -1,6 +1,7 @@
 import importlib
 import pkgutil
 import os
+import warnings
 
 _registry = {}
 
@@ -39,14 +40,28 @@ def register(name):
 
 #     return population_types
 
-# #FIXME: remove this once we are sure decorator-based registry is stable
 def discover_population_types():
-    """Discover all population type modules in the types/ submodule."""
-    types_pkg = __package__  # The current package
+    """Discover population builders with decorator-first and safe fallback discovery."""
+    types_pkg = __package__
     types_path = os.path.dirname(__file__)
-    population_types = {}
+    population_types = dict(_registry)
     for _, module_name, _ in pkgutil.iter_modules([types_path]):
-        module = importlib.import_module(f"{types_pkg}.{module_name}")
-        if hasattr(module, "build"):
-            population_types[module_name] = module.build
+        if module_name in {"registry", "__init__"} or module_name.startswith("_"):
+            continue
+        try:
+            module = importlib.import_module(f"{types_pkg}.{module_name}")
+        except Exception as exc:
+            warnings.warn(
+                f"Skipping population factory module '{module_name}' during discovery: {exc}",
+                RuntimeWarning,
+            )
+            continue
+        if hasattr(module, "build") and callable(getattr(module, "build")):
+            population_types.setdefault(module_name, module.build)
+        if _registry:
+            population_types.update(_registry)
     return population_types
+
+
+def list_population_types():
+    return sorted(discover_population_types().keys())
