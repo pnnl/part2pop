@@ -1,5 +1,8 @@
 # tests/unit/species/test_registry.py
 
+import os
+import tempfile
+
 from part2pop.species.base import AerosolSpecies
 from part2pop.species.registry import (
     get_species,
@@ -86,3 +89,19 @@ def test_describe_species_unknown_raises():
         assert "Unknown species" in str(exc)
     else:
         raise AssertionError("Expected ValueError for unknown species")
+
+
+def test_describe_species_custom_specdata_path():
+    """describe_species should use a custom specdata_path when provided."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Write a minimal aero_data.dat with a unique species
+        dat_path = os.path.join(tmpdir, "aero_data.dat")
+        with open(dat_path, "w") as fh:
+            fh.write("# density  ions  molar_mass  kappa\n")
+            fh.write("CUSTSPEC  1234.0  0  99d-3  0.42\n")
+
+        info = describe_species("CUSTSPEC", specdata_path=tmpdir)
+
+    assert info["name"].upper() == "CUSTSPEC"
+    assert info["defaults"]["density"] == 1234.0
+    assert info["defaults"]["kappa"] == 0.42

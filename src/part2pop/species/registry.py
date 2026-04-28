@@ -56,7 +56,7 @@ def list_species():
     return _registry.list_species()
 
 
-def describe_species(name: str):
+def describe_species(name: str, specdata_path: str | None = None):
     key = name.upper()
     if key in _registry._custom:
         sp = _registry._custom[key]
@@ -74,10 +74,10 @@ def describe_species(name: str):
         }
 
     try:
-        sp = retrieve_one_species(name)
-    except Exception as exc:
+        sp = retrieve_one_species(name, specdata_path=specdata_path, spec_modifications={})
+    except ValueError as exc:
         available = ", ".join(sorted(list_species())) or "<none>"
-        raise ValueError(f"Unknown species: {name}. Registered species: {available}") from exc
+        raise ValueError(f"Unknown species: {name}. Custom-registered species: {available}") from exc
 
     return {
         "name": sp.name,

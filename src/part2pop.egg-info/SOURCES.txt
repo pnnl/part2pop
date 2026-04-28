@@ -5,8 +5,8 @@ README.pypi.md
 pyproject.toml
 setup.cfg
 setup.py
-examples/example_data/.DS_Store
 examples/example_data/hiscale_population_config.json
+examples/example_data/Alpert_Knopf_2016/Alpert_Knopf_2016_Fig1_data.csv
 examples/example_data/HISCALE_data_0425/AIMMS20_G1_20160425155810_R2_HISCALE020h.txt
 examples/example_data/HISCALE_data_0425/BEASD_G1_20160425155810_R2_HISCALE_001s.txt
 examples/example_data/HISCALE_data_0425/HiScaleAMS_G1_20160425_R0.txt
@@ -138,6 +138,8 @@ src/part2pop/analysis/particle/factory/s_critical.py
 src/part2pop/analysis/particle/factory/scat_crossect.py
 src/part2pop/analysis/population/__init__.py
 src/part2pop/analysis/population/base.py
+src/part2pop/analysis/population/factory/INSA_distribution.py
+src/part2pop/analysis/population/factory/INSA_grid.py
 src/part2pop/analysis/population/factory/Nccn.py
 src/part2pop/analysis/population/factory/T_grid.py
 src/part2pop/analysis/population/factory/avg_Jhet.py
@@ -148,17 +150,14 @@ src/part2pop/analysis/population/factory/dNdlnD.py
 src/part2pop/analysis/population/factory/diam_grid.py
 src/part2pop/analysis/population/factory/frac_ccn.py
 src/part2pop/analysis/population/factory/frozen_frac.py
-src/part2pop/analysis/population/factory/nucleating_sites.py
 src/part2pop/analysis/population/factory/registry.py
 src/part2pop/analysis/population/factory/rh_grid.py
 src/part2pop/analysis/population/factory/s_grid.py
 src/part2pop/analysis/population/factory/spec_mass_conc.py
+src/part2pop/analysis/population/factory/time_grid.py
+src/part2pop/analysis/population/factory/unfrozen_frac.py
 src/part2pop/analysis/population/factory/wvl_grid.py
 src/part2pop/data/__init__.py
-src/part2pop/data/__pycache__/__init__.cpython-311.pyc
-src/part2pop/data/__pycache__/__init__.cpython-312.pyc
-src/part2pop/data/__pycache__/__init__.cpython-313.pyc
-src/part2pop/data/__pycache__/__init__.cpython-314.pyc
 src/part2pop/data/species_data/aero_data.dat
 src/part2pop/data/species_data/freezing_data.dat
 src/part2pop/data/species_data/ri_water.csv
@@ -188,6 +187,7 @@ src/part2pop/population/base.py
 src/part2pop/population/builder.py
 src/part2pop/population/utils.py
 src/part2pop/population/factory/binned_lognormals.py
+src/part2pop/population/factory/edx_observations.py
 src/part2pop/population/factory/hiscale_observations.py
 src/part2pop/population/factory/mam4.py
 src/part2pop/population/factory/monodisperse.py
