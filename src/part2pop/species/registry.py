@@ -77,7 +77,9 @@ def describe_species(name: str):
         sp = retrieve_one_species(name)
     except Exception as exc:
         available = ", ".join(sorted(list_species())) or "<none>"
-        raise ValueError(f"Unknown species: {name}. Registered species: {available}") from exc
+        raise ValueError(
+            f"Unknown species: {name}. Custom-registered species: {available}"
+        ) from exc
 
     return {
         "name": sp.name,
