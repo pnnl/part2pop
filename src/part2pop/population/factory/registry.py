@@ -4,6 +4,7 @@ import os
 import warnings
 
 _registry = {}
+_DISCOVERED = False
 
 def register(name):
     def decorator(cls_or_fn):
@@ -41,10 +42,16 @@ def register(name):
 #     return population_types
 
 def discover_population_types():
-    """Discover population builders with decorator-first and safe fallback discovery."""
+    """Discover population builders with decorator-first and safe fallback discovery.
+
+    Results are cached after the first call; subsequent calls return immediately
+    without re-scanning the filesystem.
+    """
+    global _DISCOVERED
+    if _DISCOVERED:
+        return dict(_registry)
     types_pkg = __package__
     types_path = os.path.dirname(__file__)
-    population_types = dict(_registry)
     for _, module_name, _ in pkgutil.iter_modules([types_path]):
         if module_name in {"registry", "__init__"} or module_name.startswith("_"):
             continue
@@ -57,11 +64,25 @@ def discover_population_types():
             )
             continue
         if hasattr(module, "build") and callable(getattr(module, "build")):
-            population_types.setdefault(module_name, module.build)
-        if _registry:
-            population_types.update(_registry)
-    return population_types
+            _registry.setdefault(module_name, module.build)
+    _DISCOVERED = True
+    return dict(_registry)
 
 
 def list_population_types():
     return sorted(discover_population_types().keys())
+
+
+def describe_population_type(name):
+    types = discover_population_types()
+    if name not in types:
+        available = ", ".join(sorted(types.keys())) or "<none>"
+        raise ValueError(f"Unknown population type: {name}. Available types: {available}")
+    builder = types[name]
+    return {
+        "name": name,
+        "module": getattr(builder, "__module__", None),
+        "type": getattr(builder, "__name__", type(builder).__name__),
+        "description": (getattr(builder, "__doc__", None) or "").strip() or None,
+        "defaults": getattr(builder, "defaults", None),
+    }

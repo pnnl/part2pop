@@ -5,6 +5,7 @@ import os
 import warnings
 
 _morphology_registry = {}
+_DISCOVERED = False
 
 def register(name):
     """
@@ -36,9 +37,13 @@ def discover_morphology_types():
     """
     Discover morphology builders that live in THIS package (factory folder).
     Returns a dict: name -> builder/class callable (from @register) or module.build fallback.
+
+    Results are cached after the first call; subsequent calls return immediately
+    without re-scanning the filesystem.
     """
-    # Start with anything already registered
-    types = dict(_morphology_registry)
+    global _DISCOVERED
+    if _DISCOVERED:
+        return dict(_morphology_registry)
 
     pkg_name = __package__ or ".".join(__name__.split(".")[:-1])
     pkg_path = os.path.dirname(__file__)
@@ -61,16 +66,28 @@ def discover_morphology_types():
             continue
 
         # If module exposes a build callable, include it by module name.
-        # This callable must accept (base_particle, config) in this design.
+        # Decorator-registered entries (already in _morphology_registry) take priority.
         if hasattr(module, "build") and callable(getattr(module, "build")):
-            types[module_name] = module.build
+            _morphology_registry.setdefault(module_name, module.build)
 
-        # Merge any new entries registered by import side-effects
-        if _morphology_registry:
-            types.update(_morphology_registry)
-
-    return types
+    _DISCOVERED = True
+    return dict(_morphology_registry)
 
 
 def list_morphology_types():
     return sorted(discover_morphology_types().keys())
+
+
+def describe_morphology_type(name):
+    types = discover_morphology_types()
+    if name not in types:
+        available = ", ".join(sorted(types.keys())) or "<none>"
+        raise ValueError(f"Unknown optics morphology type: {name}. Available types: {available}")
+    builder = types[name]
+    return {
+        "name": name,
+        "module": getattr(builder, "__module__", None),
+        "type": getattr(builder, "__name__", type(builder).__name__),
+        "description": (getattr(builder, "__doc__", None) or "").strip() or None,
+        "defaults": getattr(builder, "defaults", None),
+    }

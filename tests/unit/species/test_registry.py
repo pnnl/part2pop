@@ -1,10 +1,14 @@
 # tests/unit/species/test_registry.py
 
+import os
+import tempfile
+
 from part2pop.species.base import AerosolSpecies
 from part2pop.species.registry import (
     get_species,
     register_species,
     list_species,
+    describe_species,
 )
 
 
@@ -50,3 +54,54 @@ def test_register_species_and_list_species_round_trip():
     assert retrieved.density == 1500.0
     assert retrieved.kappa == 0.3
     assert retrieved.molar_mass == 1234.
+
+
+def test_describe_species_custom_registered():
+    new_name = "DESCSPEC"
+    spec = AerosolSpecies(
+        name=new_name,
+        density=1111.0,
+        kappa=0.11,
+        molar_mass=11.0,
+        surface_tension=0.07,
+    )
+    register_species(spec)
+
+    info = describe_species(new_name)
+    assert info["name"] == new_name
+    assert info["type"] == "AerosolSpecies"
+    assert info["defaults"]["density"] == 1111.0
+
+
+def test_describe_species_default_from_data():
+    info = describe_species("SO4")
+    assert info["name"].upper() == "SO4"
+    assert info["type"] == "AerosolSpecies"
+    assert info["defaults"]["density"] is not None
+
+
+def test_describe_species_unknown_raises():
+    import uuid
+    missing = f"MISSING_{uuid.uuid4().hex}"
+    try:
+        describe_species(missing)
+    except ValueError as exc:
+        assert "Unknown species" in str(exc)
+    else:
+        raise AssertionError("Expected ValueError for unknown species")
+
+
+def test_describe_species_custom_specdata_path():
+    """describe_species should use a custom specdata_path when provided."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Write a minimal aero_data.dat with a unique species
+        dat_path = os.path.join(tmpdir, "aero_data.dat")
+        with open(dat_path, "w") as fh:
+            fh.write("# density  ions  molar_mass  kappa\n")
+            fh.write("CUSTSPEC  1234.0  0  99d-3  0.42\n")
+
+        info = describe_species("CUSTSPEC", specdata_path=tmpdir)
+
+    assert info["name"].upper() == "CUSTSPEC"
+    assert info["defaults"]["density"] == 1234.0
+    assert info["defaults"]["kappa"] == 0.42
