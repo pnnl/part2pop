@@ -9,7 +9,7 @@ version = "0.1.1"
 description = "A modular Python toolkit to build, analyze, and extend aerosol particle populations."
 readme = { file = "README.pypi.md", content-type = "text/markdown" }
 requires-python = ">=3.10"
-license = { file = "LICENSE" }
+license = "MIT"
 
 authors = [
   { name = "Laura Fierce" },
@@ -30,7 +30,6 @@ keywords = [
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Science/Research",
-  "License :: OSI Approved :: MIT License",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.10",
@@ -51,7 +50,6 @@ dependencies = [
   "pyBCabs",
   "tqdm",
   "streamlit",
-  "pandas"
 ]
 
 [project.optional-dependencies]
@@ -78,8 +76,6 @@ Issues = "https://github.com/pnnl/part2pop/issues"
 
 [tool.setuptools.package-data]
 part2pop = [
-    "data/*",
-    "data/**/*",
     "data/species_data/*.dat",
     "data/species_data/*.csv",
 ]

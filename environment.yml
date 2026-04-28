@@ -9,8 +9,6 @@ dependencies:
   - netCDF4
   - importlib-resources
   - pymiescatt
+  - pybcabs
   - tqdm
   - streamlit
-  - pip
-  - pip:
-    - -r requirements.txt
