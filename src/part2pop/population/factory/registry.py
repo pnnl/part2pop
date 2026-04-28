@@ -65,3 +65,18 @@ def discover_population_types():
 
 def list_population_types():
     return sorted(discover_population_types().keys())
+
+
+def describe_population_type(name):
+    types = discover_population_types()
+    if name not in types:
+        available = ", ".join(sorted(types.keys())) or "<none>"
+        raise ValueError(f"Unknown population type: {name}. Available types: {available}")
+    builder = types[name]
+    return {
+        "name": name,
+        "module": getattr(builder, "__module__", None),
+        "type": getattr(builder, "__name__", type(builder).__name__),
+        "description": (getattr(builder, "__doc__", None) or "").strip() or None,
+        "defaults": getattr(builder, "defaults", None),
+    }

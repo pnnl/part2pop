@@ -50,3 +50,26 @@ def test_list_plotter_types_sorted(monkeypatch):
         raising=False,
     )
     assert viz_registry.list_plotter_types() == ["a", "z"]
+
+
+def test_describe_plotter_type(monkeypatch):
+    def builder(cfg):
+        """Example plotter builder."""
+        return cfg
+
+    monkeypatch.setattr(
+        viz_registry,
+        "discover_plotter_types",
+        lambda: {"demo": builder},
+        raising=False,
+    )
+    info = viz_registry.describe_plotter_type("demo")
+    assert info["name"] == "demo"
+    assert info["type"] == "builder"
+    assert "Example plotter builder" in info["description"]
+
+
+def test_describe_plotter_type_unknown(monkeypatch):
+    monkeypatch.setattr(viz_registry, "discover_plotter_types", lambda: {}, raising=False)
+    with pytest.raises(ValueError, match="Unknown plotter type"):
+        viz_registry.describe_plotter_type("missing")

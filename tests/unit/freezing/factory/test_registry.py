@@ -114,3 +114,26 @@ def test_list_freezing_types_sorted(monkeypatch):
         raising=False,
     )
     assert freezing_registry.list_freezing_types() == ["a", "z"]
+
+
+def test_describe_freezing_type(monkeypatch):
+    def builder(base, cfg):
+        """Example freezing builder."""
+        return (base, cfg)
+
+    monkeypatch.setattr(
+        freezing_registry,
+        "discover_morphology_types",
+        lambda: {"demo": builder},
+        raising=False,
+    )
+    info = freezing_registry.describe_freezing_type("demo")
+    assert info["name"] == "demo"
+    assert info["type"] == "builder"
+    assert "Example freezing builder" in info["description"]
+
+
+def test_describe_freezing_type_unknown(monkeypatch):
+    monkeypatch.setattr(freezing_registry, "discover_morphology_types", lambda: {}, raising=False)
+    with pytest.raises(ValueError, match="Unknown freezing morphology type"):
+        freezing_registry.describe_freezing_type("missing")

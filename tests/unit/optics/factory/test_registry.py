@@ -75,3 +75,26 @@ def test_list_morphology_types_sorted(monkeypatch):
         raising=False,
     )
     assert reg.list_morphology_types() == ["a", "z"]
+
+
+def test_describe_morphology_type(monkeypatch):
+    def builder(base, cfg):
+        """Example optics morphology builder."""
+        return (base, cfg)
+
+    monkeypatch.setattr(
+        reg,
+        "discover_morphology_types",
+        lambda: {"demo": builder},
+        raising=False,
+    )
+    info = reg.describe_morphology_type("demo")
+    assert info["name"] == "demo"
+    assert info["type"] == "builder"
+    assert "Example optics morphology builder" in info["description"]
+
+
+def test_describe_morphology_type_unknown(monkeypatch):
+    monkeypatch.setattr(reg, "discover_morphology_types", lambda: {}, raising=False)
+    with pytest.raises(ValueError, match="Unknown optics morphology type"):
+        reg.describe_morphology_type("missing")

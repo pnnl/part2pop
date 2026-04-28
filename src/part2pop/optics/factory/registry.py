@@ -74,3 +74,18 @@ def discover_morphology_types():
 
 def list_morphology_types():
     return sorted(discover_morphology_types().keys())
+
+
+def describe_morphology_type(name):
+    types = discover_morphology_types()
+    if name not in types:
+        available = ", ".join(sorted(types.keys())) or "<none>"
+        raise ValueError(f"Unknown optics morphology type: {name}. Available types: {available}")
+    builder = types[name]
+    return {
+        "name": name,
+        "module": getattr(builder, "__module__", None),
+        "type": getattr(builder, "__name__", type(builder).__name__),
+        "description": (getattr(builder, "__doc__", None) or "").strip() or None,
+        "defaults": getattr(builder, "defaults", None),
+    }

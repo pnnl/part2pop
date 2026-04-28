@@ -55,6 +55,43 @@ def get_species(name: str, specdata_path: str, **modifications) -> AerosolSpecie
 def list_species():
     return _registry.list_species()
 
+
+def describe_species(name: str):
+    key = name.upper()
+    if key in _registry._custom:
+        sp = _registry._custom[key]
+        return {
+            "name": sp.name,
+            "module": sp.__class__.__module__,
+            "type": sp.__class__.__name__,
+            "description": (sp.__class__.__doc__ or "").strip() or None,
+            "defaults": {
+                "density": getattr(sp, "density", None),
+                "kappa": getattr(sp, "kappa", None),
+                "molar_mass": getattr(sp, "molar_mass", None),
+                "surface_tension": getattr(sp, "surface_tension", None),
+            },
+        }
+
+    try:
+        sp = retrieve_one_species(name)
+    except Exception as exc:
+        available = ", ".join(sorted(list_species())) or "<none>"
+        raise ValueError(f"Unknown species: {name}. Registered species: {available}") from exc
+
+    return {
+        "name": sp.name,
+        "module": sp.__class__.__module__,
+        "type": sp.__class__.__name__,
+        "description": (sp.__class__.__doc__ or "").strip() or None,
+        "defaults": {
+            "density": getattr(sp, "density", None),
+            "kappa": getattr(sp, "kappa", None),
+            "molar_mass": getattr(sp, "molar_mass", None),
+            "surface_tension": getattr(sp, "surface_tension", None),
+        },
+    }
+
 def extend_species(species: AerosolSpecies):
     _registry.extend(species)
 

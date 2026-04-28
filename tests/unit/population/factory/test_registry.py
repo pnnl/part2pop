@@ -121,3 +121,26 @@ def test_list_population_types_sorted(monkeypatch):
         raising=False,
     )
     assert factory_registry.list_population_types() == ["a", "z"]
+
+
+def test_describe_population_type(monkeypatch):
+    def builder(cfg):
+        """Example population builder."""
+        return cfg
+
+    monkeypatch.setattr(
+        factory_registry,
+        "discover_population_types",
+        lambda: {"demo": builder},
+        raising=False,
+    )
+    info = factory_registry.describe_population_type("demo")
+    assert info["name"] == "demo"
+    assert info["type"] == "builder"
+    assert "Example population builder" in info["description"]
+
+
+def test_describe_population_type_unknown(monkeypatch):
+    monkeypatch.setattr(factory_registry, "discover_population_types", lambda: {}, raising=False)
+    with pytest.raises(ValueError, match="Unknown population type"):
+        factory_registry.describe_population_type("missing")
