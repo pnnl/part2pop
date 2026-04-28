@@ -13,7 +13,8 @@ class PlotBuilder:
             raise ValueError("PlotBuilder requires a 'type' to build a plotter.")
         types = discover_plotter_types()
         if self.type not in types:
-            raise ValueError(f"Unknown plotter type: {self.type}")
+            available = ", ".join(sorted(types.keys())) or "<none>"
+            raise ValueError(f"Unknown plotter type: {self.type}. Available types: {available}")
         cls_or_factory = types[self.type]
         # Expect a class or callable that accepts (varname, var_cfg)
         return cls_or_factory(self.config)

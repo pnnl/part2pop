@@ -2,6 +2,7 @@ import importlib
 import importlib.util
 import pkgutil
 import os
+import warnings
 
 _morphology_registry = {}
 
@@ -45,15 +46,18 @@ def discover_morphology_types():
     # Iterate modules present under this package directory
     for _, module_name, _ in pkgutil.iter_modules([pkg_path]):
         # Skip this registry module itself to avoid odd re-import loops
-        if module_name in ("registry", "__init__"):
+        if module_name in ("registry", "__init__") or module_name.startswith("_"):
             continue
 
         fullname = f"{pkg_name}.{module_name}"
         file_path = os.path.join(pkg_path, f"{module_name}.py")
         try:
             module = _safe_import_module(fullname, file_path=file_path)
-        except Exception:
-            # Skip broken modules but continue discovery of others
+        except Exception as exc:
+            warnings.warn(
+                f"Skipping optics factory module '{module_name}' during discovery: {exc}",
+                RuntimeWarning,
+            )
             continue
 
         # If module exposes a build callable, include it by module name.
@@ -66,3 +70,7 @@ def discover_morphology_types():
             types.update(_morphology_registry)
 
     return types
+
+
+def list_morphology_types():
+    return sorted(discover_morphology_types().keys())
