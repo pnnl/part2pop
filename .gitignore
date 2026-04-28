@@ -14,7 +14,7 @@
 # ========================
 # Local / private scripts
 # ========================
-# NERSC / machine-specific scripts (may contain account info, paths, allocations)
+# machine-specific scripts (may contain account info, paths, allocations)
 scripts/
 
 # ========================
