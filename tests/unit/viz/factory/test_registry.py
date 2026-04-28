@@ -11,6 +11,8 @@ def test_import_viz_factory_registry():
 
 
 def test_discover_plotter_types_skips_private_and_broken_modules(monkeypatch):
+    monkeypatch.setattr(viz_registry, "_DISCOVERED", False)
+    monkeypatch.setattr(viz_registry, "_registry", {})
     monkeypatch.setattr(
         viz_registry,
         "pkgutil",

@@ -82,6 +82,8 @@ def test_describe_variable_raises_without_meta(monkeypatch):
 
 
 def test_discover_population_types_skips_private_and_broken_modules(monkeypatch):
+    monkeypatch.setattr(factory_registry, "_DISCOVERED", False)
+    monkeypatch.setattr(factory_registry, "_registry", {})
     monkeypatch.setattr(
         factory_registry,
         "pkgutil",

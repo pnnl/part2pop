@@ -5,6 +5,7 @@ import os
 import warnings
 
 _registry = {}
+_DISCOVERED = False
 
 # fixme: the registry pattern is duplicated across modules
 def register(name):
@@ -15,10 +16,16 @@ def register(name):
 
 
 def discover_plotter_types():
-    """Discover plotter builders with decorator-first and safe fallback discovery."""
+    """Discover plotter builders with decorator-first and safe fallback discovery.
+
+    Results are cached after the first call; subsequent calls return immediately
+    without re-scanning the filesystem.
+    """
+    global _DISCOVERED
+    if _DISCOVERED:
+        return dict(_registry)
     types_pkg = __package__
     types_path = os.path.dirname(__file__)
-    plotter_types = dict(_registry)
     for _, module_name, _ in pkgutil.iter_modules([types_path]):
         if module_name in {"registry", "__init__"} or module_name.startswith("_"):
             continue
@@ -31,11 +38,9 @@ def discover_plotter_types():
             )
             continue
         if hasattr(module, "build") and callable(getattr(module, "build")):
-            plotter_types.setdefault(module_name, module.build)
-        if _registry:
-            plotter_types.update(_registry)
-
-    return plotter_types
+            _registry.setdefault(module_name, module.build)
+    _DISCOVERED = True
+    return dict(_registry)
 
 
 def list_plotter_types():

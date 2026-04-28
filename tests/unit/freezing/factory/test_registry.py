@@ -76,6 +76,12 @@ def test_safe_import_module_uses_loader(monkeypatch):
 def test_discover_includes_module_build(monkeypatch):
     monkeypatch.setattr(
         freezing_registry,
+        "_DISCOVERED",
+        False,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        freezing_registry,
         "pkgutil",
         SimpleNamespace(iter_modules=lambda paths: [(None, "dummy_build", False)]),
         raising=False,

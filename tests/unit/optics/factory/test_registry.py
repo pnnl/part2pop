@@ -35,6 +35,7 @@ def test_safe_import_module_file_fallback(tmp_path, monkeypatch):
 
 
 def test_discover_skips_private_and_broken_modules(monkeypatch):
+    monkeypatch.setattr(reg, "_DISCOVERED", False)
     monkeypatch.setattr(
         reg,
         "pkgutil",
