@@ -1020,6 +1020,24 @@ def test_build_input_validation_branches_and_preferred_matching(monkeypatch, tmp
     with pytest.raises(KeyError, match="missing required config keys"):
         hiscale.build({})
 
+    # Required key characterization checks (explicitly verify each required input)
+    required_keys = ["aimms_file", "splat_file", "ams_file", "z", "dz", "splat_species", "mass_thresholds"]
+    complete = {
+        "type": "hiscale_observations",
+        "aimms_file": "a.txt",
+        "splat_file": "s.txt",
+        "ams_file": "m.txt",
+        "z": 100.0,
+        "dz": 2.0,
+        "splat_species": {"BC": ["BC"]},
+        "mass_thresholds": {"BC": ((0.1, 0.2, 0.05), ["BC"])},
+    }
+    for rk in required_keys:
+        cfg_missing = dict(complete)
+        cfg_missing.pop(rk)
+        with pytest.raises(KeyError, match="missing required config keys"):
+            hiscale.build(cfg_missing)
+
     base_cfg = {
         "type": "hiscale_observations",
         "aimms_file": "a.txt",

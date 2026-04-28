@@ -90,6 +90,7 @@ def test_discover_population_types_skips_private_and_broken_modules(monkeypatch)
         SimpleNamespace(
             iter_modules=lambda paths: [
                 (None, "_private", False),
+                (None, "helpers", True),
                 (None, "registry", False),
                 (None, "broken", False),
                 (None, "good", False),
@@ -113,6 +114,7 @@ def test_discover_population_types_skips_private_and_broken_modules(monkeypatch)
     assert "good" in discovered
     assert "broken" not in discovered
     assert "_private" not in discovered
+    assert "helpers" not in discovered
 
 
 def test_list_population_types_sorted(monkeypatch):
@@ -146,3 +148,18 @@ def test_describe_population_type_unknown(monkeypatch):
     monkeypatch.setattr(factory_registry, "discover_population_types", lambda: {}, raising=False)
     with pytest.raises(ValueError, match="Unknown population type"):
         factory_registry.describe_population_type("missing")
+
+
+def test_list_population_types_includes_observation_builders():
+    types = factory_registry.list_population_types()
+    assert "edx_observations" in types
+    assert "hiscale_observations" in types
+
+
+def test_describe_population_type_for_observation_builders():
+    edx = factory_registry.describe_population_type("edx_observations")
+    hiscale = factory_registry.describe_population_type("hiscale_observations")
+    assert edx["name"] == "edx_observations"
+    assert hiscale["name"] == "hiscale_observations"
+    assert edx["module"] is not None
+    assert hiscale["module"] is not None

@@ -4,11 +4,18 @@
 
 - Construction of `ParticlePopulation` from config dictionaries.
 - Discovery of population builder implementations under factory modules.
+- Population builders live in `src/part2pop/population/factory/`.
 
 ## Public API entry points
 
 - `build_population(config)`
 - `PopulationBuilder(config).build()`
+
+## Builder contract
+
+- A population builder is a **registered callable**.
+- Signature: accepts `config` and returns `ParticlePopulation`.
+- `PopulationBuilder` is a dispatcher/facade, not a required superclass.
 
 ## List/describe registered components
 
@@ -40,6 +47,9 @@
 
 - Location: `src/part2pop/population/factory/`
 - Pattern: one builder per module, lowercase filename, no leading `_`.
+- Large builders may keep internal support code in:
+  - `src/part2pop/population/factory/helpers/`
+- `helpers/` is internal and is **not** a builder plugin location.
 
 ## Minimal code example
 

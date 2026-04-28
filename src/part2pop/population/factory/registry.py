@@ -53,7 +53,7 @@ def discover_population_types():
     types_pkg = __package__
     types_path = os.path.dirname(__file__)
     for _, module_name, _ in pkgutil.iter_modules([types_path]):
-        if module_name in {"registry", "__init__"} or module_name.startswith("_"):
+        if module_name in {"registry", "__init__", "helpers"} or module_name.startswith("_"):
             continue
         try:
             module = importlib.import_module(f"{types_pkg}.{module_name}")
