@@ -77,7 +77,9 @@ def describe_species(name: str, specdata_path: str | None = None):
         sp = retrieve_one_species(name, specdata_path=specdata_path, spec_modifications={})
     except ValueError as exc:
         available = ", ".join(sorted(list_species())) or "<none>"
-        raise ValueError(f"Unknown species: {name}. Custom-registered species: {available}") from exc
+        raise ValueError(
+            f"Unknown species: {name}. Custom-registered species: {available}"
+        ) from exc
 
     return {
         "name": sp.name,
