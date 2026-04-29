@@ -1,6 +1,10 @@
 import numpy as np
 
 from part2pop import ParticlePopulation, build_population
+from part2pop.population.factory.helpers.assembly import (
+    assemble_population_from_mass_fractions as real_assemble_population_from_mass_fractions,
+)
+from part2pop.population.factory import edx_observations
 
 
 def _write_edx_csv(tmp_path):
@@ -43,3 +47,43 @@ def test_edx_observations_smoke_build_population(tmp_path):
     d = pop.get_particle_var("Ddry")
     assert np.all(np.isfinite(d))
     assert np.all(d > 0)
+
+
+def test_edx_observations_calls_assembly_helper_directly(tmp_path, monkeypatch):
+    edx_csv = _write_edx_csv(tmp_path)
+    cfg = {
+        "type": "edx_observations",
+        "edx_file": str(edx_csv),
+    }
+
+    captured = {"count": 0, "kwargs": None}
+
+    def _capture_and_build(**kwargs):
+        captured["count"] += 1
+        captured["kwargs"] = kwargs
+        return real_assemble_population_from_mass_fractions(**kwargs)
+
+    monkeypatch.setattr(
+        edx_observations,
+        "assemble_population_from_mass_fractions",
+        _capture_and_build,
+    )
+
+    pop = build_population(cfg)
+
+    assert captured["count"] == 1
+    assert isinstance(pop, ParticlePopulation)
+    assert pop.spec_masses.ndim == 2
+
+    kwargs = captured["kwargs"]
+    diameters = kwargs["diameters"]
+    number_concentrations = kwargs["number_concentrations"]
+    species_names = kwargs["species_names"]
+    mass_fractions = kwargs["mass_fractions"]
+    classes = kwargs["classes"]
+
+    assert len(diameters) == len(number_concentrations)
+    assert len(species_names) == len(diameters)
+    assert len(mass_fractions) == len(diameters)
+    assert classes is not None
+    assert len(classes) == len(diameters)
