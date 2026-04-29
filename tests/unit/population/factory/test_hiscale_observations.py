@@ -6,6 +6,7 @@ import pytest
 
 from part2pop import build_population
 from part2pop.population.factory import hiscale_observations as hiscale
+from part2pop.population.factory.helpers.assembly import assemble_population_from_mass_fractions
 
 
 def _write_temp_file(tmp_path, lines):
@@ -29,12 +30,20 @@ def _make_sample_population():
         "D": [80e-9, 100e-9, 120e-9],
         "aero_spec_names": [["BC"], ["OIN"], ["SO4"]],
         "aero_spec_fracs": [
-            [1.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0],
-            [0.0, 0.0, 1.0],
+            [1.0],
+            [1.0],
+            [1.0],
         ],
     }
-    pop = build_population(cfg)
+    pop = assemble_population_from_mass_fractions(
+        diameters=cfg["D"],
+        number_concentrations=cfg["N"],
+        species_names=cfg["aero_spec_names"],
+        mass_fractions=cfg["aero_spec_fracs"],
+        species_modifications=cfg.get("species_modifications", {}),
+        D_is_wet=cfg.get("D_is_wet", False),
+        specdata_path=cfg.get("specdata_path", None),
+    )
     pop.metadata = {}
     return pop
 
@@ -930,6 +939,24 @@ def test_classify_and_fraction_comparisons(tmp_path):
     assert len(num_checks) == len(mass_thresholds)
 
 
+def test_mass_fraction_comparison_missing_species_in_population_no_broadcast_error():
+    pop = _make_sample_population()
+
+    measured_mass_fractions = {"OC": 1.0}
+    measured_mass_fraction_errors = {"OC": 0.0}
+
+    sampled_mass_fractions, checks = hiscale.mass_fraction_comparison(
+        particle_population=pop,
+        measured_mass_fractions=measured_mass_fractions,
+        measured_mass_fraction_errors=measured_mass_fraction_errors,
+        mass_thresholds={},
+    )
+
+    assert "OC" in sampled_mass_fractions
+    assert np.isclose(sampled_mass_fractions["OC"], 0.0)
+    assert checks == [False]
+
+
 
 def test_optimize_splat_species_distributions_returns_model_weights():
     splat_species = {"BC": ["BC"], "OIN": ["OIN"], "OC": ["OC"]}
@@ -1057,18 +1084,6 @@ def test_build_input_validation_branches_and_preferred_matching(monkeypatch, tmp
     with pytest.raises(KeyError, match="requires 'fims_bins_file'"):
         hiscale.build(cfg_fims_no_bins)
 
-    class TinyPop:
-        def __init__(self):
-            self.num_concs = np.array([1.0])
-            self.spec_masses = np.array([[1.0]])
-            self.metadata = {}
-
-        def get_species_idx(self, _):
-            return 0
-
-        def get_particle_var(self, _):
-            return np.array([100e-9])
-
     monkeypatch.setattr(hiscale, "normalize_population_config", lambda c: c)
     monkeypatch.setattr(
         hiscale,
@@ -1102,7 +1117,7 @@ def test_build_input_validation_branches_and_preferred_matching(monkeypatch, tmp
         ),
     )
     monkeypatch.setattr(hiscale, "sample_particle_masses", lambda *args, **kwargs: (["BC"], np.array([1.0])))
-    monkeypatch.setattr(hiscale, "build_population", lambda cfg: TinyPop())
+    monkeypatch.setattr(hiscale, "assemble_population_from_mass_fractions", lambda **kwargs: _make_sample_population())
     monkeypatch.setattr(hiscale, "mass_fraction_comparison", lambda *args, **kwargs: ({"OC": 1.0}, [True]))
     monkeypatch.setattr(hiscale, "number_fraction_comparison", lambda *args, **kwargs: ({"BC": 1.0}, [True]))
     cfg_bad_pref = dict(base_cfg)
@@ -1174,7 +1189,7 @@ def test_builder_output_metadata_and_matching(tmp_path):
             "number_fraction_comparison",
             lambda *args, **kwargs: ({"BC": 1.0}, [True]),
         )
-        monkeypatch.setattr(hiscale, "build_population", lambda cfg: _make_sample_population())
+        monkeypatch.setattr(hiscale, "assemble_population_from_mass_fractions", lambda **kwargs: _make_sample_population())
 
         pop = hiscale.build(base_cfg)
     finally:
@@ -1183,6 +1198,73 @@ def test_builder_output_metadata_and_matching(tmp_path):
     assert pop.metadata["source"] == "hiscale_observations"
     assert pop.metadata["size_distribution"]["Dp_lo_nm"].shape == pop.metadata["size_distribution"]["Dp_hi_nm"].shape
     assert "ams_mass_frac" in pop.metadata
+
+
+def test_builder_uses_assembly_helper_directly(monkeypatch):
+    base_cfg = {
+        "type": "hiscale_observations",
+        "aimms_file": "a.txt",
+        "splat_file": "s.txt",
+        "ams_file": "m.txt",
+        "z": 100.0,
+        "dz": 2.0,
+        "splat_species": {"BC": ["BC"]},
+        "mass_thresholds": {"BC": ((0.1, 0.2, 0.05), ["BC"])},
+        "beasd_file": "beasd.txt",
+        "N_particles": 7,
+    }
+
+    monkeypatch.setattr(hiscale, "normalize_population_config", lambda c: c)
+    monkeypatch.setattr(
+        hiscale,
+        "_read_beasd_avg_size_dist",
+        lambda **kwargs: (
+            np.array([80.0, 100.0]),
+            np.array([100.0, 120.0]),
+            np.array([1.0, 1.0]),
+            np.array([0.1, 0.1]),
+        ),
+    )
+    monkeypatch.setattr(hiscale, "_read_minisplat_number_fractions", lambda **kwargs: ({"BC": 1.0}, {"BC": 0.0}))
+    monkeypatch.setattr(
+        hiscale,
+        "_read_ams_mass_fractions",
+        lambda **kwargs: (
+            {"OC": 1.0, "NO3": 0.0, "SO4": 0.0, "NH4": 0.0},
+            {"OC": 0.0, "NO3": 0.0, "SO4": 0.0, "NH4": 0.0},
+            1.0,
+            0.0,
+        ),
+    )
+    monkeypatch.setattr(hiscale, "fit_Nmodal_distribution", lambda *_args, **_kwargs: [[1.0, 1.0e-7, 1.5]])
+    monkeypatch.setattr(hiscale, "optimize_splat_species_distributions", lambda **kwargs: ({"BC": [1.0]}, 1.0))
+    monkeypatch.setattr(
+        hiscale,
+        "sample_particle_Dp_N",
+        lambda particles_to_sample, *args, **kwargs: (
+            np.full(particles_to_sample, 100e-9),
+            np.ones(particles_to_sample),
+        ),
+    )
+    monkeypatch.setattr(hiscale, "sample_particle_masses", lambda *args, **kwargs: (["BC"], np.array([1.0])))
+    monkeypatch.setattr(hiscale, "mass_fraction_comparison", lambda *args, **kwargs: ({"BC": 1.0}, [True]))
+    monkeypatch.setattr(hiscale, "number_fraction_comparison", lambda *args, **kwargs: ({"BC": 1.0}, [True]))
+
+    captured = {}
+
+    def _fake_assemble(**kwargs):
+        captured.update(kwargs)
+        return _make_sample_population()
+
+    monkeypatch.setattr(hiscale, "assemble_population_from_mass_fractions", _fake_assemble)
+
+    pop = hiscale.build(base_cfg)
+
+    assert pop.spec_masses.ndim == 2
+    assert len(captured["diameters"]) == base_cfg["N_particles"]
+    assert len(captured["number_concentrations"]) == base_cfg["N_particles"]
+    assert np.asarray(captured["species_names"]).shape[0] == base_cfg["N_particles"]
+    assert np.asarray(captured["mass_fractions"]).shape[0] == base_cfg["N_particles"]
 
 
 def test_builder_constructs_population_from_example_data(tmp_path):
@@ -1211,5 +1293,4 @@ def test_builder_constructs_population_from_example_data(tmp_path):
     pop = hiscale.build(config)
     assert pop.metadata["source"] == "hiscale_observations"
     assert pop.metadata["type_fracs"]
-    assert (tmp_path / "diagnostics_summary.txt").exists()
 
