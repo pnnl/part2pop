@@ -22,8 +22,8 @@ class PopulationBuilder:
         if type_name not in types:
             available = ", ".join(sorted(types.keys())) or "<none>"
             raise ValueError(f"Unknown population type: {type_name}. Available types: {available}")
-        cls = types[type_name]
-        return cls(self.config)
+        builder_fn = types[type_name]
+        return builder_fn(self.config)
 
 
 def build_population(config):
