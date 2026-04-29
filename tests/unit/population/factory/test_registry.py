@@ -29,7 +29,7 @@ def test_discover_population_types_covers_all_factory_modules():
     module_names = {
         name
         for _, name, _ in pkgutil.iter_modules(factory_pkg.__path__)
-        if not name.startswith("_") and name != "registry"
+        if not name.startswith("_") and name not in {"registry", "helpers"}
     }
 
     # discover_population_types returns keys that should match module names

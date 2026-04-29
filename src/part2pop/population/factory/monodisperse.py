@@ -51,3 +51,41 @@ def build(config):
         monodisp_population.set_particle(
             particle, part_id, N[i])
     return monodisp_population
+
+# #!/usr/bin/env python3
+# # -*- coding: utf-8 -*-
+# """
+# Build a monodisperse population
+# @author: Laura Fierce
+# """
+
+# from ..utils import normalize_population_config
+# from .helpers.assembly import assemble_population_from_mass_fractions
+# from .registry import register
+
+# @register("monodisperse")
+# def build(config):
+#     config = normalize_population_config(config)
+#     diameters = config['D']
+#     number_concentrations = config['N']
+#     aero_spec_names = config['aero_spec_names']
+#     aero_spec_fracs = config['aero_spec_fracs']
+
+#     n_particles = len(number_concentrations)
+
+#     # Backward compatibility:
+#     # allow one shared species-name row with multiple explicit particle entries.
+#     if len(aero_spec_names) == 1 and n_particles > 1:
+#         aero_spec_names = [list(aero_spec_names[0]) for _ in range(n_particles)]
+
+#     return assemble_population_from_mass_fractions(
+#         diameters=diameters,
+#         number_concentrations=number_concentrations,
+#         species_names=aero_spec_names,
+#         mass_fractions=aero_spec_fracs,
+#         ids=None,
+#         classes=config.get('classes', None),
+#         species_modifications=config.get('species_modifications', {}),
+#         D_is_wet=config.get('D_is_wet', False),
+#         specdata_path=config.get('specdata_path', None),
+#     )

@@ -61,6 +61,7 @@ import numpy as np
 from ..utils import normalize_population_config
 from part2pop import build_population
 from pathlib import Path
+from .helpers.assembly import assemble_population_from_mass_fractions
 from .registry import register
 from part2pop.species.registry import retrieve_one_species
 
@@ -1383,30 +1384,37 @@ def sample_particle_Dp_N(
 def mass_fraction_comparison(
     particle_population, measured_mass_fractions, measured_mass_fraction_errors, mass_thresholds,
     override_matching=False):
+
+    def _sampled_species_mass_conc(species):
+        species_idx = particle_population.get_species_idx(species)
+        if species_idx is None:
+            return 0.0
+        return np.sum(
+            particle_population.spec_masses[:, species_idx]
+            * particle_population.num_concs
+        )
     
     # get measured and sampled mass fractions
     sampled_mass_conc={}
     total_sampled_mass = 0
     for particle_type in measured_mass_fractions.keys():
         sampled_mass_conc[particle_type]=0
-        try:
-            for species in mass_thresholds[particle_type][1]:
-                sampled_mass_conc[particle_type]+=np.sum(particle_population.spec_masses[:,particle_population.get_species_idx(species)]*particle_population.num_concs)
-        except:
-            species=particle_type
-            sampled_mass_conc[particle_type]+=np.sum(particle_population.spec_masses[:,particle_population.get_species_idx(species)]*particle_population.num_concs)
+        if particle_type in mass_thresholds:
+            species_to_sum = mass_thresholds[particle_type][1]
+        else:
+            species_to_sum = [particle_type]
+        for species in species_to_sum:
+            sampled_mass_conc[particle_type] += _sampled_species_mass_conc(species)
     
-    for species in ['IEPOX_OS', 'tetrol', 'tetrol_olig', 'IEPOX_OH_SOA']:
-        try:
-            sampled_mass_conc['OC']+=np.sum(particle_population.spec_masses[:,particle_population.get_species_idx(species)]*particle_population.num_concs)
-        except:
-            pass
+    if 'OC' in sampled_mass_conc:
+        for species in ['IEPOX_OS', 'tetrol', 'tetrol_olig', 'IEPOX_OH_SOA']:
+            sampled_mass_conc['OC'] += _sampled_species_mass_conc(species)
 
     # normalize
     total_sampled_mass = sum(sampled_mass_conc.values()) # np.sum(np.sum(particle_population.spec_masses, axis=1)*particle_population.num_concs) 
     sampled_mass_fractions = {}
     for kk in sampled_mass_conc.keys():
-        sampled_mass_fractions[kk] = sampled_mass_conc[kk]/total_sampled_mass
+        sampled_mass_fractions[kk] = sampled_mass_conc[kk]/total_sampled_mass if total_sampled_mass > 0 else 0.0
     
     # check that the mass fractions match the AMS measurement
     checks=[]
@@ -1716,14 +1724,14 @@ def build(config: Dict[str, Any]) -> ParticlePopulation:
         aero_spec_names = np.tile(species_map, (N_particles, 1))
 
         # make the particle population from the list of species and mass fractions
-        population_cfg={
-            "type": "monodisperse",
-            "N": particle_num_concs,
-            "D": particle_diameters,
-            "aero_spec_names": aero_spec_names,
-            "aero_spec_fracs": aero_spec_fracs,
-            "species_modifications": species_modifications}
-        particle_population = build_population(population_cfg)
+        particle_population = assemble_population_from_mass_fractions(
+            diameters=particle_diameters,
+            number_concentrations=particle_num_concs,
+            species_names=aero_spec_names,
+            mass_fractions=aero_spec_fracs,
+            species_modifications=species_modifications,
+            D_is_wet=D_is_wet,
+        )
 
         # check if the bulk mass fraction matches measurements
         sampled_mass_fractions, mass_fraction_checks = mass_fraction_comparison(
@@ -1747,55 +1755,7 @@ def build(config: Dict[str, Any]) -> ParticlePopulation:
         particle_population.num_concs*=np.nansum(N_m3)/np.sum(particle_population.num_concs)
     else:
         raise ValueError(f"preferred_matching must be 'number' or 'mass', got {preferred_matching}.")
-
-    # output diagnostics
-    outdir=str(config.get("outdir", "."))
-    prefix=str(config.get("prefix", ""))
-    summary = Path(outdir) / f"{prefix}diagnostics_summary.txt"
-    with summary.open("w") as f:
-        f.write("Diagnostics summary\n")
-        f.write("===================\n\n")
-
-        f.write("Fitted size distribution (Dpg_nm, sigma):\n")
-        for ii, pars in enumerate(size_distribution_pars):
-            f.write(f"  Mode {ii}: {float(pars[1]*1e9):.6g}, {float(pars[2]):.4g}\n")
-        f.write("\n")
-        
-        f.write("Optimized fraction of particles in each mode:\n")
-        for spec in mode_fractions:
-            f.write(f"  {spec}: ")
-            for ii in range(len(size_distribution_pars)):
-                f.write(f"{float(mode_fractions[spec][ii]):.3g} ")
-            f.write(f"\n")
-        f.write("\n")
-
-        f.write(f"Total N (FIMS, cm^-3): {float(np.nansum(N_cm3)):.6g}\n")
-        f.write(f"Total N (pop,  cm^-3): {float(np.nansum(1e-6*np.sum(particle_population.num_concs))):.6g}\n")
-        if float(np.nansum(N_cm3)) > 0:
-            f.write(f"Ratio (pop/FIMS):      {float(np.nansum(1e-6*np.sum(particle_population.num_concs)))/float(np.nansum(N_cm3)):.6g}\n")
-        f.write("\n")
-
-        f.write("AMS mass fractions (observed, normalized over available keys):\n")
-        for kk in ams_mass_frac.keys():
-            v = ams_mass_frac.get(kk, 0.0)
-            f.write(f"  {kk}: {v:.4f}\n")
-
-        f.write("\nAMS mass fractions (reconstructed, normalized over available keys):\n")
-        for kk in ams_mass_frac:
-            v = sampled_mass_fractions.get(kk, 0.0)
-            f.write(f"  {kk}: {v:.4f}\n")
-
-        f.write("\nminiSPLAT number fractions (observed, normalized):\n")
-        for kk in tf.keys():
-            v = tf.get(kk, 0.0)
-            f.write(f"  {kk}: {v:.4f}\n")
-
-        f.write("\nminiSPLAT number fractions (reconstructed, normalized):\n")
-        for kk in tf.keys():
-            v = sampled_number_fractions.get(kk, 0.0)
-            f.write(f"  {kk}: {v:.4f}\n")
-
-        
+    
     # Save particle population metadata
     particle_population.metadata = {
         "source": "hiscale_observations",
