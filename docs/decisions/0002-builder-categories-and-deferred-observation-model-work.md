@@ -21,6 +21,9 @@ Accepted (JOSS-facing scope control)
 
 - `EDX`
 - `HISCALE`
+- Current implementation status:
+  - both now terminate in shared `assemble_population_from_mass_fractions(...)`
+  - both are functional, but internal cleanup/reorganization is still pending
 - Future direction:
   - introduce explicit `reconstruction_strategy`
   - use reader → reconstruction strategy → population assembly flow

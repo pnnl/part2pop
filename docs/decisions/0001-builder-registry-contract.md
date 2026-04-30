@@ -16,6 +16,7 @@ Accepted (JOSS-facing baseline)
 - Decorator-based registration is preferred.
 - Module-level `build(...)` fallback may remain for backward compatibility.
 - Registries should evolve to expose `list_*` and `describe_*` functions.
+- Population builders now commonly terminate in a shared population assembly helper for explicit particle rows.
 - Public builder APIs remain stable:
   - `build_population(config)`
   - `build_variable(...)`
