@@ -15,6 +15,7 @@ Accepted (directional, post-Priority-1 execution)
 - `viewer/metadata.py` should not remain the long-term source of truth.
 - Priority 1 does **not** require completing full GUI migration.
 - Priority 1 should document this direction and prepare registry metadata contracts.
+- Current registry metadata APIs are stable enough to support future GUI metadata migration work.
 
 ## Consequences
 
