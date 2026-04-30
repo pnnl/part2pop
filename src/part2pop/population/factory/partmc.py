@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 from .registry import register
 
+
 @register("partmc") # only registers if netCDF4 is available
 def build(config):
     partmc_dir = Path(config['partmc_dir'])
@@ -28,13 +29,8 @@ def build(config):
 
     partmc_filepath = get_ncfile(partmc_dir / 'out', timestep, repeat)
     currnc = netCDF4.Dataset(partmc_filepath)
-    
-    
+
     aero_spec_names = currnc.variables['aero_species'].names.split(',')
-    # if '.' in aero_spec_names[0]:
-    #     aero_spec_names = map_camp_specs(currnc.variables['aero_species'].names.split(','))
-    # else:
-    #     aero_spec_names = currnc.variables['aero_species'].names.split(',')
     # Get AerosolSpecies objects with modifications if any
     species_list = tuple(
         get_species(name, specdata_path, **species_modifications.get(name, {}))
@@ -42,7 +38,7 @@ def build(config):
     )
     spec_masses = np.array(currnc.variables['aero_particle_mass'][:])
     part_ids = np.array([one_id for one_id in currnc.variables['aero_id'][:]], dtype=int)
-    
+
     if 'aero_num_conc' in currnc.variables.keys():
         num_concs = currnc.variables['aero_num_conc'][:]
     else:
@@ -57,7 +53,7 @@ def build(config):
         idx = np.random.choice(np.arange(len(part_ids)), size=n_particles, replace=False)
     else:
         raise IndexError('n_particles > len(part_ids)')
-    
+
     partmc_population = ParticlePopulation(
         species=species_list,
         spec_masses=[],
@@ -86,9 +82,8 @@ def map_camp_specs(camp_spec_names):
     for spec_name in camp_spec_names:
         split_specs = spec_name.split('.')
         spec_names.append(split_specs[-1])
-        # spec_names.append(spec_name)
-    # print(spec_names)
     return spec_names
+
 
 def get_ncfile(partmc_output_dir, timestep, repeat):
 

@@ -115,7 +115,7 @@ ParticlePopulation = canonical in-memory product
 build_population(config) = public config entry point
 population/factory/*.py = registered builder entry points
 population/factory/helpers/* = internal reusable support code
-````
+```
 
 Preferred folder shape:
 

@@ -74,3 +74,8 @@ env/
 # ========================
 .coverage
 coverage.xml
+
+# ========================
+# Viewer local output
+# ========================
+viewer/population_config_dump.json
