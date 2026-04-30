@@ -7,6 +7,7 @@ reads `datasets/species_data/aero_data.dat` for default species.
 
 import copy
 from .base import AerosolSpecies
+from .resolution import resolve_species_name
 # from ..data import species_open
 from ..data import open_dataset
 import os
@@ -21,19 +22,31 @@ class AerosolSpeciesRegistry:
         """Add or update a species in the registry."""
         self._custom[species.name.upper()] = copy.deepcopy(species)
 
-    def get(self, name: str, specdata_path: str, **modifications) -> AerosolSpecies:
+    def get(self, name: str, specdata_path: str | None, **modifications) -> AerosolSpecies:
         """Get a species from the registry, optionally with modifications.
         Falls back to data file lookup if not registered.
         """
-        key = name.upper()
+        key = str(name).upper()
         if key in self._custom:
             base = copy.deepcopy(self._custom[key])
             for k, v in modifications.items():
                 setattr(base, k, v)
             return base
+
+        resolved_name = resolve_species_name(name)
+        resolved_key = resolved_name.upper()
+        if resolved_key in self._custom:
+            base = copy.deepcopy(self._custom[resolved_key])
+            for k, v in modifications.items():
+                setattr(base, k, v)
+            return base
         
         # fallback to retrieve_one_species (file-based) if not registered
-        return retrieve_one_species(name, specdata_path=specdata_path, spec_modifications=modifications)
+        return retrieve_one_species(
+            resolved_name,
+            specdata_path=specdata_path,
+            spec_modifications=modifications,
+        )
 
     def extend(self, species: AerosolSpecies):
         """Alias for register for API clarity."""
@@ -49,7 +62,7 @@ _registry = AerosolSpeciesRegistry()
 def register_species(species: AerosolSpecies):
     _registry.register(species)
 
-def get_species(name: str, specdata_path: str, **modifications) -> AerosolSpecies:
+def get_species(name: str, specdata_path: str | None, **modifications) -> AerosolSpecies:
     return _registry.get(name, specdata_path, **modifications)
 
 def list_species():
@@ -57,7 +70,7 @@ def list_species():
 
 
 def describe_species(name: str, specdata_path: str | None = None):
-    key = name.upper()
+    key = str(name).upper()
     if key in _registry._custom:
         sp = _registry._custom[key]
         return {
@@ -73,8 +86,29 @@ def describe_species(name: str, specdata_path: str | None = None):
             },
         }
 
+    resolved_name = resolve_species_name(name)
+    resolved_key = resolved_name.upper()
+    if resolved_key in _registry._custom:
+        sp = _registry._custom[resolved_key]
+        return {
+            "name": sp.name,
+            "module": sp.__class__.__module__,
+            "type": sp.__class__.__name__,
+            "description": (sp.__class__.__doc__ or "").strip() or None,
+            "defaults": {
+                "density": getattr(sp, "density", None),
+                "kappa": getattr(sp, "kappa", None),
+                "molar_mass": getattr(sp, "molar_mass", None),
+                "surface_tension": getattr(sp, "surface_tension", None),
+            },
+        }
+
     try:
-        sp = retrieve_one_species(name, specdata_path=specdata_path, spec_modifications={})
+        sp = retrieve_one_species(
+            resolved_name,
+            specdata_path=specdata_path,
+            spec_modifications={},
+        )
     except ValueError as exc:
         available = ", ".join(sorted(list_species())) or "<none>"
         raise ValueError(

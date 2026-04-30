@@ -30,6 +30,28 @@ def test_get_species_loads_default_data_case_insensitive():
     assert so4_upper.molar_mass == so4_lower.molar_mass
 
 
+def test_get_species_resolves_dust_alias_to_oin():
+    specdata_path = None
+    dust = get_species("Dust", specdata_path)
+
+    assert isinstance(dust, AerosolSpecies)
+    assert dust.name.upper() == "OIN"
+    assert dust.density is not None
+    assert dust.kappa is not None
+    assert dust.molar_mass is not None
+
+
+def test_get_species_resolves_soot_alias_to_bc():
+    specdata_path = None
+    soot = get_species("soot", specdata_path)
+
+    assert isinstance(soot, AerosolSpecies)
+    assert soot.name.upper() == "BC"
+    assert soot.density is not None
+    assert soot.kappa is not None
+    assert soot.molar_mass is not None
+
+
 def test_register_species_and_list_species_round_trip():
     """Register a custom species and ensure it can be retrieved and listed."""
     
@@ -105,3 +127,16 @@ def test_describe_species_custom_specdata_path():
     assert info["name"].upper() == "CUSTSPEC"
     assert info["defaults"]["density"] == 1234.0
     assert info["defaults"]["kappa"] == 0.42
+
+
+def test_get_species_unknown_alias_fails_clearly():
+    missing = "definitely_unknown_species_label"
+
+    try:
+        get_species(missing, None)
+    except ValueError as exc:
+        message = str(exc)
+        assert missing in message
+        assert "not found" in message or "Unknown species" in message
+    else:
+        raise AssertionError("Expected ValueError for unknown species")
