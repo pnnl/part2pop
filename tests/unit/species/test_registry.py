@@ -140,3 +140,51 @@ def test_get_species_unknown_alias_fails_clearly():
         assert "not found" in message or "Unknown species" in message
     else:
         raise AssertionError("Expected ValueError for unknown species")
+
+
+def test_registry_get_resolves_alias_to_custom_registered_species():
+    from part2pop.species.registry import AerosolSpeciesRegistry
+
+    registry = AerosolSpeciesRegistry()
+    registry.register(
+        AerosolSpecies(
+            name="OIN",
+            density=999.0,
+            kappa=0.99,
+            molar_mass=99.0,
+            surface_tension=0.09,
+        )
+    )
+
+    resolved = registry.get("dust", None, kappa=0.5)
+
+    assert resolved.name == "OIN"
+    assert resolved.density == 999.0
+    assert resolved.kappa == 0.5
+    assert resolved.molar_mass == 99.0
+    assert resolved.surface_tension == 0.09
+
+
+def test_describe_species_resolves_alias_to_custom_registered_species(monkeypatch):
+    import part2pop.species.registry as species_registry
+
+    registry = species_registry.AerosolSpeciesRegistry()
+    registry.register(
+        AerosolSpecies(
+            name="OC",
+            density=888.0,
+            kappa=0.88,
+            molar_mass=88.0,
+            surface_tension=0.08,
+        )
+    )
+    monkeypatch.setattr(species_registry, "_registry", registry)
+
+    info = species_registry.describe_species("POA")
+
+    assert info["name"] == "OC"
+    assert info["type"] == "AerosolSpecies"
+    assert info["defaults"]["density"] == 888.0
+    assert info["defaults"]["kappa"] == 0.88
+    assert info["defaults"]["molar_mass"] == 88.0
+    assert info["defaults"]["surface_tension"] == 0.08
