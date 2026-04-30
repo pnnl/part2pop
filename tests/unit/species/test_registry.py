@@ -3,6 +3,8 @@
 import os
 import tempfile
 
+import pytest
+
 from part2pop.species.base import AerosolSpecies
 from part2pop.species.registry import (
     get_species,
@@ -190,7 +192,7 @@ def test_describe_species_resolves_alias_to_custom_registered_species(monkeypatc
     assert info["defaults"]["surface_tension"] == 0.08
 
 
-def test_get_species_alias_resolved_name_missing_from_custom_specdata():
+def test_missing_species_error_includes_alias_and_resolved_name():
     """Error message must include both the original alias and the resolved canonical name."""
     with tempfile.TemporaryDirectory() as tmpdir:
         # Minimal dataset that does NOT contain OIN (the target of 'dust')
@@ -199,13 +201,7 @@ def test_get_species_alias_resolved_name_missing_from_custom_specdata():
             fh.write("# minimal dataset without OIN\n")
             fh.write("SO4  1840.0  3  96d-3  1.2\n")
 
-        try:
+        with pytest.raises(ValueError, match="dust") as exc_info:
             get_species("dust", tmpdir)
-        except ValueError as exc:
-            message = str(exc)
-            assert "dust" in message
-            assert "OIN" in message
-        else:
-            raise AssertionError(
-                "Expected ValueError when resolved species is missing from custom specdata_path"
-            )
+
+    assert "OIN" in str(exc_info.value)
