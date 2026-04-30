@@ -1,7 +1,9 @@
 from __future__ import annotations
+
 import numpy as np
 from ..base import PopulationVariable, VariableMeta
 from .registry import register_variable
+
 
 @register_variable("frac_ccn")
 class FracCCNVar(PopulationVariable):
@@ -42,8 +44,6 @@ class FracCCNVar(PopulationVariable):
             s_eval = np.asarray(cfg.get("s_eval"), dtype=float)
         else:
             s_eval = np.asarray([], dtype=float)
-        # debugging helper
-        # print(s_eval.shape)
         # reuse logic from NccnVar
         nccn = []
         for s_env in s_eval:

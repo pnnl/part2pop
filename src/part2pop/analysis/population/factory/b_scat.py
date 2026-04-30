@@ -1,8 +1,10 @@
 from __future__ import annotations
+
 import numpy as np
 from ..base import PopulationVariable, VariableMeta
 from .registry import register_variable
 from part2pop.optics.builder import build_optical_population
+
 
 @register_variable("b_scat")
 class BScatVar(PopulationVariable):
@@ -36,7 +38,6 @@ class BScatVar(PopulationVariable):
             "species_modifications": cfg.get("species_modifications", {}),
         }
         optical_pop = build_optical_population(population, ocfg)
-        # print(optical_pop.get_particle(1).get_refractive_index(550))
         arr = optical_pop.get_optical_coeff("b_scat", rh=None, wvl=None)
         if as_dict:
             return {"rh_grid": np.asarray(cfg["rh_grid"]), "wvl_grid": np.asarray(ocfg["wvl_grid"]), "b_scat": arr}
