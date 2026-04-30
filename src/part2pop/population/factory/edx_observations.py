@@ -7,11 +7,11 @@ following columns:
 """
 
 from .registry import register
+from .helpers.assembly import assemble_population_from_mass_fractions
 from typing import Any, Dict
 from part2pop.population.base import ParticlePopulation
 import pandas as pd
 import numpy as np
-from part2pop.population import build_population
 import warnings
 
 class ElementMasses:
@@ -67,19 +67,21 @@ def build(config: Dict[str, Any]) -> ParticlePopulation:
         else:
             aero_spec_masses[ii] = sample_particle(aero_spec_names, MassFracs, raw_population.elements)
 
-    # make the particle population from the species mass fractions
+    # make the particle population from explicit per-particle rows
     new_aero_spec_names = [aero_spec_names.copy() for _ in range(len(aero_spec_masses))]
-    species_modifications = config.get("species_modifications",{})
-    population_cfg = {
-        "type": "monodisperse",
-        "N": np.ones(len(aero_spec_masses)),
-        "D": raw_population.D,
-        "aero_spec_names": new_aero_spec_names,
-        "aero_spec_fracs": aero_spec_masses,
-        "species_modifications": species_modifications
-    }
-    particle_population = build_population(population_cfg)
-    particle_population.classes=np.array(particle_classes)
+    species_modifications = config.get("species_modifications", {})
+    D_is_wet = config.get("D_is_wet", False)
+    specdata_path = config.get("specdata_path")
+    particle_population = assemble_population_from_mass_fractions(
+        diameters=raw_population.D,
+        number_concentrations=np.ones(len(aero_spec_masses)),
+        species_names=new_aero_spec_names,
+        mass_fractions=aero_spec_masses,
+        classes=particle_classes,
+        species_modifications=species_modifications,
+        D_is_wet=D_is_wet,
+        specdata_path=specdata_path,
+    )
     return particle_population
 
 
