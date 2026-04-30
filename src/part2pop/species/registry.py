@@ -42,11 +42,18 @@ class AerosolSpeciesRegistry:
             return base
         
         # fallback to retrieve_one_species (file-based) if not registered
-        return retrieve_one_species(
-            resolved_name,
-            specdata_path=specdata_path,
-            spec_modifications=modifications,
-        )
+        try:
+            return retrieve_one_species(
+                resolved_name,
+                specdata_path=specdata_path,
+                spec_modifications=modifications,
+            )
+        except ValueError as exc:
+            if str(name) != resolved_name:
+                raise ValueError(
+                    f"Species lookup failed for {name!r} (resolved to {resolved_name!r}): {exc}"
+                ) from exc
+            raise
 
     def extend(self, species: AerosolSpecies):
         """Alias for register for API clarity."""

@@ -188,3 +188,24 @@ def test_describe_species_resolves_alias_to_custom_registered_species(monkeypatc
     assert info["defaults"]["kappa"] == 0.88
     assert info["defaults"]["molar_mass"] == 88.0
     assert info["defaults"]["surface_tension"] == 0.08
+
+
+def test_get_species_alias_resolved_name_missing_from_custom_specdata():
+    """Error message must include both the original alias and the resolved canonical name."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Minimal dataset that does NOT contain OIN (the target of 'dust')
+        dat_path = os.path.join(tmpdir, "aero_data.dat")
+        with open(dat_path, "w") as fh:
+            fh.write("# minimal dataset without OIN\n")
+            fh.write("SO4  1840.0  3  96d-3  1.2\n")
+
+        try:
+            get_species("dust", tmpdir)
+        except ValueError as exc:
+            message = str(exc)
+            assert "dust" in message
+            assert "OIN" in message
+        else:
+            raise AssertionError(
+                "Expected ValueError when resolved species is missing from custom specdata_path"
+            )

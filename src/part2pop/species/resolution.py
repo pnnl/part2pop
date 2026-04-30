@@ -6,7 +6,7 @@ without defining any species physical properties.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 import re
 
 
@@ -20,7 +20,7 @@ def _normalize_label(name: str) -> str:
     hyphens consistently.
     """
     text = str(name).strip().casefold()
-    text = _SEPARATOR_RE.sub(" ", text)
+    text = _SEPARATOR_RE.sub(" ", text).strip()
     return text
 
 
@@ -60,7 +60,7 @@ def resolve_species_name(name: str, aliases: Mapping[str, str] | None = None) ->
 
 
 def resolve_species_names(
-    names: list[str] | tuple[str, ...], aliases: Mapping[str, str] | None = None
+    names: Sequence[str], aliases: Mapping[str, str] | None = None
 ) -> list[str]:
     """Resolve a sequence of source labels in order."""
     return [resolve_species_name(name, aliases=aliases) for name in names]
