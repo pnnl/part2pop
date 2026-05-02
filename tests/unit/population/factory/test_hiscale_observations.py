@@ -6,6 +6,7 @@ import pytest
 
 from part2pop import build_population
 from part2pop.population.factory import hiscale_observations as hiscale
+from part2pop.population.factory.helpers import hiscale as hiscale_helpers
 from part2pop.population.factory.helpers.assembly import assemble_population_from_mass_fractions
 
 
@@ -57,11 +58,11 @@ def _standard_mass_thresholds():
 
 
 def test_parse_nheader_firstline_valid_and_invalid():
-    assert hiscale._parse_nheader_firstline("3, 10") == 3
+    assert hiscale_helpers._parse_nheader_firstline("3, 10") == 3
     with pytest.raises(ValueError):
-        hiscale._parse_nheader_firstline("")
+        hiscale_helpers._parse_nheader_firstline("")
     with pytest.raises(ValueError):
-        hiscale._parse_nheader_firstline("bogus")
+        hiscale_helpers._parse_nheader_firstline("bogus")
 
 
 def test_read_icartt_table_happy_path(tmp_path):
@@ -74,7 +75,7 @@ def test_read_icartt_table_happy_path(tmp_path):
     ]
     filepath = _write_temp_file(tmp_path, lines)
 
-    table = hiscale._read_icartt_table(filepath)
+    table = hiscale_helpers._read_icartt_table(filepath)
     assert "Time" in table
     assert "Cloud_flag" in table
     assert table["Time"].shape[0] == 2
@@ -82,27 +83,27 @@ def test_read_icartt_table_happy_path(tmp_path):
     # file too short
     filepath2 = _write_temp_file(tmp_path / "short", ["1,1"])
     with pytest.raises(ValueError):
-        hiscale._read_icartt_table(filepath2)
+        hiscale_helpers._read_icartt_table(filepath2)
 
     # mismatched columns
     lines_bad = ["3,2", "header", "A,B,C", "1,2"]
     filepath3 = _write_temp_file(tmp_path / "badcols", lines_bad)
     with pytest.raises(ValueError):
-        hiscale._read_icartt_table(filepath3)
+        hiscale_helpers._read_icartt_table(filepath3)
 
 
 def test_read_icartt_table_invalid_nheader(tmp_path):
     lines = ["10, 0", "header", "Time, Cloud_flag", "1, 0"]
     filepath = _write_named_file(tmp_path, "icartt_bad.txt", lines)
     with pytest.raises(ValueError):
-        hiscale._read_icartt_table(filepath)
+        hiscale_helpers._read_icartt_table(filepath)
 
 
 def test_read_icartt_table_no_data_rows_raises_shape_error(tmp_path):
     lines = ["3, 5", "comment", "Time, Cloud_flag", "", ""]
     filepath = _write_named_file(tmp_path, "icartt_nodata.txt", lines)
     with pytest.raises(ValueError, match="Unexpected data array shape"):
-        hiscale._read_icartt_table(filepath)
+        hiscale_helpers._read_icartt_table(filepath)
 
 
 def test_time_indices_for_altitude_and_cloudflag_filters(monkeypatch):
@@ -117,7 +118,7 @@ def test_time_indices_for_altitude_and_cloudflag_filters(monkeypatch):
         "Lon": np.array([-97.45, -97.45]),
         "Cloud_flag": np.array([0.0, 1.0]),
     }
-    idx = hiscale._time_indices_for_altitude_and_cloudflag(
+    idx = hiscale_helpers._time_indices_for_altitude_and_cloudflag(
         size_dist=size_dist,
         aimms=aimms,
         z=101.0,
@@ -129,7 +130,7 @@ def test_time_indices_for_altitude_and_cloudflag_filters(monkeypatch):
 
     # missing aimms column raises
     with pytest.raises(KeyError):
-        hiscale._time_indices_for_altitude_and_cloudflag(
+        hiscale_helpers._time_indices_for_altitude_and_cloudflag(
             size_dist=size_dist,
             aimms={},
             z=100,
@@ -148,7 +149,7 @@ def test_time_indices_region_fallback():
         "Lat": np.array([0.0]),
         "Lon": np.array([0.0]),
     }
-    idx = hiscale._time_indices_for_altitude_and_cloudflag(
+    idx = hiscale_helpers._time_indices_for_altitude_and_cloudflag(
         size_dist=size_dist,
         aimms=aimms,
         z=100.0,
@@ -170,7 +171,7 @@ def test_time_indices_cloud_filter_removes_all(monkeypatch):
         "Lon": np.array([-97.45]),
         "Cloud_flag": np.array([1.0]),
     }
-    idx = hiscale._time_indices_for_altitude_and_cloudflag(
+    idx = hiscale_helpers._time_indices_for_altitude_and_cloudflag(
         size_dist=size_dist,
         aimms=aimms,
         z=100.0,
@@ -189,7 +190,7 @@ def test_time_indices_raises_when_size_dist_time_missing():
         "Lon": np.array([-97.45]),
     }
     with pytest.raises(KeyError, match="missing time column"):
-        hiscale._time_indices_for_altitude_and_cloudflag(
+        hiscale_helpers._time_indices_for_altitude_and_cloudflag(
             size_dist=size_dist,
             aimms=aimms,
             z=100.0,
@@ -205,7 +206,7 @@ def test_time_indices_region_fallback_low_altitude_branch():
         "Lat": np.array([36.5]),
         "Lon": np.array([-97.45]),
     }
-    idx = hiscale._time_indices_for_altitude_and_cloudflag(
+    idx = hiscale_helpers._time_indices_for_altitude_and_cloudflag(
         size_dist=size_dist,
         aimms=aimms,
         z=10.0,
@@ -215,8 +216,8 @@ def test_time_indices_region_fallback_low_altitude_branch():
 
 
 def test_normalize_fracs_with_zero_sum():
-    assert hiscale._normalize_fracs({"A": 0.0, "B": 0.0}) == {}
-    normalized = hiscale._normalize_fracs({"A": 1.0, "B": 1.0})
+    assert hiscale_helpers._normalize_fracs({"A": 0.0, "B": 0.0}) == {}
+    normalized = hiscale_helpers._normalize_fracs({"A": 1.0, "B": 1.0})
     assert pytest.approx(sum(normalized.values())) == 1.0
 
 
@@ -224,11 +225,11 @@ def test_composition_for_type_variations():
     ams_mass_frac = {"SO4": 0.6, "OC": 0.4}
     species_map = {"SO4": "SO4", "OC": "OC"}
 
-    default = hiscale._composition_for_type("unknown", "ams_everywhere", None, ams_mass_frac, species_map)
+    default = hiscale_helpers._composition_for_type("unknown", "ams_everywhere", None, ams_mass_frac, species_map)
     assert pytest.approx(sum(default.values())) == 1.0
 
     templates = {"template": {"SO4": 1.0}}
-    template_only = hiscale._composition_for_type(
+    template_only = hiscale_helpers._composition_for_type(
         "template",
         "templates_only",
         templates,
@@ -238,7 +239,7 @@ def test_composition_for_type_variations():
     assert template_only == {"SO4": 1.0}
 
     with pytest.raises(KeyError):
-        hiscale._composition_for_type(
+        hiscale_helpers._composition_for_type(
             "missing",
             "templates_only",
             templates,
@@ -246,7 +247,7 @@ def test_composition_for_type_variations():
             species_map,
         )
 
-    fallback = hiscale._composition_for_type(
+    fallback = hiscale_helpers._composition_for_type(
         "template",
         "templates_fallback_to_ams",
         {},
@@ -257,11 +258,11 @@ def test_composition_for_type_variations():
 
 
 def test_default_template_for_type_handles_special_cases():
-    assert hiscale._default_template_for_type("BC", {}, {}) == {"BC": 1.0}
-    assert hiscale._default_template_for_type("OIN", {}, {}) == {"OIN": 1.0}
+    assert hiscale_helpers._default_template_for_type("BC", {}, {}) == {"BC": 1.0}
+    assert hiscale_helpers._default_template_for_type("OIN", {}, {}) == {"OIN": 1.0}
     ams_mass_frac = {"SO4": 0.5, "OC": 0.5}
     species_map = {"SO4": "SO4", "OC": "OC"}
-    normalized = hiscale._default_template_for_type("custom", ams_mass_frac, species_map)
+    normalized = hiscale_helpers._default_template_for_type("custom", ams_mass_frac, species_map)
     assert pytest.approx(sum(normalized.values())) == 1.0
 
 
@@ -272,7 +273,7 @@ def test_sample_particle_masses_includes_nh4(tmp_path):
         "BC": ((0.0, 0.2, 0.05), ["BC"]),
     }
     rng = np.random.default_rng(0)
-    names, fracs = hiscale.sample_particle_masses("SO4", mass_thresholds, rng=rng, max_tries=1000)
+    names, fracs = hiscale_helpers.sample_particle_masses("SO4", mass_thresholds, rng=rng, max_tries=1000)
     assert "NH4" in names
     assert pytest.approx(sum(fracs)) == 1.0
 
@@ -280,15 +281,15 @@ def test_sample_particle_masses_includes_nh4(tmp_path):
 def test_read_delimited_table_with_header_error_paths(tmp_path):
     empty = _write_named_file(tmp_path, "empty.txt", [])
     with pytest.raises(ValueError, match="Empty file"):
-        hiscale._read_delimited_table_with_header(empty)
+        hiscale_helpers._read_delimited_table_with_header(empty)
 
     bad_header = _write_named_file(tmp_path, "bad_header.txt", ["OnlyOneColumn", "1"])
     with pytest.raises(ValueError, match="Could not parse header columns"):
-        hiscale._read_delimited_table_with_header(bad_header)
+        hiscale_helpers._read_delimited_table_with_header(bad_header)
 
     no_data = _write_named_file(tmp_path, "no_data.txt", ["A,B", ""])
     with pytest.raises(ValueError, match="No data rows parsed"):
-        hiscale._read_delimited_table_with_header(no_data)
+        hiscale_helpers._read_delimited_table_with_header(no_data)
 
 
 def test_read_delimited_table_with_header_tab_and_rows(tmp_path):
@@ -304,7 +305,7 @@ def test_read_delimited_table_with_header_tab_and_rows(tmp_path):
             "7\t8\t9",
         ],
     )
-    out = hiscale._read_delimited_table_with_header(path)
+    out = hiscale_helpers._read_delimited_table_with_header(path)
     assert set(out.keys()) == {"A", "B", "C"}
     assert np.allclose(out["A"], [1.0, 7.0])
     assert np.allclose(out["B"], [2.0, 8.0])
@@ -314,11 +315,11 @@ def test_read_delimited_table_with_header_tab_and_rows(tmp_path):
 def test_read_fims_bins_file_error_paths(tmp_path):
     not_enough = _write_named_file(tmp_path, "bins_short.txt", ["1 2", "3 4"])
     with pytest.raises(ValueError, match="does not contain enough numeric values"):
-        hiscale._read_fims_bins_file(not_enough, expected_bins=4)
+        hiscale_helpers._read_fims_bins_file(not_enough, expected_bins=4)
 
     malformed = _write_named_file(tmp_path, "bins_bad.txt", ["5 1", "4 2", "3 3", "2 4", "1 5", "0 6"])
     with pytest.raises(ValueError, match="Could not extract"):
-        hiscale._read_fims_bins_file(malformed, expected_bins=3)
+        hiscale_helpers._read_fims_bins_file(malformed, expected_bins=3)
 
 
 def test_read_fims_bins_file_direct_and_stream_heuristics(tmp_path):
@@ -332,13 +333,13 @@ def test_read_fims_bins_file_direct_and_stream_heuristics(tmp_path):
             "20 25 40",
         ],
     )
-    lo, hi = hiscale._read_fims_bins_file(direct, expected_bins=2)
+    lo, hi = hiscale_helpers._read_fims_bins_file(direct, expected_bins=2)
     assert np.allclose(lo, [10.0, 20.0])
     assert np.allclose(hi, [20.0, 40.0])
 
     # interleaved global stream (hits 330)
     interleaved = _write_named_file(tmp_path, "bins_interleaved.txt", ["10 20 20 40"])
-    lo_i, hi_i = hiscale._read_fims_bins_file(interleaved, expected_bins=2)
+    lo_i, hi_i = hiscale_helpers._read_fims_bins_file(interleaved, expected_bins=2)
     assert np.allclose(lo_i, [10.0, 20.0])
     assert np.allclose(hi_i, [20.0, 40.0])
 
@@ -346,7 +347,7 @@ def test_read_fims_bins_file_direct_and_stream_heuristics(tmp_path):
     concat = _write_named_file(tmp_path, "bins_concat.txt", ["10 20 20 40", "# extra", "1"])
     # Force line parser to fail expected_bins by including rows where lo==hi
     concat = _write_named_file(tmp_path, "bins_concat.txt", ["10 10", "20 20", "10 20 20 40"])
-    lo_c, hi_c = hiscale._read_fims_bins_file(concat, expected_bins=2)
+    lo_c, hi_c = hiscale_helpers._read_fims_bins_file(concat, expected_bins=2)
     # this case returns from the concatenated branch using the first valid block
     assert np.allclose(lo_c, [10.0, 10.0])
     assert np.allclose(hi_c, [20.0, 20.0])
@@ -355,13 +356,13 @@ def test_read_fims_bins_file_direct_and_stream_heuristics(tmp_path):
 def test_read_fims_bins_file_sliding_window_returns(tmp_path):
     # sliding window interleaved return (hits 346)
     slide_i = _write_named_file(tmp_path, "bins_slide_i.txt", ["99 99 10 20 20 40"])
-    lo_i, hi_i = hiscale._read_fims_bins_file(slide_i, expected_bins=2)
+    lo_i, hi_i = hiscale_helpers._read_fims_bins_file(slide_i, expected_bins=2)
     assert np.allclose(lo_i, [10.0, 20.0])
     assert np.allclose(hi_i, [20.0, 40.0])
 
     # sliding window concatenated return (hits 351)
     slide_c = _write_named_file(tmp_path, "bins_slide_c.txt", ["99 99 10 20 20 40 1"])
-    lo_c, hi_c = hiscale._read_fims_bins_file(slide_c, expected_bins=2)
+    lo_c, hi_c = hiscale_helpers._read_fims_bins_file(slide_c, expected_bins=2)
     assert np.allclose(lo_c, [10.0, 20.0])
     assert np.allclose(hi_c, [20.0, 40.0])
 
@@ -375,19 +376,19 @@ def test_read_beasd_bins_success_and_failure(tmp_path):
             "diameter range from 20 to 30",
         ],
     )
-    lo, hi = hiscale._read_beasd_bins(good, expected_bins=2)
+    lo, hi = hiscale_helpers._read_beasd_bins(good, expected_bins=2)
     assert np.allclose(lo, [10.0, 20.0])
     assert np.allclose(hi, [20.0, 30.0])
 
     bad = _write_named_file(tmp_path, "beasd_bad.txt", ["diameter range from 10 to 20"])
     with pytest.raises(ValueError, match="Could not find expected number of bin lines"):
-        hiscale._read_beasd_bins(bad, expected_bins=2)
+        hiscale_helpers._read_beasd_bins(bad, expected_bins=2)
 
 
 def test_read_aimms_wrapper_calls_icartt(monkeypatch):
     expected = {"Time(UTC)": np.array([0.0])}
-    monkeypatch.setattr(hiscale, "_read_icartt_table", lambda _: expected)
-    out = hiscale._read_aimms("aimms.txt")
+    monkeypatch.setattr(hiscale_helpers, "_read_icartt_table", lambda _: expected)
+    out = hiscale_helpers._read_aimms("aimms.txt")
     assert out is expected
 
 
@@ -398,8 +399,8 @@ def test_read_fims_core_and_beasd_core_branches(monkeypatch):
         "n_Dp_1": np.array([1.0, 2.0]),
         "ndp2": np.array([3.0, 4.0]),
     }
-    monkeypatch.setattr(hiscale, "_read_icartt_table", lambda _: fims_table)
-    out = hiscale._read_fims_core("fims.txt")
+    monkeypatch.setattr(hiscale_helpers, "_read_icartt_table", lambda _: fims_table)
+    out = hiscale_helpers._read_fims_core("fims.txt")
     assert out["_bin_cols"] == ["n_Dp_1", "ndp2"]
     assert out["_N_bins"].shape == (2, 2)
 
@@ -409,35 +410,35 @@ def test_read_fims_core_and_beasd_core_branches(monkeypatch):
         "C_1": np.array([1.0, 2.0]),
         "C_2": np.array([3.0, 4.0]),
     }
-    monkeypatch.setattr(hiscale, "_read_icartt_table", lambda _: beasd_table)
-    out_b = hiscale._read_beasd_core("beasd.txt")
+    monkeypatch.setattr(hiscale_helpers, "_read_icartt_table", lambda _: beasd_table)
+    out_b = hiscale_helpers._read_beasd_core("beasd.txt")
     assert out_b["_bin_cols"] == ["C_1", "C_2"]
     assert out_b["_N_bins"].shape == (2, 2)
 
 
 def test_read_fims_core_and_beasd_core_identification_errors(monkeypatch):
-    monkeypatch.setattr(hiscale, "_read_icartt_table", lambda _: {"Time(UTC)": np.array([0.0]), "X": np.array([1.0])})
+    monkeypatch.setattr(hiscale_helpers, "_read_icartt_table", lambda _: {"Time(UTC)": np.array([0.0]), "X": np.array([1.0])})
     with pytest.raises(ValueError, match="Could not identify FIMS bin columns"):
-        hiscale._read_fims_core("fims_bad.txt")
+        hiscale_helpers._read_fims_core("fims_bad.txt")
 
     with pytest.raises(ValueError, match="Could not identify BEASD bin columns"):
-        hiscale._read_beasd_core("beasd_bad.txt")
+        hiscale_helpers._read_beasd_core("beasd_bad.txt")
 
 
 def test_read_fims_avg_size_dist_core_branches(monkeypatch):
-    monkeypatch.setattr(hiscale, "_read_aimms", lambda _: {"dummy": np.array([0.0])})
+    monkeypatch.setattr(hiscale_helpers, "_read_aimms", lambda _: {"dummy": np.array([0.0])})
     monkeypatch.setattr(
-        hiscale,
+        hiscale_helpers,
         "_read_fims_core",
         lambda _: {
             "Time(UTC)": np.array([0.0, 1.0]),
             "_N_bins": np.array([[2.0, 3.0], [4.0, 5.0]]),
         },
     )
-    monkeypatch.setattr(hiscale, "_time_indices_for_altitude_and_cloudflag", lambda **kwargs: np.array([0, 1]))
-    monkeypatch.setattr(hiscale, "_read_fims_bins_file", lambda *_args, **_kwargs: (np.array([10.0, 20.0]), np.array([20.0, 40.0])))
+    monkeypatch.setattr(hiscale_helpers, "_time_indices_for_altitude_and_cloudflag", lambda **kwargs: np.array([0, 1]))
+    monkeypatch.setattr(hiscale_helpers, "_read_fims_bins_file", lambda *_args, **_kwargs: (np.array([10.0, 20.0]), np.array([20.0, 40.0])))
 
-    lo, hi, nbin, nstd = hiscale._read_fims_avg_size_dist(
+    lo, hi, nbin, nstd = hiscale_helpers._read_fims_avg_size_dist(
         fims_file="fims.txt",
         fims_bins_file="bins.txt",
         aimms_file="aimms.txt",
@@ -450,7 +451,7 @@ def test_read_fims_avg_size_dist_core_branches(monkeypatch):
     assert np.allclose(nbin, [3.0, 4.0])
     assert np.allclose(nstd, [1.0, 1.0])
 
-    _lo, _hi, nbin_ln, _ = hiscale._read_fims_avg_size_dist(
+    _lo, _hi, nbin_ln, _ = hiscale_helpers._read_fims_avg_size_dist(
         fims_file="fims.txt",
         fims_bins_file="bins.txt",
         aimms_file="aimms.txt",
@@ -461,7 +462,7 @@ def test_read_fims_avg_size_dist_core_branches(monkeypatch):
     assert np.all(nbin_ln > 0)
 
     with pytest.raises(ValueError, match="Unknown fims_density_measure"):
-        hiscale._read_fims_avg_size_dist(
+        hiscale_helpers._read_fims_avg_size_dist(
             fims_file="fims.txt",
             fims_bins_file="bins.txt",
             aimms_file="aimms.txt",
@@ -472,33 +473,33 @@ def test_read_fims_avg_size_dist_core_branches(monkeypatch):
 
 
 def test_read_fims_avg_size_dist_error_paths(monkeypatch):
-    monkeypatch.setattr(hiscale, "_read_aimms", lambda _: {"dummy": np.array([0.0])})
-    monkeypatch.setattr(hiscale, "_read_fims_core", lambda _: {"_N_bins": np.array([[1.0, 2.0]])})
+    monkeypatch.setattr(hiscale_helpers, "_read_aimms", lambda _: {"dummy": np.array([0.0])})
+    monkeypatch.setattr(hiscale_helpers, "_read_fims_core", lambda _: {"_N_bins": np.array([[1.0, 2.0]])})
 
     with pytest.raises(KeyError, match="Could not identify FIMS time column"):
-        hiscale._read_fims_avg_size_dist(
+        hiscale_helpers._read_fims_avg_size_dist(
             fims_file="fims.txt", fims_bins_file="bins.txt", aimms_file="aimms.txt", z=100.0, dz=2.0
         )
 
-    monkeypatch.setattr(hiscale, "_read_fims_core", lambda _: {"Time(UTC)": np.array([0.0]), "_N_bins": np.array([[1.0, 2.0]])})
-    monkeypatch.setattr(hiscale, "_time_indices_for_altitude_and_cloudflag", lambda **kwargs: np.array([], dtype=int))
+    monkeypatch.setattr(hiscale_helpers, "_read_fims_core", lambda _: {"Time(UTC)": np.array([0.0]), "_N_bins": np.array([[1.0, 2.0]])})
+    monkeypatch.setattr(hiscale_helpers, "_time_indices_for_altitude_and_cloudflag", lambda **kwargs: np.array([], dtype=int))
     with pytest.raises(RuntimeError, match="No matching FIMS indices"):
-        hiscale._read_fims_avg_size_dist(
+        hiscale_helpers._read_fims_avg_size_dist(
             fims_file="fims.txt", fims_bins_file="bins.txt", aimms_file="aimms.txt", z=100.0, dz=2.0
         )
 
 
 def test_read_minisplat_number_fractions_branches(monkeypatch):
-    monkeypatch.setattr(hiscale, "_read_aimms", lambda _: {"dummy": np.array([0.0])})
-    monkeypatch.setattr(hiscale, "_read_fims_core", lambda _: {"Time(UTC)": np.array([0.0, 1.0])})
-    monkeypatch.setattr(hiscale, "_time_indices_for_altitude_and_cloudflag", lambda **kwargs: np.array([0, 1]))
+    monkeypatch.setattr(hiscale_helpers, "_read_aimms", lambda _: {"dummy": np.array([0.0])})
+    monkeypatch.setattr(hiscale_helpers, "_read_fims_core", lambda _: {"Time(UTC)": np.array([0.0, 1.0])})
+    monkeypatch.setattr(hiscale_helpers, "_time_indices_for_altitude_and_cloudflag", lambda **kwargs: np.array([0, 1]))
     monkeypatch.setattr(
-        hiscale,
+        hiscale_helpers,
         "_read_delimited_table_with_header",
         lambda _: {"Time": np.array([0.0, 1.0]), "A": np.array([0.2, 0.4]), "B": np.array([0.8, 0.6])},
     )
 
-    avg_comp, comp_err = hiscale._read_minisplat_number_fractions(
+    avg_comp, comp_err = hiscale_helpers._read_minisplat_number_fractions(
         splat_file="splat.txt",
         aimms_file="aimms.txt",
         size_dist_type="FIMS",
@@ -511,7 +512,7 @@ def test_read_minisplat_number_fractions_branches(monkeypatch):
     assert pytest.approx(avg_comp["mix"]) == 1.0
 
     with pytest.raises(ValueError, match="Either fims_file or beasd_file"):
-        hiscale._read_minisplat_number_fractions(
+        hiscale_helpers._read_minisplat_number_fractions(
             splat_file="splat.txt",
             aimms_file="aimms.txt",
             size_dist_type="BAD",
@@ -523,13 +524,13 @@ def test_read_minisplat_number_fractions_branches(monkeypatch):
 
 
 def test_read_ams_mass_fractions_branches(monkeypatch):
-    monkeypatch.setattr(hiscale, "_read_aimms", lambda _: {"dummy": np.array([0.0])})
+    monkeypatch.setattr(hiscale_helpers, "_read_aimms", lambda _: {"dummy": np.array([0.0])})
     monkeypatch.setattr(
-        hiscale,
+        hiscale_helpers,
         "_read_fims_core",
         lambda _: {"Time(UTC)": np.array([0.0, 1.0]), "_N_bins": np.array([[1.0], [1.0]])},
     )
-    monkeypatch.setattr(hiscale, "_time_indices_for_altitude_and_cloudflag", lambda **kwargs: np.array([0, 1]))
+    monkeypatch.setattr(hiscale_helpers, "_time_indices_for_altitude_and_cloudflag", lambda **kwargs: np.array([0, 1]))
 
     ams_table = {
         "dat_ams_utc": np.array([0.0, 1.0]),
@@ -539,9 +540,9 @@ def test_read_ams_mass_fractions_branches(monkeypatch):
         "SO4": np.array([2.0, 1.0]),
         "NH4": np.array([1.0, 0.0]),
     }
-    monkeypatch.setattr(hiscale, "_read_icartt_table", lambda _: ams_table)
+    monkeypatch.setattr(hiscale_helpers, "_read_icartt_table", lambda _: ams_table)
 
-    mass_frac, mass_frac_err, measured_mass, measured_mass_err = hiscale._read_ams_mass_fractions(
+    mass_frac, mass_frac_err, measured_mass, measured_mass_err = hiscale_helpers._read_ams_mass_fractions(
         ams_file="ams.txt",
         aimms_file="aimms.txt",
         size_dist_type="FIMS",
@@ -554,9 +555,9 @@ def test_read_ams_mass_fractions_branches(monkeypatch):
     assert measured_mass > 0
     assert measured_mass_err >= 0
 
-    monkeypatch.setattr(hiscale, "_read_icartt_table", lambda _: {"Time": np.array([0.0])})
+    monkeypatch.setattr(hiscale_helpers, "_read_icartt_table", lambda _: {"Time": np.array([0.0])})
     with pytest.raises(KeyError, match="Could not identify AMS flag/QC column"):
-        hiscale._read_ams_mass_fractions(
+        hiscale_helpers._read_ams_mass_fractions(
             ams_file="ams.txt",
             aimms_file="aimms.txt",
             size_dist_type="FIMS",
@@ -580,7 +581,7 @@ def test_read_beasd_avg_size_dist_with_bundled_example_data():
     paths = _hiscale_example_paths()
     assert all(Path(p).exists() for p in paths.values())
 
-    lo, hi, nbin, nstd = hiscale._read_beasd_avg_size_dist(
+    lo, hi, nbin, nstd = hiscale_helpers._read_beasd_avg_size_dist(
         beasd_file=paths["beasd"],
         aimms_file=paths["aimms"],
         z=100.0,
@@ -593,17 +594,17 @@ def test_read_beasd_avg_size_dist_with_bundled_example_data():
 
 
 def test_read_beasd_avg_size_dist_measure_variants_and_errors(monkeypatch):
-    monkeypatch.setattr(hiscale, "_read_aimms", lambda _: {"dummy": np.array([0.0])})
+    monkeypatch.setattr(hiscale_helpers, "_read_aimms", lambda _: {"dummy": np.array([0.0])})
     monkeypatch.setattr(
-        hiscale,
+        hiscale_helpers,
         "_read_beasd_core",
         lambda _: {"Time(UTC)": np.array([0.0, 1.0]), "_N_bins": np.array([[2.0, 3.0], [4.0, 5.0]])},
     )
-    monkeypatch.setattr(hiscale, "_time_indices_for_altitude_and_cloudflag", lambda **kwargs: np.array([0, 1]))
-    monkeypatch.setattr(hiscale, "_read_beasd_bins", lambda *_args, **_kwargs: (np.array([10.0, 20.0]), np.array([20.0, 40.0])))
+    monkeypatch.setattr(hiscale_helpers, "_time_indices_for_altitude_and_cloudflag", lambda **kwargs: np.array([0, 1]))
+    monkeypatch.setattr(hiscale_helpers, "_read_beasd_bins", lambda *_args, **_kwargs: (np.array([10.0, 20.0]), np.array([20.0, 40.0])))
 
     # log10 conversion branch
-    _lo, _hi, nbin_log10, _ = hiscale._read_beasd_avg_size_dist(
+    _lo, _hi, nbin_log10, _ = hiscale_helpers._read_beasd_avg_size_dist(
         beasd_file="beasd.txt",
         aimms_file="aimms.txt",
         z=100.0,
@@ -614,7 +615,7 @@ def test_read_beasd_avg_size_dist_measure_variants_and_errors(monkeypatch):
 
     # invalid measure branch (captures current NameError bug behavior in src)
     with pytest.raises(Exception):
-        hiscale._read_beasd_avg_size_dist(
+        hiscale_helpers._read_beasd_avg_size_dist(
             beasd_file="beasd.txt",
             aimms_file="aimms.txt",
             z=100.0,
@@ -624,17 +625,17 @@ def test_read_beasd_avg_size_dist_measure_variants_and_errors(monkeypatch):
 
 
 def test_read_beasd_avg_size_dist_max_dp_filters_all_raises(monkeypatch):
-    monkeypatch.setattr(hiscale, "_read_aimms", lambda _: {"dummy": np.array([0.0])})
+    monkeypatch.setattr(hiscale_helpers, "_read_aimms", lambda _: {"dummy": np.array([0.0])})
     monkeypatch.setattr(
-        hiscale,
+        hiscale_helpers,
         "_read_beasd_core",
         lambda _: {"Time(UTC)": np.array([0.0]), "_N_bins": np.array([[1.0, 2.0]])},
     )
-    monkeypatch.setattr(hiscale, "_time_indices_for_altitude_and_cloudflag", lambda **kwargs: np.array([0]))
-    monkeypatch.setattr(hiscale, "_read_beasd_bins", lambda *_args, **_kwargs: (np.array([2000.0, 3000.0]), np.array([3000.0, 4000.0])))
+    monkeypatch.setattr(hiscale_helpers, "_time_indices_for_altitude_and_cloudflag", lambda **kwargs: np.array([0]))
+    monkeypatch.setattr(hiscale_helpers, "_read_beasd_bins", lambda *_args, **_kwargs: (np.array([2000.0, 3000.0]), np.array([3000.0, 4000.0])))
 
     with pytest.raises(RuntimeError, match="removed all FIMS bins"):
-        hiscale._read_beasd_avg_size_dist(
+        hiscale_helpers._read_beasd_avg_size_dist(
             beasd_file="beasd.txt",
             aimms_file="aimms.txt",
             z=100.0,
@@ -645,7 +646,7 @@ def test_read_beasd_avg_size_dist_max_dp_filters_all_raises(monkeypatch):
 
 def test_read_minisplat_number_fractions_beasd_with_bundled_example_data():
     paths = _hiscale_example_paths()
-    avg_comp, comp_err = hiscale._read_minisplat_number_fractions(
+    avg_comp, comp_err = hiscale_helpers._read_minisplat_number_fractions(
         splat_file=paths["splat"],
         aimms_file=paths["aimms"],
         size_dist_type="BEASD",
@@ -661,7 +662,7 @@ def test_read_minisplat_number_fractions_beasd_with_bundled_example_data():
 
 def test_read_ams_mass_fractions_beasd_with_bundled_example_data():
     paths = _hiscale_example_paths()
-    mass_frac, mass_frac_err, measured_mass, measured_mass_err = hiscale._read_ams_mass_fractions(
+    mass_frac, mass_frac_err, measured_mass, measured_mass_err = hiscale_helpers._read_ams_mass_fractions(
         ams_file=paths["ams"],
         aimms_file=paths["aimms"],
         size_dist_type="BEASD",
@@ -679,7 +680,7 @@ def test_read_ams_mass_fractions_beasd_with_bundled_example_data():
 def test_read_beasd_avg_size_dist_unknown_measure_from_real_files(tmp_path):
     paths = _hiscale_example_paths()
     with pytest.raises(Exception):
-        hiscale._read_beasd_avg_size_dist(
+        hiscale_helpers._read_beasd_avg_size_dist(
             beasd_file=paths["beasd"],
             aimms_file=paths["aimms"],
             z=100.0,
@@ -691,7 +692,7 @@ def test_read_beasd_avg_size_dist_unknown_measure_from_real_files(tmp_path):
 def test_read_beasd_avg_size_dist_no_matching_indices_from_real_files():
     paths = _hiscale_example_paths()
     with pytest.raises(RuntimeError, match="No matching BEASD indices"):
-        hiscale._read_beasd_avg_size_dist(
+        hiscale_helpers._read_beasd_avg_size_dist(
             beasd_file=paths["beasd"],
             aimms_file=paths["aimms"],
             z=1.0e6,
@@ -703,7 +704,7 @@ def test_read_beasd_avg_size_dist_no_matching_indices_from_real_files():
 def test_read_beasd_avg_size_dist_max_dp_filters_all_from_real_files():
     paths = _hiscale_example_paths()
     with pytest.raises(RuntimeError, match="removed all FIMS bins"):
-        hiscale._read_beasd_avg_size_dist(
+        hiscale_helpers._read_beasd_avg_size_dist(
             beasd_file=paths["beasd"],
             aimms_file=paths["aimms"],
             z=100.0,
@@ -718,7 +719,7 @@ def test_read_minisplat_number_fractions_real_files_missing_time_col(tmp_path):
     bad_splat.write_text("A\tB\n1\t2\n", encoding="utf-8")
 
     with pytest.raises(KeyError, match="miniSPLAT missing time column"):
-        hiscale._read_minisplat_number_fractions(
+        hiscale_helpers._read_minisplat_number_fractions(
             splat_file=str(bad_splat),
             aimms_file=paths["aimms"],
             size_dist_type="BEASD",
@@ -732,7 +733,7 @@ def test_read_minisplat_number_fractions_real_files_missing_time_col(tmp_path):
 def test_read_minisplat_number_fractions_real_files_no_size_indices():
     paths = _hiscale_example_paths()
     with pytest.raises(RuntimeError, match="No FIMS/BEASD indices"):
-        hiscale._read_minisplat_number_fractions(
+        hiscale_helpers._read_minisplat_number_fractions(
             splat_file=paths["splat"],
             aimms_file=paths["aimms"],
             size_dist_type="BEASD",
@@ -753,7 +754,7 @@ def test_read_minisplat_number_fractions_real_files_no_matching_splat_times(tmp_
     )
 
     with pytest.raises(RuntimeError, match="No miniSPLAT rows matched"):
-        hiscale._read_minisplat_number_fractions(
+        hiscale_helpers._read_minisplat_number_fractions(
             splat_file=str(shifted),
             aimms_file=paths["aimms"],
             size_dist_type="BEASD",
@@ -773,7 +774,7 @@ def test_read_ams_mass_fractions_real_files_missing_ams_time_col(tmp_path):
     )
 
     with pytest.raises(KeyError, match="Could not identify AMS time column"):
-        hiscale._read_ams_mass_fractions(
+        hiscale_helpers._read_ams_mass_fractions(
             ams_file=str(bad_ams),
             aimms_file=paths["aimms"],
             size_dist_type="BEASD",
@@ -793,7 +794,7 @@ def test_read_ams_mass_fractions_real_files_missing_beasd_time_col(tmp_path):
     )
 
     with pytest.raises(KeyError, match="Could not identify BEASD time column"):
-        hiscale._read_ams_mass_fractions(
+        hiscale_helpers._read_ams_mass_fractions(
             ams_file=paths["ams"],
             aimms_file=paths["aimms"],
             size_dist_type="BEASD",
@@ -806,7 +807,7 @@ def test_read_ams_mass_fractions_real_files_missing_beasd_time_col(tmp_path):
 def test_read_ams_mass_fractions_real_files_no_matching_size_indices():
     paths = _hiscale_example_paths()
     with pytest.raises(RuntimeError, match="No FIMS/BEASD indices for AMS matching"):
-        hiscale._read_ams_mass_fractions(
+        hiscale_helpers._read_ams_mass_fractions(
             ams_file=paths["ams"],
             aimms_file=paths["aimms"],
             size_dist_type="BEASD",
@@ -826,7 +827,7 @@ def test_read_ams_mass_fractions_real_files_no_ams_rows_after_flag(tmp_path):
     )
 
     with pytest.raises(RuntimeError, match="No AMS rows matched filtered FIMS times"):
-        hiscale._read_ams_mass_fractions(
+        hiscale_helpers._read_ams_mass_fractions(
             ams_file=str(bad_flag),
             aimms_file=paths["aimms"],
             size_dist_type="BEASD",
@@ -839,10 +840,10 @@ def test_read_ams_mass_fractions_real_files_no_ams_rows_after_flag(tmp_path):
 def test_fit_nmodal_distribution_with_mocked_curve_fit(monkeypatch):
     dp = np.logspace(-8, -6, 20)
     true_pars = np.array([200.0, 1.0e-7, 1.6])
-    n = hiscale.Nmodal_lognormal(dp, *true_pars)
+    n = hiscale_helpers.Nmodal_lognormal(dp, *true_pars)
 
-    monkeypatch.setattr(hiscale, "curve_fit", lambda *args, **kwargs: (true_pars, np.eye(3)))
-    out = hiscale.fit_Nmodal_distribution(dp, n)
+    monkeypatch.setattr(hiscale_helpers, "curve_fit", lambda *args, **kwargs: (true_pars, np.eye(3)))
+    out = hiscale_helpers.fit_Nmodal_distribution(dp, n)
 
     assert len(out) == 1
     assert np.allclose(out[0], true_pars)
@@ -852,7 +853,7 @@ def test_size_dependent_composition_scales_tail_fraction():
     dps = np.array([20.0, 40.0, 80.0, 160.0]) * 1e-9
     measured_n = np.array([1.0, 2.0, 3.0, 4.0])
 
-    ns = hiscale.size_dependent_composition(
+    ns = hiscale_helpers.size_dependent_composition(
         Dps=dps,
         measured_Ns=measured_n,
         N_modes=1,
@@ -876,7 +877,7 @@ def test_sample_particle_dp_n_fill_bins_true_and_false():
     dp_hi = np.array([80.0, 120.0]) * 1e-9
     n_m3 = np.array([100.0, 50.0])
 
-    d_fill, n_fill = hiscale.sample_particle_Dp_N(
+    d_fill, n_fill = hiscale_helpers.sample_particle_Dp_N(
         6,
         particle_types,
         measured_number_fractions,
@@ -894,7 +895,7 @@ def test_sample_particle_dp_n_fill_bins_true_and_false():
     assert np.all(d_fill > 0)
     assert np.all(n_fill >= 0)
 
-    d_rand, n_rand = hiscale.sample_particle_Dp_N(
+    d_rand, n_rand = hiscale_helpers.sample_particle_Dp_N(
         6,
         particle_types,
         measured_number_fractions,
@@ -917,18 +918,18 @@ def test_classify_and_fraction_comparisons(tmp_path):
     pop = _make_sample_population()
     mass_thresholds = _standard_mass_thresholds()
 
-    classes = hiscale.classify_particles(pop, mass_thresholds)
+    classes = hiscale_helpers.classify_particles(pop, mass_thresholds)
     assert set(np.unique(classes)) <= set(mass_thresholds.keys())
 
     measured_mass = {"BC": 1 / 3, "OIN": 1 / 3, "SO4": 1 / 3}
     measured_mass_err = {"BC": 0.01, "OIN": 0.01, "SO4": 0.01}
-    sampled_mass, mass_checks = hiscale.mass_fraction_comparison(pop, measured_mass, measured_mass_err, mass_thresholds)
+    sampled_mass, mass_checks = hiscale_helpers.mass_fraction_comparison(pop, measured_mass, measured_mass_err, mass_thresholds)
     assert pytest.approx(sum(sampled_mass.values())) == 1.0
     assert len(mass_checks) == len(mass_thresholds)
 
     measured_num = {"BC": 1 / 3, "OIN": 1 / 3, "SO4": 1 / 3}
     measured_num_err = {"BC": 0.01, "OIN": 0.01, "SO4": 0.01}
-    sampled_num, num_checks = hiscale.number_fraction_comparison(
+    sampled_num, num_checks = hiscale_helpers.number_fraction_comparison(
         pop,
         mass_thresholds,
         measured_num,
@@ -945,7 +946,7 @@ def test_mass_fraction_comparison_missing_species_in_population_no_broadcast_err
     measured_mass_fractions = {"OC": 1.0}
     measured_mass_fraction_errors = {"OC": 0.0}
 
-    sampled_mass_fractions, checks = hiscale.mass_fraction_comparison(
+    sampled_mass_fractions, checks = hiscale_helpers.mass_fraction_comparison(
         particle_population=pop,
         measured_mass_fractions=measured_mass_fractions,
         measured_mass_fraction_errors=measured_mass_fraction_errors,
@@ -971,7 +972,7 @@ def test_optimize_splat_species_distributions_returns_model_weights():
     measured_N = np.array([2.0, 1.5])
     pars = [[2.0, 110e-9, 1.5]]
 
-    fractions, multiplier = hiscale.optimize_splat_species_distributions(
+    fractions, multiplier = hiscale_helpers.optimize_splat_species_distributions(
         splat_species=splat_species,
         size_distribution_pars=pars,
         measured_Dp=measured_Dp,
@@ -994,7 +995,7 @@ def test_sample_particle_masses_includes_nh4_and_normalizes():
         "BC": ((0.0, 0.2, 0.05), ["BC"]),
     }
     rng = np.random.default_rng(0)
-    names, fracs = hiscale.sample_particle_masses("SO4", mass_thresholds, rng=rng, max_tries=1000)
+    names, fracs = hiscale_helpers.sample_particle_masses("SO4", mass_thresholds, rng=rng, max_tries=1000)
     assert "NH4" in names
     assert pytest.approx(sum(fracs)) == 1.0
     idx = names.index("NH4")
@@ -1012,7 +1013,7 @@ def test_sample_particle_Dp_N_enforces_fill_bins_and_allows_random():
     measured_number_fractions = {"BC": 1.0}
 
     with pytest.raises(ValueError, match="Number of BC particles to sample is 2, but there are 3 size bins"):
-        hiscale.sample_particle_Dp_N(
+        hiscale_helpers.sample_particle_Dp_N(
             particles_to_sample=2,
             particle_types=["BC", "BC"],
             measured_number_fractions=measured_number_fractions,
@@ -1026,7 +1027,7 @@ def test_sample_particle_Dp_N_enforces_fill_bins_and_allows_random():
             size_dist_grid=size_dist_grid,
         )
 
-    d_rand, n_rand = hiscale.sample_particle_Dp_N(
+    d_rand, n_rand = hiscale_helpers.sample_particle_Dp_N(
         particles_to_sample=10,
         particle_types=["BC"] * 10,
         measured_number_fractions=measured_number_fractions,
@@ -1086,7 +1087,7 @@ def test_build_input_validation_branches_and_preferred_matching(monkeypatch, tmp
 
     monkeypatch.setattr(hiscale, "normalize_population_config", lambda c: c)
     monkeypatch.setattr(
-        hiscale,
+        hiscale_helpers,
         "_read_fims_avg_size_dist",
         lambda **kwargs: (
             np.array([80.0, 100.0]),
@@ -1095,9 +1096,9 @@ def test_build_input_validation_branches_and_preferred_matching(monkeypatch, tmp
             np.array([0.1, 0.1]),
         ),
     )
-    monkeypatch.setattr(hiscale, "_read_minisplat_number_fractions", lambda **kwargs: ({"BC": 1.0}, {"BC": 0.0}))
+    monkeypatch.setattr(hiscale_helpers, "_read_minisplat_number_fractions", lambda **kwargs: ({"BC": 1.0}, {"BC": 0.0}))
     monkeypatch.setattr(
-        hiscale,
+        hiscale_helpers,
         "_read_ams_mass_fractions",
         lambda **kwargs: (
             {"OC": 1.0, "NO3": 0.0, "SO4": 0.0, "NH4": 0.0},
@@ -1106,20 +1107,20 @@ def test_build_input_validation_branches_and_preferred_matching(monkeypatch, tmp
             0.0,
         ),
     )
-    monkeypatch.setattr(hiscale, "fit_Nmodal_distribution", lambda *_args, **_kwargs: [[1.0, 1.0e-7, 1.5]])
-    monkeypatch.setattr(hiscale, "optimize_splat_species_distributions", lambda **kwargs: ({}, 1.0))
+    monkeypatch.setattr(hiscale_helpers, "fit_Nmodal_distribution", lambda *_args, **_kwargs: [[1.0, 1.0e-7, 1.5]])
+    monkeypatch.setattr(hiscale_helpers, "optimize_splat_species_distributions", lambda **kwargs: ({}, 1.0))
     monkeypatch.setattr(
-        hiscale,
+        hiscale_helpers,
         "sample_particle_Dp_N",
         lambda particles_to_sample, *args, **kwargs: (
             np.full(particles_to_sample, 100e-9),
             np.ones(particles_to_sample),
         ),
     )
-    monkeypatch.setattr(hiscale, "sample_particle_masses", lambda *args, **kwargs: (["BC"], np.array([1.0])))
+    monkeypatch.setattr(hiscale_helpers, "sample_particle_masses", lambda *args, **kwargs: (["BC"], np.array([1.0])))
     monkeypatch.setattr(hiscale, "assemble_population_from_mass_fractions", lambda **kwargs: _make_sample_population())
-    monkeypatch.setattr(hiscale, "mass_fraction_comparison", lambda *args, **kwargs: ({"OC": 1.0}, [True]))
-    monkeypatch.setattr(hiscale, "number_fraction_comparison", lambda *args, **kwargs: ({"BC": 1.0}, [True]))
+    monkeypatch.setattr(hiscale_helpers, "mass_fraction_comparison", lambda *args, **kwargs: ({"OC": 1.0}, [True]))
+    monkeypatch.setattr(hiscale_helpers, "number_fraction_comparison", lambda *args, **kwargs: ({"BC": 1.0}, [True]))
     cfg_bad_pref = dict(base_cfg)
     cfg_bad_pref.update(
         {
@@ -1148,7 +1149,7 @@ def test_builder_output_metadata_and_matching(tmp_path):
     try:
         monkeypatch.setattr(hiscale, "normalize_population_config", lambda c: c)
         monkeypatch.setattr(
-            hiscale,
+            hiscale_helpers,
             "_read_beasd_avg_size_dist",
             lambda **kwargs: (
                 np.array([80.0, 100.0]),
@@ -1157,9 +1158,9 @@ def test_builder_output_metadata_and_matching(tmp_path):
                 np.array([0.1, 0.1]),
             ),
         )
-        monkeypatch.setattr(hiscale, "_read_minisplat_number_fractions", lambda **kwargs: ({"BC": 1.0}, {"BC": 0.0}))
+        monkeypatch.setattr(hiscale_helpers, "_read_minisplat_number_fractions", lambda **kwargs: ({"BC": 1.0}, {"BC": 0.0}))
         monkeypatch.setattr(
-            hiscale,
+            hiscale_helpers,
             "_read_ams_mass_fractions",
             lambda **kwargs: (
                 {"OC": 1.0, "NO3": 0.0, "SO4": 0.0, "NH4": 0.0},
@@ -1168,24 +1169,24 @@ def test_builder_output_metadata_and_matching(tmp_path):
                 0.0,
             ),
         )
-        monkeypatch.setattr(hiscale, "fit_Nmodal_distribution", lambda *_args, **_kwargs: [[1.0, 1.0e-7, 1.5]])
-        monkeypatch.setattr(hiscale, "optimize_splat_species_distributions", lambda **kwargs: ({"BC": [1.0]}, 1.0))
+        monkeypatch.setattr(hiscale_helpers, "fit_Nmodal_distribution", lambda *_args, **_kwargs: [[1.0, 1.0e-7, 1.5]])
+        monkeypatch.setattr(hiscale_helpers, "optimize_splat_species_distributions", lambda **kwargs: ({"BC": [1.0]}, 1.0))
         monkeypatch.setattr(
-            hiscale,
+            hiscale_helpers,
             "sample_particle_Dp_N",
             lambda particles_to_sample, *args, **kwargs: (
                 np.full(particles_to_sample, 100e-9),
                 np.ones(particles_to_sample),
             ),
         )
-        monkeypatch.setattr(hiscale, "sample_particle_masses", lambda *args, **kwargs: (["BC"], np.array([1.0])))
+        monkeypatch.setattr(hiscale_helpers, "sample_particle_masses", lambda *args, **kwargs: (["BC"], np.array([1.0])))
         monkeypatch.setattr(
-            hiscale,
+            hiscale_helpers,
             "mass_fraction_comparison",
             lambda *args, **kwargs: ({"BC": 1.0}, [True]),
         )
         monkeypatch.setattr(
-            hiscale,
+            hiscale_helpers,
             "number_fraction_comparison",
             lambda *args, **kwargs: ({"BC": 1.0}, [True]),
         )
@@ -1216,7 +1217,7 @@ def test_builder_uses_assembly_helper_directly(monkeypatch):
 
     monkeypatch.setattr(hiscale, "normalize_population_config", lambda c: c)
     monkeypatch.setattr(
-        hiscale,
+        hiscale_helpers,
         "_read_beasd_avg_size_dist",
         lambda **kwargs: (
             np.array([80.0, 100.0]),
@@ -1225,9 +1226,9 @@ def test_builder_uses_assembly_helper_directly(monkeypatch):
             np.array([0.1, 0.1]),
         ),
     )
-    monkeypatch.setattr(hiscale, "_read_minisplat_number_fractions", lambda **kwargs: ({"BC": 1.0}, {"BC": 0.0}))
+    monkeypatch.setattr(hiscale_helpers, "_read_minisplat_number_fractions", lambda **kwargs: ({"BC": 1.0}, {"BC": 0.0}))
     monkeypatch.setattr(
-        hiscale,
+        hiscale_helpers,
         "_read_ams_mass_fractions",
         lambda **kwargs: (
             {"OC": 1.0, "NO3": 0.0, "SO4": 0.0, "NH4": 0.0},
@@ -1236,19 +1237,19 @@ def test_builder_uses_assembly_helper_directly(monkeypatch):
             0.0,
         ),
     )
-    monkeypatch.setattr(hiscale, "fit_Nmodal_distribution", lambda *_args, **_kwargs: [[1.0, 1.0e-7, 1.5]])
-    monkeypatch.setattr(hiscale, "optimize_splat_species_distributions", lambda **kwargs: ({"BC": [1.0]}, 1.0))
+    monkeypatch.setattr(hiscale_helpers, "fit_Nmodal_distribution", lambda *_args, **_kwargs: [[1.0, 1.0e-7, 1.5]])
+    monkeypatch.setattr(hiscale_helpers, "optimize_splat_species_distributions", lambda **kwargs: ({"BC": [1.0]}, 1.0))
     monkeypatch.setattr(
-        hiscale,
+        hiscale_helpers,
         "sample_particle_Dp_N",
         lambda particles_to_sample, *args, **kwargs: (
             np.full(particles_to_sample, 100e-9),
             np.ones(particles_to_sample),
         ),
     )
-    monkeypatch.setattr(hiscale, "sample_particle_masses", lambda *args, **kwargs: (["BC"], np.array([1.0])))
-    monkeypatch.setattr(hiscale, "mass_fraction_comparison", lambda *args, **kwargs: ({"BC": 1.0}, [True]))
-    monkeypatch.setattr(hiscale, "number_fraction_comparison", lambda *args, **kwargs: ({"BC": 1.0}, [True]))
+    monkeypatch.setattr(hiscale_helpers, "sample_particle_masses", lambda *args, **kwargs: (["BC"], np.array([1.0])))
+    monkeypatch.setattr(hiscale_helpers, "mass_fraction_comparison", lambda *args, **kwargs: ({"BC": 1.0}, [True]))
+    monkeypatch.setattr(hiscale_helpers, "number_fraction_comparison", lambda *args, **kwargs: ({"BC": 1.0}, [True]))
 
     captured = {}
 
