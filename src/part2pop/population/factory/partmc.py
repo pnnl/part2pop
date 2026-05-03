@@ -15,6 +15,41 @@ from pathlib import Path
 from .registry import register
 
 
+def _load_particle_rows(currnc):
+    aero_spec_names = currnc.variables["aero_species"].names.split(",")
+    spec_masses = np.array(currnc.variables["aero_particle_mass"][:])
+    part_ids = np.array([one_id for one_id in currnc.variables["aero_id"][:]], dtype=int)
+
+    if "aero_num_conc" in currnc.variables.keys():
+        num_concs = currnc.variables["aero_num_conc"][:]
+    else:
+        num_concs = 1.0 / currnc.variables["aero_comp_vol"][:]
+
+    return aero_spec_names, spec_masses, part_ids, num_concs
+
+
+def _select_particle_indices(part_ids, n_particles):
+    if n_particles is None:
+        return np.arange(len(part_ids))
+    if n_particles <= len(part_ids):
+        return np.random.choice(np.arange(len(part_ids)), size=n_particles, replace=False)
+    raise IndexError("n_particles > len(part_ids)")
+
+
+def _resolve_target_total_number(num_concs, N_tot):
+    if N_tot is None:
+        return np.sum(num_concs)
+    return N_tot
+
+
+def _rescale_selected_number_concentrations(num_concs, idx, N_tot):
+    return num_concs[idx] * N_tot / np.sum(num_concs[idx])
+
+
+def _extract_gas_mixing_ratios(currnc):
+    return np.array(currnc.variables["gas_mixing_ratio"][:])
+
+
 @register("partmc") # only registers if netCDF4 is available
 def build(config):
     partmc_dir = Path(config['partmc_dir'])
@@ -30,29 +65,16 @@ def build(config):
     partmc_filepath = get_ncfile(partmc_dir / 'out', timestep, repeat)
     currnc = netCDF4.Dataset(partmc_filepath)
 
-    aero_spec_names = currnc.variables['aero_species'].names.split(',')
+    aero_spec_names, spec_masses, part_ids, num_concs = _load_particle_rows(currnc)
     # Get AerosolSpecies objects with modifications if any
     species_list = tuple(
         get_species(name, specdata_path, **species_modifications.get(name, {}))
         for name in aero_spec_names
     )
-    spec_masses = np.array(currnc.variables['aero_particle_mass'][:])
-    part_ids = np.array([one_id for one_id in currnc.variables['aero_id'][:]], dtype=int)
 
-    if 'aero_num_conc' in currnc.variables.keys():
-        num_concs = currnc.variables['aero_num_conc'][:]
-    else:
-        num_concs = 1. / currnc.variables['aero_comp_vol'][:]
-
-    if N_tot is None:
-        N_tot = np.sum(num_concs)
-
-    if n_particles is None:
-        idx = np.arange(len(part_ids))
-    elif n_particles <= len(part_ids):
-        idx = np.random.choice(np.arange(len(part_ids)), size=n_particles, replace=False)
-    else:
-        raise IndexError('n_particles > len(part_ids)')
+    N_tot = _resolve_target_total_number(num_concs, N_tot)
+    idx = _select_particle_indices(part_ids, n_particles)
+    num_concs_selected = _rescale_selected_number_concentrations(num_concs, idx, N_tot)
 
     partmc_population = ParticlePopulation(
         species=species_list,
@@ -67,12 +89,11 @@ def build(config):
             spec_masses[:, ii],
             species_modifications=species_modifications,
         )
-        partmc_population.set_particle(
-            particle, part_ids[ii], num_concs[ii] * N_tot / np.sum(num_concs[idx]), suppress_warning=suppress_warning
-        )
+        selected_position = np.where(idx == ii)[0][0]
+        partmc_population.set_particle(particle, part_ids[ii], num_concs_selected[selected_position], suppress_warning=suppress_warning)
 
     if add_mixing_ratios:
-        gas_mixing_ratios = np.array(currnc.variables['gas_mixing_ratio'][:])
+        gas_mixing_ratios = _extract_gas_mixing_ratios(currnc)
         partmc_population.gas_mixing_ratios = gas_mixing_ratios
     return partmc_population
 
