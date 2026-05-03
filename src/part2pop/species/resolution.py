@@ -64,3 +64,10 @@ def resolve_species_names(
 ) -> list[str]:
     """Resolve a sequence of source labels in order."""
     return [resolve_species_name(name, aliases=aliases) for name in names]
+
+
+def resolve_species_name_rows(
+    name_rows: Sequence[Sequence[str]], aliases: Mapping[str, str] | None = None
+) -> list[list[str]]:
+    """Resolve a nested sequence of source labels while preserving shape/order."""
+    return [resolve_species_names(row, aliases=aliases) for row in name_rows]
