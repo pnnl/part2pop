@@ -1,4 +1,5 @@
 from part2pop.species import resolve_species_name, resolve_species_names
+from part2pop.species.resolution import resolve_species_name_rows
 
 
 def test_default_aliases_resolve_expected_labels():
@@ -36,3 +37,17 @@ def test_user_aliases_override_defaults_for_single_call():
 def test_resolve_species_names_resolves_sequence_in_order():
     resolved = resolve_species_names(["Dust", "soot", "SO4", "black_carbon"])
     assert resolved == ["OIN", "BC", "SO4", "BC"]
+
+
+def test_resolve_species_name_rows_resolves_nested_rows_preserving_order_and_shape():
+    rows = [["Dust", "SO4"], ["soot", "Org", "NH4"]]
+    resolved = resolve_species_name_rows(rows)
+    assert resolved == [["OIN", "SO4"], ["BC", "OC", "NH4"]]
+    assert len(resolved) == len(rows)
+    assert [len(r) for r in resolved] == [len(r) for r in rows]
+
+
+def test_resolve_species_name_rows_canonical_and_alias_mixed_and_duplicates_preserved():
+    rows = [["BC", "black carbon", "BC"], ["OC", "poa", "SO4"]]
+    resolved = resolve_species_name_rows(rows)
+    assert resolved == [["BC", "BC", "BC"], ["OC", "OC", "SO4"]]

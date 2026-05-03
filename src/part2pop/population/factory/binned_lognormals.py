@@ -9,6 +9,7 @@ from ..base import ParticlePopulation
 from ..utils import expand_compounds_for_population, normalize_population_config
 from part2pop import make_particle
 from part2pop.species.registry import get_species
+from part2pop.species.resolution import resolve_species_name_rows
 from .registry import register
 from scipy.stats import norm
 import numpy as np
@@ -51,7 +52,7 @@ def build(config):
         if not (global_D_min > 0 and global_D_max > 0 and global_D_min < global_D_max):
             raise ValueError("D_min and D_max must be positive and D_min < D_max.")
     
-    aero_spec_names_list = config['aero_spec_names']
+    aero_spec_names_list = resolve_species_name_rows(config['aero_spec_names'])
     aero_spec_fracs_list = config['aero_spec_fracs']
     # Support compound-like species names (e.g., NaCl, (NH4)2SO4)
     # aero_spec_names_list, aero_spec_fracs_list = expand_compounds_for_population(

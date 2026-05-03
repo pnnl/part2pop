@@ -9,13 +9,14 @@ from ..base import ParticlePopulation
 from ..utils import normalize_population_config
 from part2pop import make_particle
 from part2pop.species.registry import get_species
+from part2pop.species.resolution import resolve_species_name_rows
 import numpy as np
 from .registry import register
 
 @register("monodisperse")
 def build(config):
     config = normalize_population_config(config)
-    aero_spec_names = config['aero_spec_names']
+    aero_spec_names = resolve_species_name_rows(config['aero_spec_names'])
     species_modifications = config.get('species_modifications', {})
     N = config['N']
     D = config['D']
