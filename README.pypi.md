@@ -21,10 +21,12 @@ Optional external packages, including `PyMieScatt`, `pyBCabs`, and `netCDF4`, ar
 ## Installation
 
 ```bash
+# After the 1.0.0 release is published on PyPI:
 pip install part2pop
-````
+```
 
-For development:
+For reviewers/users who need the current repository state before (or independent of)
+the PyPI 1.0.0 release, install from source:
 
 ```bash
 git clone https://github.com/pnnl/part2pop.git
@@ -62,7 +64,7 @@ For a source checkout, run:
 
 ```bash
 pip install -e .
-streamlit run scripts/launch_viewer.py
+streamlit run launch_viewer.py
 ```
 
 The viewer source lives under `viewer/`. The sidebar lists registered population and plot types; choose a population and visualization workflow, adjust the metadata-driven controls, and render figures and diagnostics interactively.

@@ -2,7 +2,6 @@
 
 import numpy as np
 import pytest
-from numpy.exceptions import AxisError
 from types import SimpleNamespace
 
 from part2pop.population.base import ParticlePopulation
@@ -255,92 +254,20 @@ def _build_multi_particle_population():
 
 def test_reduce_mixing_state_part_res_is_noop():
     pop = _build_multi_particle_population()
-    with pytest.raises(TypeError):
+    with pytest.raises(NotImplementedError, match="intentionally unsupported"):
         pop.reduce_mixing_state(mixing_state="part_res", RH=0.5, T=298.0)
 
 
 def test_reduce_mixing_state_mam4_branch(monkeypatch):
     pop = _build_multi_particle_population()
-    with pytest.raises(AxisError):
+    with pytest.raises(NotImplementedError, match="intentionally unsupported"):
         pop.reduce_mixing_state(mixing_state="MAM4sameDryMass", RH=0.5, T=298.0)
 
 
 def test_reduce_mixing_state_mam5_branch(monkeypatch):
     pop = _build_multi_particle_population()
-    with pytest.raises(TypeError):
+    with pytest.raises(NotImplementedError, match="intentionally unsupported"):
         pop.reduce_mixing_state(mixing_state="MAM5sameBC", RH=0.5, T=298.0)
-
-
-class _ReduceParticle:
-    def __init__(self, species, masses):
-        self.species = species
-        arr = np.asarray(masses, dtype=float)
-        self.spec_masses = arr[:, 0].copy() if arr.ndim == 2 else arr.copy()
-
-    def get_Dwet(self, **kwargs):
-        return 2.0
-
-    def get_Ddry(self):
-        return 1.0
-
-    def idx_h2o(self):
-        for i, spec in enumerate(self.species):
-            if spec.name == "H2O":
-                return i
-        return 0
-
-
-def test_reduce_mixing_state_reaches_loop_body_for_mam4_samebc(monkeypatch):
-    monkeypatch.setattr("part2pop.population.base.Particle", _ReduceParticle)
-
-    species = [
-        SimpleNamespace(name="BC"),
-        SimpleNamespace(name="BC"),
-        SimpleNamespace(name="H2O"),
-    ]
-    # 3D shape chosen to satisfy advanced indexing in sameBC branch
-    spec_masses = np.array(
-        [
-            [[1.0, 2.0], [1.5, 2.5], [0.1, 0.2]],
-            [[1.2, 2.2], [1.7, 2.7], [0.1, 0.2]],
-        ],
-        dtype=float,
-    )
-    pop = ParticlePopulation(
-        species=species,
-        spec_masses=spec_masses,
-        num_concs=np.array([1.0, 2.0]),
-        ids=np.array([10, 20]),
-    )
-
-    with pytest.raises(AttributeError, match="num_conc"):
-        pop.reduce_mixing_state(mixing_state="MAM4sameBC", RH=0.5, T=298.0)
-
-
-def test_reduce_mixing_state_same_dry_mass_hits_normalized_by(monkeypatch):
-    monkeypatch.setattr("part2pop.population.base.Particle", _ReduceParticle)
-
-    species = [
-        SimpleNamespace(name="BC"),
-        SimpleNamespace(name="BC"),
-        SimpleNamespace(name="H2O"),
-    ]
-    spec_masses = np.array(
-        [
-            [[1.0, 2.0], [1.5, 2.5], [0.1, 0.2]],
-            [[1.2, 2.2], [1.7, 2.7], [0.1, 0.2]],
-        ],
-        dtype=float,
-    )
-    pop = ParticlePopulation(
-        species=species,
-        spec_masses=spec_masses,
-        num_concs=np.array([1.0, 2.0]),
-        ids=np.array([10, 20]),
-    )
-
-    with pytest.raises(AttributeError, match="num_conc"):
-        pop.reduce_mixing_state(mixing_state="MAM4sameDryMass", RH=0.5, T=298.0)
 
 
 def test_clone_detached_copies_arrays():
@@ -373,7 +300,7 @@ def test_tot_dry_mass_and_reduce_mixing_state():
         num_concs=np.array([1.0, 1.0]),
         ids=[1, 2],
     )
-    with pytest.raises(AxisError):
+    with pytest.raises(NotImplementedError, match="intentionally unsupported"):
         multi.reduce_mixing_state(mixing_state="MAM4sameDryMass", RH=0.5, T=290.0)
 
 def test_particle_equilibration_updates_h2o_mass():

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from importlib.metadata import PackageNotFoundError, version as _pkg_version
+
 import os
 from pathlib import Path
 from importlib.resources import files, as_file
@@ -87,3 +89,8 @@ from .population.base import ParticlePopulation
 from .population import build_population
 
 from .optics.builder import build_optical_particle, build_optical_population
+
+try:
+    __version__ = _pkg_version("part2pop")
+except PackageNotFoundError:
+    __version__ = "1.0.0"
