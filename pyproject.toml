@@ -9,7 +9,8 @@ version = "1.0.0"
 description = "A unified analysis framework for standardizing aerosol populations from models, observations, and parameterizations."
 readme = { file = "README.pypi.md", content-type = "text/markdown" }
 requires-python = ">=3.10"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 
 authors = [
   { name = "Laura Fierce" },
@@ -29,7 +30,6 @@ keywords = [
 
 classifiers = [
   "Intended Audience :: Science/Research",
-  "License :: OSI Approved :: MIT License",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
@@ -62,15 +62,6 @@ test = [
   "pytest-cov>=4",
 ]
 
-# You can expand this later if you want separate "dev", "docs", etc.
-# dev = [
-#   "pytest>=7",
-#   "pytest-cov>=4",
-#   "flake8",
-#   "black",
-#   "isort",
-# ]
-
 
 [project.urls]
 Homepage = "https://github.com/pnnl/part2pop"
@@ -89,4 +80,3 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
-
