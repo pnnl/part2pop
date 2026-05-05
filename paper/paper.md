@@ -18,7 +18,6 @@ affiliations:
     index: 1
 bibliography: paper.bib
 link-citations: true
-fig-pos: tbp
 ---
 
 # Summary
