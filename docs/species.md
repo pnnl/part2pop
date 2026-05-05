@@ -61,6 +61,13 @@ print(describe_species("MY_SPEC"))
 - `get_species(..., specdata_path=...)` can point to an alternate species data folder.
 - If `specdata_path` is `None`, package default data is used.
 
+## Species-name alias resolution
+
+- Canonical species names remain the internal basis for species lookup and population assembly.
+- Direct species-list builders currently resolve common aliases before species lookup.
+- Current scope includes `monodisperse` and `binned_lognormals`.
+- Alias resolution applies to species-name strings and does not operate on already-constructed `AerosolSpecies` objects.
+
 ## What not to do / deferred work
 
 - Do not introduce a new species metadata schema in this phase.

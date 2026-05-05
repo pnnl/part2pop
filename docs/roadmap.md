@@ -7,8 +7,7 @@
 - This roadmap is intentionally **not** a source-code refactor PR.
 - It records:
   - completed JOSS-prep work,
-  - active Phase 2 cleanup work,
-  - deferred architecture work,
+  - completed and deferred builder-architecture work,
   - future-facing wishlist items.
 
 ## Maintenance note
@@ -104,7 +103,7 @@ Deferred work is tracked below rather than being mixed into the release-stabiliz
 
 ---
 
-## Active Phase 2 — population builder cleanup
+## Population builder cleanup status (post-Phase-2 implementation pass)
 
 Phase 2 focuses on cleaning up population-builder architecture, especially observation- and model-derived builders, while preserving public APIs.
 
@@ -143,11 +142,11 @@ population/
       model_translation.py
 ```
 
-### Current active task: HISCALE explicit-row assembly
+### Completed implementation outcomes
 
-Goal:
+Completed:
 
-* Add and stabilize an internal helper:
+* Internal helper added/stabilized:
 
 ```text
 src/part2pop/population/factory/helpers/assembly.py
@@ -171,7 +170,7 @@ ParticlePopulation.spec_masses: 2D, shape (n_particles, n_species)
 ParticlePopulation.num_concs: 1D, shape (n_particles,)
 ```
 
-Current design decision:
+Implemented design:
 
 * `hiscale_observations` should **not** route explicit particle rows through `monodisperse`.
 * `hiscale_observations` should call the internal assembly helper directly once it has produced:
@@ -181,14 +180,14 @@ Current design decision:
   * `aero_spec_names`
   * `aero_spec_fracs`
 
-Current bug under diagnosis:
+Resolved shape-regression target:
 
 ```text
 ParticlePopulation.spec_masses becomes shape (1000, 1, 3)
 Expected shape is (1000, 3)
 ```
 
-Immediate rule:
+Outcome:
 
 * Diagnose with targeted shape instrumentation before patching.
 * Do not blindly change:
@@ -198,7 +197,7 @@ Immediate rule:
   * `ParticlePopulation`
   * `population/base.py`
 
-### Observation-based builder refactor
+### Observation-based builders
 
 Builders:
 
@@ -218,13 +217,13 @@ reader
 
 Current status:
 
-* HISCALE direct-to-assembler wiring is active.
-* Full HISCALE reader/selector/reconstruction split is deferred.
-* EDX direct-to-assembler cleanup is a likely next Phase 2 follow-up.
+* HISCALE direct-to-assembler wiring is in place.
+* EDX/HISCALE helper-layer cleanup/splitting is in place for current release scope.
+* Additional EDX elemental-to-species reconstruction clarification remains a follow-up item.
 
 ### Shared assembly and metadata improvements
 
-Active/near-term:
+Completed/near-term:
 
 * Add shared population assembly helper.
 * Add focused tests for helper shape contracts.
@@ -274,7 +273,7 @@ Important boundary:
 * The assembler should primarily assemble already-resolved species rows.
 * Builder-specific source labels should be resolved upstream of assembly.
 
-### Model-derived builder cleanup
+### Model-derived builders
 
 Builders:
 
@@ -291,7 +290,10 @@ model-native representation
 → shared population assembly
 ```
 
-Deferred questions:
+Current status / deferred questions:
+
+* `partmc` row-preparation cleanup was completed in place.
+* `mam4` was inspected and remains intentionally thin because it delegates to `binned_lognormals`.
 
 * What belongs in `part2pop`?
 * What belongs in AMBRS?
