@@ -25,7 +25,7 @@ jobs:
             --volume "$PWD/paper:/data" \
             --user "$(id -u):$(id -g)" \
             --env JOURNAL=joss \
-            openjournals/inara
+            openjournals/inara:1.0.0
 
       - name: Commit updated paper PDF
         run: |
