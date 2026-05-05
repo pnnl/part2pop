@@ -5,7 +5,7 @@
 
 A unified analysis framework for standardizing aerosol populations from models, observations, and parameterizations.
 
-`part2pop` is a lightweight Python library that provides a standardized representation of aerosol particles and populations. By translating model-derived, observation-constrained, and parameterized population descriptions into a common particle-population interface, `part2pop` lets particle-level process models and diagnostics be applied consistently across data sources. Its modular, registry-based architecture supports extensible population builders, reusable analyses, and AI-assisted development workflows.
+`part2pop` is a lightweight Python library that provides a standardized representation of aerosol particles and populations. By translating model-derived, observation-constrained, and parameterized population descriptions into a common particle-population interface, particle-level process models and diagnostics can be applied consistently across data sources. Its modular, registry-based architecture supports extensible population builders, reusable analyses, and AI-assisted development workflows.
 
 ## Features
 
