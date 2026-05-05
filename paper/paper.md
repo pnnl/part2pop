@@ -18,9 +18,7 @@ affiliations:
     index: 1
 bibliography: paper.bib
 link-citations: true
-header-includes:
-  - \usepackage{float}
-  - \usepackage{placeins}
+fig-pos: tbp
 ---
 
 # Summary
