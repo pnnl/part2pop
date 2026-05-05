@@ -24,16 +24,16 @@
 
 ## Builder categories
 
-- Distribution builders (current Priority 1 baseline):
+- Direct species-list / distribution builders:
   - `monodisperse`
   - `binned_lognormals`
   - `sampled_lognormals`
-- Observation-constrained builders (deeper refactor deferred to Priority 2):
-  - `EDX`
-  - `HISCALE`
-- Model-derived builders (cleanup deferred to Priority 2):
-  - `PartMC`
-  - `MAM4`
+- Observation-based builders:
+  - `edx_observations`
+  - `hiscale_observations`
+- Model-derived builders:
+  - `partmc`
+  - `mam4`
 
 ## How to add a new extension
 
@@ -47,7 +47,8 @@
 
 - Location: `src/part2pop/population/factory/`
 - Pattern: one builder per module, lowercase filename, no leading `_`.
-- Large builders may keep internal support code in:
+- Simple builders can remain self-contained in a single factory module.
+- Larger builders may keep internal support code in:
   - `src/part2pop/population/factory/helpers/`
 - `helpers/` is internal and is **not** a builder plugin location.
 

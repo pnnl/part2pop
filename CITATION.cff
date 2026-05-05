@@ -1,10 +1,16 @@
 cff-version: 1.2.0
-title: part2pop
-message: "Please cite part2pop if you use it in your research."
+title: "part2pop"
+message: "Please cite both the part2pop JOSS paper and the archived Zenodo software release for the version used in your research."
+type: software
 authors:
   - family-names: Fierce
     given-names: Laura
-# fixme: add zenodo ID
-doi: 10.5281/zenodo.xxxxxxx 
+    orcid: "https://orcid.org/0000-0002-8682-1453"
+  - family-names: Beeler
+    given-names: Payton
+    orcid: "https://orcid.org/0000-0003-4759-1461"
+version: "1.0.0"
+repository-code: "https://github.com/pnnl/part2pop"
+license: MIT
 
 

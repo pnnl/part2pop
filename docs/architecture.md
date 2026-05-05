@@ -58,8 +58,11 @@ Related module families:
 - Document extension points and contracts.
 - Expand public API and registry tests.
 
-### Explicitly deferred (Priority 2)
+### Current status and deferred follow-up
 
-- Observation-based builder internal refactors (`EDX`, `HISCALE`).
-- Model-derived builder cleanup (`PartMC`, `MAM4`).
-- Deeper reconstruction-strategy and translator architecture work.
+- Observation-based builders (`edx_observations`, `hiscale_observations`) now include helper-layer cleanup/splitting in place.
+- Model-derived builders:
+  - `partmc` row-preparation cleanup was completed in place.
+  - `mam4` remains intentionally thin and delegates to `binned_lognormals`.
+- Species-name alias resolution currently applies to direct species-list builders `monodisperse` and `binned_lognormals`.
+- EDX elemental-to-species reconstruction clarification remains a follow-up issue and is not part of JOSS release finalization.
