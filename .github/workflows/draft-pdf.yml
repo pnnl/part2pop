@@ -1,24 +1,43 @@
-name: Draft PDF
-on: [push]
+name: Build draft JOSS PDF
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+    paths:
+      - "paper/**"
+      - ".github/workflows/draft-pdf.yml"
+
+permissions:
+  contents: write
 
 jobs:
-  paper:
+  build-draft-pdf:
     runs-on: ubuntu-latest
-    name: Paper Draft
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Build draft PDF
-        uses: openjournals/openjournals-draft-action@master
-        with:
-          journal: joss
-          # This should be the path to the paper within your repo.
-          paper-path: paper/paper.md
-      - name: Upload
-        uses: actions/upload-artifact@v4
-        with:
-          name: paper
-          # This is the output path where Pandoc will write the compiled
-          # PDF. Note, this should be the same directory as the input
-          # paper.md
-          path: paper/paper.pdf
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Build paper PDF
+        run: |
+          docker run --rm \
+            --volume "$PWD/paper:/data" \
+            --user "$(id -u):$(id -g)" \
+            --env JOURNAL=joss \
+            openjournals/inara
+
+      - name: Commit updated paper PDF
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add paper/paper.pdf
+
+          if git diff --cached --quiet; then
+            echo "No paper PDF changes to commit."
+            exit 0
+          fi
+
+          git commit -m "docs: update draft JOSS paper PDF"
+          git push
