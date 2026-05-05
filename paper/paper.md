@@ -18,7 +18,6 @@ affiliations:
     index: 1
 bibliography: paper.bib
 link-citations: true
-fig-pos: tbp
 ---
 
 # Summary
@@ -40,13 +39,13 @@ Existing software in aerosol science typically focuses on either source-specific
 `part2pop` complements rather than duplicates these tools. Its distinct contribution is a shared representation layer that standardizes heterogeneous aerosol populations and enables the same downstream diagnostics to be applied across them.
 
 # Software design
-![Overview of the config-driven architecture in `part2pop`. User-defined configuration files are processed by builder modules to construct standardized particle populations and derived analysis variables. Particle- and population-level diagnostics are then computed from these shared representations.\label{fig:overview}](overview_flowchart.png)
-
 `part2pop` adopts a config-driven architecture centered on a small set of core data structures and registry-discovered builders (Figure \ref{fig:overview}). The primary structures are `AerosolSpecies`, `Particle`, and `ParticlePopulation`. `AerosolSpecies` defines intrinsic species properties such as density, molar mass, hygroscopicity, and surface-tension defaults, with optional overrides applied at build time. `ParticlePopulation` stores a species list, species-resolved particle masses, number concentrations, and particle identifiers. Individual particles are accessed and modified through the population interface. Together, these structures define a unified internal representation of aerosol composition, size, and abundance across heterogeneous sources.
 
 The core representation is mass-based. This is a deliberate design trade-off: it is general enough to accommodate heterogeneous population sources while remaining simple enough to support consistent derived-property calculations. Population construction is handled by `PopulationBuilder` using configuration dictionaries (`population_cfg`), and diagnostic construction is handled by `VariableBuilder` using `var_cfg`. Both rely on registry-backed factory discovery, so new population builders and diagnostic modules can be added without modifying the core classes.
 
 Current population types include model-derived populations from the Particle Monte Carlo model (`partmc`) and the four-mode Modal Aerosol Module (`mam4`) [@Riemer2009_JGR_PartMC; @Liu2016_GMD_MAM4], parameterized populations such as `monodisperse`, `binned_lognormals`, and `sampled_lognormals`, and observation-based populations such as `hiscale_observations` and `edx_observations`. The `hiscale_observations` builder reconstructs populations from complementary measurements collected during the HI-SCALE field campaign [@Fast2019_BAMS_HISCALE], including Fast Integrated Mobility Spectrometer (FIMS) size distributions, Aircraft-Integrated Meteorological Measurement System (AIMMS) aircraft-state data, miniSPLAT single-particle mass-spectrometer composition classes, and Aerosol Mass Spectrometer (AMS) bulk-composition constraints [@Wang2017_JAS_FIMS1; @Wang2017_JAS_FIMS2; @Beswick2008_ACP_AIMMS20AQ; @Zelenyuk2015_JASMS_miniSPLAT; @Jayne2000_AST_AMS; @DeCarlo2006_AnalChem_HRToFAMS]. The `edx_observations` builder reconstructs populations from particle size, class, and elemental-composition measurements collected on substrates using the Size and Time-Resolved Aerosol Collector (STAC) and analyzed using scanning electron microscopy with energy-dispersive X-ray spectroscopy (SEM-EDX) or high-resolution focused ion beam/scanning electron microscopy (FIB/SEM) chemical imaging [@Cheng2022_STAC; @Krueger2003_SEM_EDX; @Chen2013_FIB_SEM_EDX]. STAC has been demonstrated for vertical aerosol sampling on the Atmospheric Radiation Measurement (ARM) user facility Tethered Balloon System (TBS) [@Cheng2022_STAC].
+
+![Overview of the config-driven architecture in `part2pop`. User-defined configuration files are processed by builder modules to construct standardized particle populations and derived analysis variables. Particle- and population-level diagnostics are then computed from these shared representations.\label{fig:overview}](overview_flowchart.png)
 
 Process-specific extensions such as `OpticalPopulation` and `FreezingPopulation` wrap the same base population representation rather than reimplementing population logic. This allows optical and freezing calculations to reuse the same underlying particle and population definitions while interfacing with established frameworks such as $\kappa$-Köhler theory and Mie scattering implementations [@Petters2007_ACP; @PyMieScatt; @AlpertKnopf2016_ACP]. A visualization module and optional graphical viewer support exploratory analysis.
 
