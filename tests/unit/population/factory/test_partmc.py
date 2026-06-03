@@ -11,6 +11,10 @@ try:
         build as build_partmc,
         map_camp_specs,
         get_ncfile,
+        _load_particle_rows,
+        _select_particle_indices,
+        _resolve_target_total_number,
+        _rescale_selected_number_concentrations,
     )
     HAS_NETCDF4 = True
 except Exception:
@@ -18,6 +22,10 @@ except Exception:
     build_partmc = None
     map_camp_specs = None
     get_ncfile = None
+    _load_particle_rows = None
+    _select_particle_indices = None
+    _resolve_target_total_number = None
+    _rescale_selected_number_concentrations = None
     HAS_NETCDF4 = False
 
 pytestmark = pytest.mark.skipif(
@@ -202,3 +210,86 @@ def test_partmc_build_adds_mixing_ratios(tmp_path):
         }
     )
     assert hasattr(pop, "gas_mixing_ratios")
+
+
+def test_load_particle_rows_uses_aero_num_conc_when_present(tmp_path):
+    _, fname = _create_partmc_nc(tmp_path, n_particles=3)
+    with netCDF4.Dataset(str(fname), "a") as ds:
+        num_conc = ds.createVariable("aero_num_conc", "f8", ("particle",))
+        num_conc[:] = np.array([11.0, 13.0, 17.0])
+        ds.variables["aero_comp_vol"][:] = np.array([2.0, 4.0, 8.0])
+
+    with netCDF4.Dataset(str(fname), "r") as ds:
+        _, _, _, num_concs = _load_particle_rows(ds)
+
+    assert np.allclose(np.array(num_concs), np.array([11.0, 13.0, 17.0]))
+
+
+def test_load_particle_rows_falls_back_to_inverse_aero_comp_vol_when_num_conc_missing(tmp_path):
+    _, fname = _create_partmc_nc(tmp_path, n_particles=3)
+    with netCDF4.Dataset(str(fname), "a") as ds:
+        ds.variables["aero_comp_vol"][:] = np.array([2.0, 4.0, 8.0])
+
+    with netCDF4.Dataset(str(fname), "r") as ds:
+        _, _, _, num_concs = _load_particle_rows(ds)
+
+    assert np.allclose(np.array(num_concs), np.array([0.5, 0.25, 0.125]))
+
+
+def test_select_particle_indices_none_returns_full_arange():
+    part_ids = np.array([10, 20, 30, 40], dtype=int)
+    idx = _select_particle_indices(part_ids, n_particles=None)
+    assert np.array_equal(idx, np.arange(len(part_ids)))
+
+
+def test_select_particle_indices_controlled_choice(monkeypatch):
+    part_ids = np.array([10, 20, 30, 40], dtype=int)
+    controlled = np.array([3, 1], dtype=int)
+
+    monkeypatch.setattr(
+        "part2pop.population.factory.partmc.np.random.choice",
+        lambda arr, size, replace: controlled,
+    )
+
+    idx = _select_particle_indices(part_ids, n_particles=2)
+    assert np.array_equal(idx, controlled)
+
+
+def test_resolve_target_total_number_defaults_to_sum():
+    num_concs = np.array([1.5, 2.5, 4.0])
+    resolved = _resolve_target_total_number(num_concs, N_tot=None)
+    assert np.isclose(resolved, np.sum(num_concs))
+
+
+def test_resolve_target_total_number_uses_explicit_value():
+    num_concs = np.array([1.5, 2.5, 4.0])
+    resolved = _resolve_target_total_number(num_concs, N_tot=123.0)
+    assert resolved == 123.0
+
+
+def test_rescale_selected_number_concentrations_preserves_selected_fractions_and_hits_target():
+    num_concs = np.array([2.0, 5.0, 3.0, 10.0])
+    idx = np.array([0, 2, 3], dtype=int)
+    N_tot_target = 60.0
+
+    rescaled = _rescale_selected_number_concentrations(num_concs, idx, N_tot_target)
+    selected = num_concs[idx]
+
+    assert np.isclose(np.sum(rescaled), N_tot_target)
+    assert np.isclose(rescaled[0] / rescaled[1], selected[0] / selected[1])
+    assert np.isclose(rescaled[1] / rescaled[2], selected[1] / selected[2])
+
+
+def test_partmc_build_without_mixing_ratios_leaves_attribute_unset(tmp_path):
+    partmc_dir, _ = _create_partmc_nc(tmp_path, n_particles=3)
+    pop = build_partmc(
+        {
+            "partmc_dir": str(tmp_path),
+            "timestep": 1,
+            "repeat": 1,
+            "N_tot": 1e6,
+            "n_particles": 2,
+            "add_mixing_ratios": False,
+        }
+    )
+    assert not hasattr(pop, "gas_mixing_ratios")

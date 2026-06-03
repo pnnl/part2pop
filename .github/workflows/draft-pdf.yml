@@ -1,0 +1,43 @@
+name: Build draft JOSS PDF
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+    paths:
+      - "paper/**"
+      - ".github/workflows/draft-pdf.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  build-draft-pdf:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Build paper PDF
+        run: |
+          docker run --rm \
+            --volume "$PWD/paper:/data" \
+            --user "$(id -u):$(id -g)" \
+            --env JOURNAL=joss \
+            openjournals/inara:1.0.0
+
+      - name: Commit updated paper PDF
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add paper/paper.pdf
+
+          if git diff --cached --quiet; then
+            echo "No paper PDF changes to commit."
+            exit 0
+          fi
+
+          git commit -m "docs: update draft JOSS paper PDF"
+          git push

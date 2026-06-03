@@ -119,3 +119,33 @@ def test_binned_lognormals_accepts_stringy_numbers():
 
     N_tot = float(pop.get_Ntot())
     assert np.isclose(N_tot, 1e8, rtol=0.02)
+
+
+def test_binned_lognormals_resolves_alias_species_names_to_canonical_species_names():
+    alias_cfg = {
+        "type": "binned_lognormals",
+        "GMD": [0.05e-6, 0.15e-6],
+        "GSD": [1.4, 1.7],
+        "N": [5e7, 2e8],
+        "N_bins": [20, 30],
+        "aero_spec_names": [["dust", "soot"], ["org", "SO4"]],
+        "aero_spec_fracs": [[0.4, 0.6], [0.7, 0.3]],
+    }
+    canonical_cfg = {
+        "type": "binned_lognormals",
+        "GMD": [0.05e-6, 0.15e-6],
+        "GSD": [1.4, 1.7],
+        "N": [5e7, 2e8],
+        "N_bins": [20, 30],
+        "aero_spec_names": [["OIN", "BC"], ["OC", "SO4"]],
+        "aero_spec_fracs": [[0.4, 0.6], [0.7, 0.3]],
+    }
+
+    alias_pop = build_population(alias_cfg)
+    canonical_pop = build_population(canonical_cfg)
+
+    alias_names = [sp.name for sp in alias_pop.species]
+    canonical_names = [sp.name for sp in canonical_pop.species]
+    assert alias_names == canonical_names
+    assert alias_names[:4] == ["OIN", "BC", "OC", "SO4"]
+    assert np.isclose(float(alias_pop.get_Ntot()), float(canonical_pop.get_Ntot()), rtol=0.02)

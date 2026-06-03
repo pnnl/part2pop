@@ -27,7 +27,8 @@ class FreezingParticleBuilder:
             raise ValueError("Config must include a 'morphology' key.")
         types = discover_morphology_types()
         if type_name not in types:
-            raise ValueError(f"Unknown freezing morphology type: {type_name}")
+            available = ", ".join(sorted(types.keys())) or "<none>"
+            raise ValueError(f"Unknown freezing morphology type: {type_name}. Available types: {available}")
         cls_or_factory = types[type_name]
         # Expect a class or callable that accepts (base_particle, config)
         return cls_or_factory(base_particle, self.config)

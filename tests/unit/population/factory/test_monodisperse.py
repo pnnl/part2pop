@@ -74,3 +74,29 @@ def test_monodisperse_accepts_stringy_numbers():
 
     assert len(pop.ids) == 1
     assert np.isclose(pop.get_Ntot(), 3.0)
+
+
+def test_monodisperse_resolves_alias_species_names_to_canonical_species_names():
+    alias_cfg = {
+        "type": "monodisperse",
+        "aero_spec_names": [["dust", "soot", "org"]],
+        "N": [2.0],
+        "D": [1e-7],
+        "aero_spec_fracs": [[0.2, 0.3, 0.5]],
+    }
+    canonical_cfg = {
+        "type": "monodisperse",
+        "aero_spec_names": [["OIN", "BC", "OC"]],
+        "N": [2.0],
+        "D": [1e-7],
+        "aero_spec_fracs": [[0.2, 0.3, 0.5]],
+    }
+
+    alias_pop = build_population(alias_cfg)
+    canonical_pop = build_population(canonical_cfg)
+
+    alias_names = [sp.name for sp in alias_pop.species]
+    canonical_names = [sp.name for sp in canonical_pop.species]
+    assert alias_names == canonical_names
+    assert alias_names[:3] == ["OIN", "BC", "OC"]
+    assert np.isclose(alias_pop.get_Ntot(), canonical_pop.get_Ntot())

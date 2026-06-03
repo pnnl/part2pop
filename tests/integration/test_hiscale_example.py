@@ -5,6 +5,7 @@ import numpy as np
 from pathlib import Path
 
 from part2pop.population.factory import hiscale_observations as hiscale
+from part2pop.population.factory.helpers import hiscale as hiscale_helpers
 
 
 def _example_paths():
@@ -47,7 +48,7 @@ def test_hiscale_example_matches_observations(tmp_path):
     metadata = population.metadata
     assert metadata["source"] == "hiscale_observations"
 
-    beasd_lo, beasd_hi, beasd_n_cm3, _ = hiscale._read_beasd_avg_size_dist(
+    beasd_lo, beasd_hi, beasd_n_cm3, _ = hiscale_helpers._read_beasd_avg_size_dist(
         beasd_file=str(paths["beasd"]),
         aimms_file=str(paths["aimms"]),
         z=100.0,
@@ -58,7 +59,7 @@ def test_hiscale_example_matches_observations(tmp_path):
     actual_n = metadata["size_distribution"]["N_bin_m3"]
     np.testing.assert_allclose(actual_n, expected_n_m3, rtol=0.05, atol=1e-3)
 
-    expected_type_fracs, _ = hiscale._read_minisplat_number_fractions(
+    expected_type_fracs, _ = hiscale_helpers._read_minisplat_number_fractions(
         splat_file=str(paths["splat"]),
         aimms_file=str(paths["aimms"]),
         size_dist_type="BEASD",
@@ -72,7 +73,7 @@ def test_hiscale_example_matches_observations(tmp_path):
         assert key in actual_type_fracs
         assert np.isclose(actual_type_fracs[key], expect, rtol=0.01, atol=1e-3)
 
-    expected_mass_frac, _, _, _ = hiscale._read_ams_mass_fractions(
+    expected_mass_frac, _, _, _ = hiscale_helpers._read_ams_mass_fractions(
         ams_file=str(paths["ams"]),
         aimms_file=str(paths["aimms"]),
         size_dist_type="BEASD",

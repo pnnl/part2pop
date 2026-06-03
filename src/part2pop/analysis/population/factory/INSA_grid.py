@@ -12,17 +12,17 @@ class InsaGridVar(PopulationVariable):
         description="Particle ice nucleating surface area grid",
         units="m$^2$",
         scale="log",
-        long_label = "ice nucelating surface area",
+        long_label = "ice nucleating surface area",
         short_label = "INSA",
     # axis/grid defaults are centralized in analysis.defaults
     default_cfg={},
-    #aliases=("insa_grid"),
+    aliases=("insa_grid",),
     )
     def compute(self, population, as_dict=False):
         cfg = self.cfg
         vals = cfg.get("insa_grid")
         if as_dict:
-            return {"insa_grid": np.asarray(vals)}
+            return {"INSA_grid": np.asarray(vals)}
         else:
             return np.asarray(vals)
 

@@ -1,3 +1,4 @@
-include part2pop/data/species_data/*.dat
+include src/part2pop/data/species_data/*.dat
+include src/part2pop/data/species_data/*.csv
 recursive-include examples/example_data *
 include README.pypi.md

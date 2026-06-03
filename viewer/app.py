@@ -227,13 +227,6 @@ def run_viewer() -> None:
             var_cfg = _merge_dicts(merged_defaults, overrides)
             scales["xscale"] = st.selectbox("X axis scale", ["linear", "log"], index=0, key="state_scatter_xscale")
             scales["yscale"] = st.selectbox("Y axis scale", ["linear", "log"], index=0, key="state_scatter_yscale")
-            # with st.expander("State scatter debug", expanded=True):
-            #     st.write("Selected xvar", xvar)
-            #     st.write("Selected yvar", yvar)
-            #     st.write("Particle metadata", [{"name": meta.get("name"), "axis_keys": meta.get("axis_keys"), "defaults": meta.get("defaults")} for meta in scatter_metadata])
-            #     st.write("Merged defaults", merged_defaults)
-            #     st.write("Resolved var_cfg", var_cfg)
-            #     st.write("Resolved plot_config", {"xvar": xvar, "yvar": yvar, "var_cfg": var_cfg, **scales})
         else:
             state_line_var = st.selectbox("State line variable", STATE_LINE_VARS)
             var_cfg = render_var_controls(state_line_var)

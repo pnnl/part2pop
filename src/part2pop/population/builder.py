@@ -20,9 +20,10 @@ class PopulationBuilder:
             raise ValueError("Config must include a 'type' key.")
         types = discover_population_types()
         if type_name not in types:
-            raise ValueError(f"Unknown population type: {type_name}")
-        cls = types[type_name]
-        return cls(self.config)
+            available = ", ".join(sorted(types.keys())) or "<none>"
+            raise ValueError(f"Unknown population type: {type_name}. Available types: {available}")
+        builder_fn = types[type_name]
+        return builder_fn(self.config)
 
 
 def build_population(config):

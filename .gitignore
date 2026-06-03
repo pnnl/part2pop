@@ -1,33 +1,81 @@
-*/__pycache__
+# ========================
+# Python cache / bytecode
+# ========================
+*/__pycache__/
 *.pyc
+*.pyo
 
+# ========================
+# OS-specific junk
+# ========================
 .DS_Store
 *.DS_Store
 
-# Local-only tooling
+# ========================
+# Local / private scripts
+# ========================
+# machine-specific scripts (may contain account info, paths, allocations)
 scripts/
+
+# ========================
+# Local scratch / temp dirs
+# ========================
 archive/
-tmp*
-*old*
+tmp/
+tmp_*/
+tmp-*/
+diag/
 
+# ========================
+# Backups / old files
+# ========================
+*.bak
+*_old/
+old_*/
 
-# Build / packaging
+# ========================
+# Build / packaging artifacts
+# ========================
 dist/
 build/
 *.egg-info/
+src/part2pop.egg-info/
 
+# ========================
 # Jupyter
+# ========================
 .ipynb_checkpoints/
 
-*.zip
-*.png
+# ========================
+# Pytest
+# ========================
+.pytest_cache/
 
+# ========================
+# Archives / generated bundles
+# ========================
+*.zip
+
+# ========================
 # Virtual environments
+# ========================
 .venv/
 .venv-test/
 venv/
 env/
 
+# ========================
+# Editor / IDE settings
+# ========================
+.vscode/
+
+# ========================
 # Coverage
+# ========================
 .coverage
 coverage.xml
+
+# ========================
+# Viewer local output
+# ========================
+viewer/population_config_dump.json

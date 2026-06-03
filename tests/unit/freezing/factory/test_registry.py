@@ -76,6 +76,12 @@ def test_safe_import_module_uses_loader(monkeypatch):
 def test_discover_includes_module_build(monkeypatch):
     monkeypatch.setattr(
         freezing_registry,
+        "_DISCOVERED",
+        False,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        freezing_registry,
         "pkgutil",
         SimpleNamespace(iter_modules=lambda paths: [(None, "dummy_build", False)]),
         raising=False,
@@ -92,3 +98,48 @@ def test_discover_includes_module_build(monkeypatch):
 
     morphs = freezing_registry.discover_morphology_types()
     assert "dummy_build" in morphs
+
+
+def test_discover_skips_private_modules(monkeypatch):
+    monkeypatch.setattr(
+        freezing_registry,
+        "pkgutil",
+        SimpleNamespace(iter_modules=lambda paths: [(None, "_private", False)]),
+        raising=False,
+    )
+    monkeypatch.setattr(freezing_registry, "_morphology_registry", {}, raising=False)
+    morphs = freezing_registry.discover_morphology_types()
+    assert "_private" not in morphs
+
+
+def test_list_freezing_types_sorted(monkeypatch):
+    monkeypatch.setattr(
+        freezing_registry,
+        "discover_morphology_types",
+        lambda: {"z": object(), "a": object()},
+        raising=False,
+    )
+    assert freezing_registry.list_freezing_types() == ["a", "z"]
+
+
+def test_describe_freezing_type(monkeypatch):
+    def builder(base, cfg):
+        """Example freezing builder."""
+        return (base, cfg)
+
+    monkeypatch.setattr(
+        freezing_registry,
+        "discover_morphology_types",
+        lambda: {"demo": builder},
+        raising=False,
+    )
+    info = freezing_registry.describe_freezing_type("demo")
+    assert info["name"] == "demo"
+    assert info["type"] == "builder"
+    assert "Example freezing builder" in info["description"]
+
+
+def test_describe_freezing_type_unknown(monkeypatch):
+    monkeypatch.setattr(freezing_registry, "discover_morphology_types", lambda: {}, raising=False)
+    with pytest.raises(ValueError, match="Unknown freezing morphology type"):
+        freezing_registry.describe_freezing_type("missing")

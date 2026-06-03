@@ -118,37 +118,16 @@ class ParticlePopulation:
         idx, = np.where([spec.name == spec_name for spec in self.species])
         return np.sum(self.num_concs*self.spec_masses[:,idx[0]])
     
-    # FIXME: double-check this method
     def reduce_mixing_state(self, mixing_state='part_res', 
                             RH=None, T=None, 
                             sigma_h2o=0.072, rho_h2o=1000., MW_h2o=18e-3):
-        idx_bc, = np.where([spec.name.upper() == 'BC' for spec in self.species])
-        idx_not_h2o, = np.where([spec.name != 'H2O' for spec in self.species])
-
-        if mixing_state.startswith('MAM5'):
-            avg_these = np.where(self.spec_masses[:,idx_bc]>0)
-        elif mixing_state.startswith('MAM4'):
-            avg_these = np.arange(self.spec_masses.shape[0]) 
-        elif mixing_state == 'part_res':
-            avg_these = np.array([]) # unit test to make sure nothing happens
-        
-        if mixing_state.endswith('sameDryMass'):
-            mixing_factor = np.sum(self.spec_masses[idx_not_h2o,avg_these],axis=1)/np.sum(np.sum(self.spec_masses[idx_not_h2o,avg_these]))
-            normalized_by = np.sum(self.spec_masses[idx_not_h2o,avg_these],axis=0)
-        elif mixing_state.endswith('sameBC'):
-            mixing_factor = np.sum(self.spec_masses[idx_not_h2o,avg_these],axis=1)/np.sum(self.spec_masses[idx_bc,avg_these],axis=1)
-            normalized_by = self.spec_masses[idx_bc,avg_these]
-
-        for ii,part_id in enumerate(self.ids[avg_these]):
-            particle = self.get_particle(part_id)
-            particle.spec_masses[idx_not_h2o] = mixing_factor*normalized_by[ii]
-            Dwet = particle.get_Dwet(RH=RH, T=T, sigma_h2o=sigma_h2o, rho_h2o=rho_h2o, MW_h2o=MW_h2o)
-            Ddry = particle.get_Ddry()
-            vol_h2o = np.pi/6.*(Dwet**3 - Ddry**3)
-            mass_h2o = vol_h2o*rho_h2o
-            particle.spec_masses[particle.idx_h2o()] = mass_h2o
-            num_conc =self.num_conc[ii]
-            self.set_particle(particle, part_id, num_conc, suppress_warning=False)
+        raise NotImplementedError(
+            "ParticlePopulation.reduce_mixing_state is intentionally unsupported in "
+            "part2pop 1.0.0. The legacy implementation was unreliable and could raise "
+            "incidental TypeError/AxisError/AttributeError. Mixing-state reduction "
+            "behavior is deferred to a future release after scientific specification "
+            "and validation are completed."
+        )
             
     def clone_detached(self):
         """Return a copy that shares immutable data but has detached numeric arrays."""
