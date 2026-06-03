@@ -179,12 +179,14 @@ class Particle:
     def get_vks(self):
         mks = self.masses
         rhos = self.get_spec_rhos()
-        return mks/rhos
+        vks = mks/rhos
+        vks[np.isinf(vks)] = 0.0
+        vks[np.isnan(vks)] = 0.0
+        return vks
 
     def get_vol_tot(self):
         vks = self.get_vks()
-        # vol_tot = np.nansum(vks[self.idx_dry()]) + vks[self.idx_h2o()]
-        vol_tot = np.nansum(vks)
+        vol_tot = np.sum(vks)
         return vol_tot
         
     def get_vol_dry(self):
