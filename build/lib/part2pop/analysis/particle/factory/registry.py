@@ -110,13 +110,23 @@ def describe_particle_variable(name: str):
     if not meta:
         raise UnknownParticleVariableError(name, suggestions=None)
 
+    axis_names = meta.axis_names
+    if isinstance(axis_names, str):
+        axis_names = [axis_names]
+    else:
+        axis_names = list(axis_names)
+
+    units = getattr(meta, "units", None)
+    if isinstance(units, dict):
+        units = dict(units)
+
     return {
         "name": meta.name,
         "value_key": meta.name,
-        "axis_keys": list(meta.axis_names),
+        "axis_keys": list(axis_names),
+        "axis_names": list(axis_names),
         "description": meta.description,
         "aliases": list(meta.aliases),
         "defaults": dict(meta.default_cfg),
-        "units": dict(meta.units) if getattr(meta, "units", None) else None,
+        "units": units,
     }
-

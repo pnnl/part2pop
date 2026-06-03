@@ -31,6 +31,7 @@ def build(config):
     # If N_parts is a scalar, treat as total samples from the *mixture*
     # and allocate per mode in proportion to N_list.
     N_parts_cfg = config.get("N_parts", 100)
+    specdata_path = config.get("specdata_path", None)
 
     if isinstance(N_parts_cfg, list) or isinstance(N_parts_cfg, tuple):
         N_parts_list = np.array(N_parts_cfg, dtype=int)
@@ -90,7 +91,7 @@ def build(config):
                 pop_species_names.append(name)
 
     pop_species_list = tuple(
-        get_species(spec_name, **species_modifications.get(spec_name, {}))
+        get_species(spec_name, specdata_path, **species_modifications.get(spec_name, {}))
         for spec_name in pop_species_names
     )
 

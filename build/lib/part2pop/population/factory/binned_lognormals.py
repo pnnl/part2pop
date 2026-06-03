@@ -60,8 +60,8 @@ def build(config):
     species_modifications = config.get('species_modifications', {})
     surface_tension = config.get('surface_tension', 0.072)
     D_is_wet = config.get('D_is_wet', False)
-    # specdata_path = config.get('specdata_path', None)
-    
+    specdata_path = config.get('specdata_path', None)
+
     # Build master species list for the *population*, preserving order
     pop_species_names = []
     for mode_names in aero_spec_names_list:
@@ -70,7 +70,7 @@ def build(config):
                 pop_species_names.append(name)
     # Build species objects
     pop_species_list = tuple(
-        get_species(spec_name, **species_modifications.get(spec_name, {}))
+        get_species(spec_name, specdata_path, **species_modifications.get(spec_name, {}))
         for spec_name in pop_species_names
     )
 
@@ -114,7 +114,7 @@ def build(config):
                 pop_species_list,
                 pop_aligned_fracs.copy(),
                 species_modifications=species_modifications,
-                D_is_wet=D_is_wet#, specdata_path=specdata_path
+                D_is_wet=D_is_wet, specdata_path=specdata_path
                 )
             part_id += 1
             lognormals_population.set_particle(

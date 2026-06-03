@@ -105,6 +105,7 @@ class HomogeneousParticle(FreezingParticle):
                             + 29180 * delta_aw**3
                             + -1.522
                         )
+
             return 1e6*Jhom # m^-3 s^-1
     
     def get_aw(self):

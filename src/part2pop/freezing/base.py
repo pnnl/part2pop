@@ -60,11 +60,23 @@ class FreezingPopulation(ParticlePopulation):
         self.INSA = np.zeros(N_part, dtype=float) # m^2
     
     def compute_Jhets(self, T, config):
-        return np.array([self.get_freezing_particle(part_id, config).compute_Jhet(T) for part_id in self.ids])
+        builder = FreezingParticleBuilder(config)
+        return np.array([builder.build(Particle(self.species, self.spec_masses[self.find_particle(part_id)])).compute_Jhet(T) for part_id in self.ids])
     
     def compute_Jhoms(self, T, config):
-        return np.array([self.get_freezing_particle(part_id, config).compute_Jhom(T) for part_id in self.ids])
-        
+        builder = FreezingParticleBuilder(config)
+        return np.array([builder.build(Particle(self.species, self.spec_masses[self.find_particle(part_id)])).compute_Jhom(T) for part_id in self.ids])
+
+    def compute_nucleation_rates(self, T, config):
+        builder = FreezingParticleBuilder(config)
+        Jhets = np.zeros((len(self.ids)))
+        Jhoms = np.zeros((len(self.ids)))
+        for ii, part_id in enumerate(self.ids):
+            particle = builder.build(Particle(self.species, self.spec_masses[self.find_particle(part_id)]))
+            Jhets[ii] = particle.compute_Jhet(T)
+            Jhoms[ii] = particle.compute_Jhom(T)
+        return Jhets, Jhoms
+
     def get_freezing_particle(self, part_id, config):
         if part_id in self.ids:
             idx_particle = self.find_particle(part_id)

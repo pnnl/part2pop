@@ -37,7 +37,7 @@ def build(config):
     #     aero_spec_names = currnc.variables['aero_species'].names.split(',')
     # Get AerosolSpecies objects with modifications if any
     species_list = tuple(
-        get_species(name, **species_modifications.get(name, {}))
+        get_species(name, specdata_path, **species_modifications.get(name, {}))
         for name in aero_spec_names
     )
     spec_masses = np.array(currnc.variables['aero_particle_mass'][:])

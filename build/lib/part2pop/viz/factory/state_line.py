@@ -26,8 +26,10 @@ class StateLinePlotter(Plotter):
         # choose x-axis variable (simplified)
         if self.varname in ("Nccn", "frac_ccn"):
             xvar = build_variable("s_grid", scope="population", var_cfg=self.var_cfg)
-        elif self.varname in ("avg_Jhet", "nucleating_sites", "frozen_frac"):
+        elif self.varname == "avg_Jhet":
             xvar = build_variable("T_grid", scope="population", var_cfg=self.var_cfg)
+        elif self.varname in ("frozen_frac", "unfrozen_frac"):
+            xvar=build_variable("time_grid", "population",  self.var_cfg)
         elif self.varname in ("b_abs","b_scat","b_ext"):
             has_w = len(self.var_cfg.get("wvl_grid", [])) > 1
             has_rh = len(self.var_cfg.get("rh_grid", [])) > 1
@@ -42,9 +44,11 @@ class StateLinePlotter(Plotter):
             #xvar = build_variable("wvl_grid" if has_w else "rh_grid", "population", self.var_cfg)
         elif self.varname == "dNdlnD":
             xvar = build_variable("diam_grid","population",  self.var_cfg)
+        elif self.varname == "INSA_distribution":
+            xvar = build_variable(name="INSA_grid", scope="population", var_cfg=self.var_cfg)
         else:
             raise ValueError(f"State line does not support '{self.varname}'.")
-        
+
         x = xvar.compute(population)
         y = yvar.compute(population)
         
@@ -78,7 +82,7 @@ class StateLinePlotter(Plotter):
         ax.set_xscale(pd["xscale"]); ax.set_yscale(pd["yscale"])
         
         # FIXME: should this be in here or elsewhere?
-        ax.set_xlim(pd["x"].min(), pd["x"].max())
+        ax.set_xlim(pd["x"].min(), pd["x"].max())        
         return ax
 
 def build(cfg):

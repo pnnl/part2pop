@@ -21,7 +21,7 @@ class AerosolSpeciesRegistry:
         """Add or update a species in the registry."""
         self._custom[species.name.upper()] = copy.deepcopy(species)
 
-    def get(self, name: str, **modifications) -> AerosolSpecies:
+    def get(self, name: str, specdata_path: str, **modifications) -> AerosolSpecies:
         """Get a species from the registry, optionally with modifications.
         Falls back to data file lookup if not registered.
         """
@@ -33,7 +33,7 @@ class AerosolSpeciesRegistry:
             return base
         
         # fallback to retrieve_one_species (file-based) if not registered
-        return retrieve_one_species(name, spec_modifications=modifications)
+        return retrieve_one_species(name, specdata_path=specdata_path, spec_modifications=modifications)
 
     def extend(self, species: AerosolSpecies):
         """Alias for register for API clarity."""
@@ -49,8 +49,8 @@ _registry = AerosolSpeciesRegistry()
 def register_species(species: AerosolSpecies):
     _registry.register(species)
 
-def get_species(name: str, **modifications) -> AerosolSpecies:
-    return _registry.get(name, **modifications)
+def get_species(name: str, specdata_path: str, **modifications) -> AerosolSpecies:
+    return _registry.get(name, specdata_path, **modifications)
 
 def list_species():
     return _registry.list_species()
@@ -58,14 +58,21 @@ def list_species():
 def extend_species(species: AerosolSpecies):
     _registry.extend(species)
 
-def _iter_aero_data_lines(): 
+def _iter_aero_data_lines(specdata_path=None):
     
-    with open_dataset('species_data/aero_data.dat') as fh:
-        # "species_data/aero_data.dat") as fh:
-        for line in fh:
-            yield line
+    if specdata_path is None:
+        with open_dataset('species_data/aero_data.dat') as fh:
+            # "species_data/aero_data.dat") as fh:
+            for line in fh:
+                yield line
+    else:
+        with open_dataset(specdata_path+'/aero_data.dat') as fh:
+            # "species_data/aero_data.dat") as fh:
+            for line in fh:
+                yield line
+    
 
-def retrieve_one_species(name, spec_modifications={}):
+def retrieve_one_species(name, specdata_path=None, spec_modifications={}):
     """Retrieve a species from data file and apply optional modifications.
 
     Parameters
@@ -80,7 +87,8 @@ def retrieve_one_species(name, spec_modifications={}):
     AerosolSpecies
         Constructed species dataclass.
     """
-    for line in _iter_aero_data_lines():
+    
+    for line in _iter_aero_data_lines(specdata_path=specdata_path):
         
         if line.strip().startswith("#"):
             continue
