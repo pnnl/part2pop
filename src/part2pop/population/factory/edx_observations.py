@@ -21,7 +21,7 @@ def build(config: Dict[str, Any]) -> ParticlePopulation:
     missing = [k for k in required if k not in config]
     if missing:
         raise KeyError(f"edx_observations missing required config keys: {missing}")
-    elements = config.get("elements", ['C','N','O','Na','Mg','Al','Si','P','S','Cl','K','Ca','Mn','Fe','Zn'])
+    elements = config.get("elements", ['C','N','O','Na','Mg','Al','Si','P','S','Cl','K','Ca','Mn','Fe','Cu','Zn'])
 
     raw_population = read_edx_file(config, elements)
     aero_spec_names = config.get("aerosol_species", ['SO4','OIN','OC','Na','Cl','biological'])

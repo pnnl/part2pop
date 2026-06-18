@@ -10,7 +10,7 @@ _MASS_SUM_MIN = 0.99
 _MASS_SUM_MAX = 1.01
 _PERCENT_SUM_TARGET = 100.0
 _CARBONACEOUS_CLASSES = ("carbonaceous", "carbonaceous mixed dust", "dust-carbonaceous")
-_DEFAULT_DUST_ELEMENTS = ("Mg", "Al", "Si", "K", "Ca", "Fe", "Mn", "Zn")
+_DEFAULT_DUST_ELEMENTS = ("Mg", "Al", "Si", "K", "Ca", "Fe", "Mn", "Zn", "Cu")
 _BIO_DUST_ELEMENTS = ("Al", "Si")
 
 
@@ -29,6 +29,7 @@ class ElementMasses:
         self.S = 32.065e-3
         self.Na = 22.99e-3
         self.Cl = 35.45e-3
+        self.Cu = 63.55e-3
 
 
 class Population_MassFracs:
@@ -114,6 +115,7 @@ def _default_dust_oxygen_fraction(data_dict: dict, molec_masses: ElementMasses) 
         + data_dict['Ca'] * (molec_masses.O / molec_masses.Ca)
         + data_dict['Fe'] * ((3 * molec_masses.O) / (2 * molec_masses.Fe))
         + data_dict['Mn'] * (molec_masses.O / molec_masses.Mn)
+        + data_dict['Cu'] * (molec_masses.O / molec_masses.Cu)
     )
 
 
@@ -246,12 +248,12 @@ def sample_bio_particle(aerospecs: list[str], mass_fraction: np.ndarray, element
     # Na and Cl are assigned directly to Na/Cl species masses.
     _assign_nacl_or_raise(sampled_masses, aerospecs, data_dict)
 
-    # Biological remainder: C/N/P/S/K/Mg/Ca/Fe/Mn/Zn plus remaining oxygen.
+    # Biological remainder: C/N/P/S/K/Mg/Ca/Fe/Mn/Zn/Cu plus remaining oxygen.
     bio_mass_fraction = (
         + data_dict['C'] + data_dict['N'] + data_dict['P']
         + data_dict['S'] + data_dict['K'] + data_dict['Mg']
         + data_dict['Ca'] + data_dict['Fe'] + data_dict['Mn']
-        + data_dict['Zn'] + data_dict['O'] - dust_O_fraction
+        + data_dict['Zn'] + data_dict['Cu'] + data_dict['O'] - dust_O_fraction
     )
     _assign_species_or_raise(
         sampled_masses,
@@ -311,9 +313,10 @@ def reconstruct_edx_species_mass_fractions(raw_population, aero_spec_names):
     aero_spec_masses = np.zeros((len(raw_population.ptype), len(aero_spec_names)))
     for ii, (ptype, mass_fracs) in enumerate(zip(raw_population.ptype, raw_population.mass_fractions)):
         particle_classes.append(ptype)
+        
         if ptype == 'biological':
             aero_spec_masses[ii] = sample_bio_particle(aero_spec_names, mass_fracs, raw_population.elements)
-        elif ptype in _CARBONACEOUS_CLASSES:
+        if ptype in _CARBONACEOUS_CLASSES or "organics" in ptype:
             aero_spec_masses[ii] = sample_carbonaceous_particle(aero_spec_names, mass_fracs, raw_population.elements)
         else:
             aero_spec_masses[ii] = sample_particle(aero_spec_names, mass_fracs, raw_population.elements)
