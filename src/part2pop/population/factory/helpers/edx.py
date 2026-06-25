@@ -316,7 +316,7 @@ def reconstruct_edx_species_mass_fractions(raw_population, aero_spec_names):
         
         if ptype == 'biological':
             aero_spec_masses[ii] = sample_bio_particle(aero_spec_names, mass_fracs, raw_population.elements)
-        if ptype in _CARBONACEOUS_CLASSES or "organics" in ptype:
+        elif ptype in _CARBONACEOUS_CLASSES or "organics" in ptype:
             aero_spec_masses[ii] = sample_carbonaceous_particle(aero_spec_names, mass_fracs, raw_population.elements)
         else:
             aero_spec_masses[ii] = sample_particle(aero_spec_names, mass_fracs, raw_population.elements)

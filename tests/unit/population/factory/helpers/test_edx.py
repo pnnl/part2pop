@@ -14,12 +14,12 @@ from part2pop.population.factory.helpers.edx import (
 def _write_three_row_edx_csv(tmp_path):
     csv_path = tmp_path / "edx_three_rows.csv"
     csv_path.write_text(
-        "diam_um,class,C,N,O,Na,Mg,Al,Si,P,S,Cl,K,Ca,Mn,Fe,Zn\n"
-        "0.5,biological,0.35,0.12,0.33,0.04,0.04,0.00,0.00,0.04,0.04,0.04,0.00,0.00,0.00,0.00,0.00\n"
+        "diam_um,class,C,N,O,Na,Mg,Al,Si,P,S,Cl,K,Ca,Mn,Fe,Zn,Cu\n"
+        "0.5,biological,0.30,0.12,0.33,0.04,0.04,0.00,0.00,0.04,0.04,0.04,0.00,0.00,0.00,0.00,0.00,0.05\n"
         # Keep synthetic row within the existing EDX mass-balance guard.
-        "0.7,carbonaceous,0.30,0.10,0.34,0.05,0.03,0.02,0.02,0.03,0.03,0.05,0.01,0.005,0.005,0.005,0.005\n"
+        "0.7,carbonaceous,0.30,0.10,0.34,0.05,0.03,0.02,0.02,0.03,0.03,0.05,0.01,0.005,0.005,0.005,0.005,0.00\n"
         # Keep synthetic row within the existing EDX mass-balance guard.
-        "1.0,dust,0.20,0.10,0.39,0.05,0.03,0.02,0.02,0.03,0.03,0.05,0.01,0.02,0.01,0.02,0.02\n",
+        "1.0,dust,0.20,0.10,0.39,0.05,0.03,0.02,0.02,0.03,0.03,0.05,0.01,0.02,0.01,0.02,0.02,0.00\n",
         encoding="utf-8",
     )
     return csv_path
@@ -39,7 +39,7 @@ def test_read_edx_file_parses_minimal_realistic_csv(tmp_path):
 
 def test_reconstruct_edx_species_mass_fractions_dispatch_and_alignment(tmp_path):
     edx_csv = _write_three_row_edx_csv(tmp_path)
-    elements = ['C', 'N', 'O', 'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'K', 'Ca', 'Mn', 'Fe', 'Zn']
+    elements = ['C', 'N', 'O', 'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'K', 'Ca', 'Mn', 'Fe', 'Zn', 'Cu']
     raw = read_edx_file({"edx_file": str(edx_csv)}, elements)
     aero_spec_names = ['SO4', 'OIN', 'OC', 'Na', 'Cl', 'biological']
 
@@ -79,8 +79,8 @@ def test_read_edx_file_percent_and_wt_prefix_columns(tmp_path):
 
 
 def test_sample_particle_oxygen_limited_and_missing_species_raises():
-    elements = np.array(['C', 'N', 'O', 'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'K', 'Ca', 'Mn', 'Fe', 'Zn'])
-    mass_fracs = np.array([0.2, 0.05, 0.06, 0.05, 0.03, 0.02, 0.02, 0.01, 0.15, 0.05, 0.01, 0.02, 0.01, 0.02, 0.01])
+    elements = np.array(['C', 'N', 'O', 'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'K', 'Ca', 'Mn', 'Fe', 'Cu', 'Zn'])
+    mass_fracs = np.array([0.2, 0.05, 0.06, 0.05, 0.03, 0.02, 0.02, 0.01, 0.15, 0.05, 0.01, 0.02, 0.01, 0.02, 0.01, 0.01])
     with pytest.raises(ValueError, match="sum to"):
         sample_particle(['SO4', 'OIN', 'OC', 'Na', 'Cl'], mass_fracs, elements)
 
@@ -89,8 +89,8 @@ def test_sample_particle_oxygen_limited_and_missing_species_raises():
 
 
 def test_sample_bio_particle_oxygen_limited_and_normalize_guard():
-    elements = np.array(['C', 'N', 'O', 'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'K', 'Ca', 'Mn', 'Fe', 'Zn'])
-    mass_fracs = np.array([0.2, 0.1, 0.02, 0.05, 0.04, 0.08, 0.08, 0.02, 0.1, 0.05, 0.04, 0.05, 0.03, 0.02, 0.02])
+    elements = np.array(['C', 'N', 'O', 'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'K', 'Ca', 'Mn', 'Fe', 'Cu', 'Zn'])
+    mass_fracs = np.array([0.2, 0.1, 0.02, 0.05, 0.04, 0.08, 0.08, 0.02, 0.1, 0.05, 0.04, 0.05, 0.03, 0.02, 0.00, 0.02])
     with pytest.raises(ValueError, match="sum to"):
         sample_bio_particle(['OIN', 'biological', 'Na', 'Cl'], mass_fracs, elements)
 

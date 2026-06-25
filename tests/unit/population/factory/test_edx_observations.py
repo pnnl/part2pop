@@ -14,12 +14,12 @@ def _write_edx_csv(tmp_path):
     # - one diameter column containing "diam"
     # - one class/type column containing "class"
     csv_path.write_text(
-        "diam_um,class,C,N,O,Na,Mg,Al,Si,P,S,Cl,K,Ca,Mn,Fe,Zn\n"
+        "diam_um,class,C,N,O,Na,Mg,Al,Si,P,S,Cl,K,Ca,Mn,Fe,Cu,Zn\n"
         # biological row tuned to current mapping logic:
         # - sums to 1.0
         # - keeps Al/Si near zero so OIN contribution stays small
         # - leaves substantial C/N/O/P/S pool for biological fraction
-        "0.5,biological,0.35,0.12,0.33,0.04,0.04,0.00,0.00,0.04,0.04,0.04,0.00,0.00,0.00,0.00,0.00\n"
+        "0.5,biological,0.35,0.12,0.33,0.04,0.04,0.00,0.00,0.04,0.04,0.04,0.00,0.00,0.00,0.00,0.00,0.00\n"
         "",
         encoding="utf-8",
     )
