@@ -21,7 +21,8 @@ import numpy as np
 @register("sampled_lognormals")
 def build(config):
     config = normalize_population_config(config)
-
+    seed = config.get("seed", None)
+    rng = np.random.default_rng(seed)
     N_list = np.atleast_1d(config["N"]).astype(float)
     GMD_list = np.atleast_1d(config["GMD"]).astype(float)
     GSD_list = np.atleast_1d(config["GSD"]).astype(float)
@@ -122,7 +123,7 @@ def build(config):
 
         # sample diameters for this mode
         Ds = np.exp(
-            np.random.normal(
+            rng.normal(
                 loc=np.log(GMD),
                 scale=np.log(GSD),
                 size=int(N_parts_mode),
