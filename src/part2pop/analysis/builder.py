@@ -18,11 +18,10 @@ def _get_registry_builder(scope: str) -> Callable[[str], Callable]:
 	if scope == "population":
 		from .population.factory.registry import get_population_builder as _g
 		return _g
-	if scope == "particle":        
+	if scope == "particle":
 		from .particle.factory.registry import get_particle_builder as _g
 		return _g
 	raise ValueError(f"Unknown scope '{scope}'")
-
 
 class VariableBuilder:
 	"""Unified VariableBuilder that can build population or particle variables.
@@ -31,7 +30,7 @@ class VariableBuilder:
 	  VariableBuilder(name, cfg=None, scope='population').build()
 	"""
 	def __init__(self, name: str, cfg: Dict[str, Any] | None = None, scope: str = "population"):
-		user_requested = name	
+		user_requested = name
 		if scope == 'population':
 			canon = resolve_name(name)
 		elif scope == 'particle':
@@ -46,7 +45,7 @@ class VariableBuilder:
 		self.cfg = cfg or {}
 		self._mods: Dict[str, Any] = {}
 		self.scope = scope
-	
+
 	def modify(self, **k):
 		self._mods.update(k)
 		return self
@@ -64,7 +63,7 @@ class VariableBuilder:
 				defaults = dict(getattr(inst, "meta").default_cfg)
 			except Exception:
 				defaults = {}
-		
+
 		merged = dict(defaults)
 		# Merge order (lowest -> highest precedence):
 		# 1) canonical defaults for this variable name (from analysis.defaults)
@@ -82,13 +81,12 @@ class VariableBuilder:
 		merged.update(defaults)
 		merged.update(self.cfg)
 		merged.update(self._mods)
-		
+
 		# Call the builder with merged cfg
 		obj = builder(merged)
 		return obj
 
-def build_variable(name: str, scope: str = "population", var_cfg={}):	
+def build_variable(name: str, scope: str = "population", var_cfg: dict | None = None):
     return VariableBuilder(name, var_cfg, scope=scope).build()
-
 
 __all__ = ["VariableBuilder", "build_variable"]

@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 name = "part2pop"
 version = "1.0.0"
 description = "A unified analysis framework for standardizing aerosol populations from models, observations, and parameterizations."
-readme = { file = "README.pypi.md", content-type = "text/markdown" }
+readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.10"
 license = "MIT"
 license-files = ["LICENSE"]
@@ -67,6 +67,7 @@ test = [
 Homepage = "https://github.com/pnnl/part2pop"
 Repository = "https://github.com/pnnl/part2pop"
 Issues = "https://github.com/pnnl/part2pop/issues"
+Documentation = "https://github.com/pnnl/part2pop/tree/main/docs"
 
 [tool.setuptools.package-data]
 part2pop = [
