@@ -1,10 +1,18 @@
-# viz/factory/state_line.py
+import numpy as np
+
 from .registry import register
-from ..base import Plotter
+from ..base import StatePlotter
 from ...analysis import build_variable
 
+
+def _as_1d(value):
+    if value is None:
+        return None
+    return np.atleast_1d(value)
+
+
 @register("state_line")
-class StateLinePlotter(Plotter):
+class StateLinePlotter(StatePlotter):
     def __init__(self, config: dict):
         self.type = "state_line"
         self.config = config
@@ -21,8 +29,6 @@ class StateLinePlotter(Plotter):
         return f"{long_label} [{units}]" if units else long_label
     
     def prep(self, population):
-        #yvar = build_variable(self.varname, self.var_cfg)
-        yvar = build_variable(name=self.varname, scope="population", var_cfg=self.var_cfg)  
         # choose x-axis variable (simplified)
         if self.varname in ("Nccn", "frac_ccn"):
             xvar = build_variable("s_grid", scope="population", var_cfg=self.var_cfg)
@@ -49,13 +55,10 @@ class StateLinePlotter(Plotter):
         else:
             raise ValueError(f"State line does not support '{self.varname}'.")
 
-        x = xvar.compute(population)
-        y = yvar.compute(population)
-        
-        if len(y) == 1:
-            y = y[0]  # flatten single-value arrays
-        if len(x) == 1:
-            x = x[0]  # flatten single-value arrays
+        yvar = build_variable(name=self.varname, scope="population", var_cfg=self.var_cfg)
+        x = _as_1d(xvar.compute(population))
+        y = _as_1d(yvar.compute(population))
+
         if x is not None and len(x) != len(y):
             raise ValueError(f"x and y must be same length, got {len(x)} vs {len(y)}.")
 
@@ -66,23 +69,25 @@ class StateLinePlotter(Plotter):
             "xscale": xvar.meta.scale, "yscale": yvar.meta.scale,
         }
 
-    def plot(self, population, ax, add_ylabel=True, add_xlabel=True, **kwargs):
-        pd = self.prep(population)
+    def render(self, prepared, ax, add_ylabel=True, add_xlabel=True, **kwargs):
         style = {**self.config.get("style", {}), **kwargs}
-        if pd["x"] is None:
-            ax.plot(pd["y"], **style)
+        x = _as_1d(prepared["x"])
+        y = _as_1d(prepared["y"])
+        if x is None:
+            ax.plot(y, **style)
         else:
-            ax.plot(pd["x"], pd["y"], **style)
+            ax.plot(x, y, **style)
         if add_xlabel:
-            ax.set_xlabel(pd["xlabel"]); 
+            ax.set_xlabel(prepared["xlabel"])
         
         if add_ylabel:
-            ax.set_ylabel(pd["ylabel"])
+            ax.set_ylabel(prepared["ylabel"])
         
-        ax.set_xscale(pd["xscale"]); ax.set_yscale(pd["yscale"])
+        ax.set_xscale(prepared["xscale"]); ax.set_yscale(prepared["yscale"])
         
         # FIXME: should this be in here or elsewhere?
-        ax.set_xlim(pd["x"].min(), pd["x"].max())        
+        if x is not None and len(x) > 1:
+            ax.set_xlim(np.nanmin(x), np.nanmax(x))
         return ax
 
 def build(cfg):

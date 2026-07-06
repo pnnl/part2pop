@@ -1,14 +1,13 @@
-# viz/factory/state_scatter.py
 import numpy as np
 
 from .registry import register
-from ..base import Plotter
+from ..base import StatePlotter
 from ...analysis import build_variable
 
 
 # FIXME: in progress
 @register("state_scatter")
-class StateScatterPlotter(Plotter):
+class StateScatterPlotter(StatePlotter):
     """
     Scatter plot using variables:
       required: xvar, yvar
@@ -67,15 +66,15 @@ class StateScatterPlotter(Plotter):
         c = s = None
         clabel = None
         if self.cname:
-            cvar = build_variable(self.cname, self.var_cfg)
-            c = cvar.compute(population)
+            cvar = build_variable(self.cname, "particle", self.var_cfg)
+            c = cvar.compute_all(population)
             if len(c) != len(x):
                 raise ValueError("cvar length must match x/y length.")
             clabel = self._fmt_label(cvar.meta.long_label, getattr(cvar.meta, "units", ""))
 
         if self.sname:
-            svar = build_variable(self.sname, self.var_cfg)
-            s = svar.compute(population)
+            svar = build_variable(self.sname, "particle", self.var_cfg)
+            s = svar.compute_all(population)
             if len(s) != len(x):
                 raise ValueError("svar length must match x/y length.")
 
@@ -88,27 +87,26 @@ class StateScatterPlotter(Plotter):
             "yscale": self.yscale or getattr(yvar.meta, "scale", "linear"),
         }
 
-    def plot(self, population, ax, **kwargs):
-        pd = self.prep(population)        
+    def render(self, prepared, ax, **kwargs):
         style = {**self.config.get("style", {}), **kwargs}
         # If c provided, prefer continuous mapping (use cmap in style/theme)
         scatter_kwargs = dict(style)
-        if pd["c"] is not None:
-            scatter_kwargs["c"] = pd["c"]
+        if prepared["c"] is not None:
+            scatter_kwargs["c"] = prepared["c"]
             # ensure a cmap exists (StyleManager sets it)
             scatter_kwargs.setdefault("cmap", style.get("cmap", "viridis"))
-        if pd["s"] is not None:
-            scatter_kwargs["s"] = pd["s"]
+        if prepared["s"] is not None:
+            scatter_kwargs["s"] = prepared["s"]
 
-        h = ax.scatter(pd["x"], pd["y"], **scatter_kwargs)
-        ax.set_xlabel(pd["xlabel"]); ax.set_ylabel(pd["ylabel"])
-        ax.set_xscale(pd["xscale"]); ax.set_yscale(pd["yscale"])
+        h = ax.scatter(prepared["x"], prepared["y"], **scatter_kwargs)
+        ax.set_xlabel(prepared["xlabel"]); ax.set_ylabel(prepared["ylabel"])
+        ax.set_xscale(prepared["xscale"]); ax.set_yscale(prepared["yscale"])
 
         # optional colorbar
-        if pd["c"] is not None and self.config.get("colorbar", True):
+        if prepared["c"] is not None and self.config.get("colorbar", True):
             cb = ax.figure.colorbar(h, ax=ax)
-            if pd.get("clabel"):
-                cb.set_label(pd["clabel"])
+            if prepared.get("clabel"):
+                cb.set_label(prepared["clabel"])
 
         return ax
     

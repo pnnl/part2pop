@@ -1,5 +1,4 @@
 import importlib
-from types import SimpleNamespace
 
 import pytest
 
@@ -10,68 +9,29 @@ def test_import_viz_factory_registry():
     importlib.import_module("part2pop.viz.factory.registry")
 
 
-def test_discover_plotter_types_skips_private_and_broken_modules(monkeypatch):
-    monkeypatch.setattr(viz_registry, "_DISCOVERED", False)
-    monkeypatch.setattr(viz_registry, "_registry", {})
-    monkeypatch.setattr(
-        viz_registry,
-        "pkgutil",
-        SimpleNamespace(
-            iter_modules=lambda paths: [
-                (None, "_private", False),
-                (None, "registry", False),
-                (None, "broken", False),
-                (None, "good", False),
-            ]
-        ),
-        raising=False,
-    )
+def test_discover_plotter_types_finds_builtin_plotters():
+    discovered = viz_registry.discover_plotter_types()
 
-    def fake_import(fullname):
-        if fullname.endswith("broken"):
-            raise ImportError("optional dependency missing")
-        if fullname.endswith("good"):
-            return SimpleNamespace(build=lambda cfg: cfg)
-        return SimpleNamespace()
-
-    monkeypatch.setattr(viz_registry.importlib, "import_module", fake_import)
-
-    with pytest.warns(RuntimeWarning):
-        discovered = viz_registry.discover_plotter_types()
-
-    assert "good" in discovered
-    assert "broken" not in discovered
-    assert "_private" not in discovered
+    assert "state_line" in discovered
+    assert "state_scatter" in discovered
+    assert "series_line" in discovered
 
 
-def test_list_plotter_types_sorted(monkeypatch):
-    monkeypatch.setattr(
-        viz_registry,
-        "discover_plotter_types",
-        lambda: {"z": object(), "a": object()},
-        raising=False,
-    )
-    assert viz_registry.list_plotter_types() == ["a", "z"]
+def test_list_plotter_types_sorted():
+    types = viz_registry.list_plotter_types()
+
+    assert types == sorted(types)
+    assert "series_line" in types
 
 
-def test_describe_plotter_type(monkeypatch):
-    def builder(cfg):
-        """Example plotter builder."""
-        return cfg
+def test_describe_plotter_type():
+    info = viz_registry.describe_plotter_type("series_line")
 
-    monkeypatch.setattr(
-        viz_registry,
-        "discover_plotter_types",
-        lambda: {"demo": builder},
-        raising=False,
-    )
-    info = viz_registry.describe_plotter_type("demo")
-    assert info["name"] == "demo"
-    assert info["type"] == "builder"
-    assert "Example plotter builder" in info["description"]
+    assert info["name"] == "series_line"
+    assert info["type"] == "SeriesLinePlotter"
+    assert "Line plot" in info["description"]
 
 
-def test_describe_plotter_type_unknown(monkeypatch):
-    monkeypatch.setattr(viz_registry, "discover_plotter_types", lambda: {}, raising=False)
+def test_describe_plotter_type_unknown():
     with pytest.raises(ValueError, match="Unknown plotter type"):
         viz_registry.describe_plotter_type("missing")

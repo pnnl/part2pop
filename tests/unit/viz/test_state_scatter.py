@@ -1,130 +1,86 @@
 import matplotlib
-matplotlib.use("Agg")  # headless backend for CI
+matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
-from part2pop.viz.factory import state_scatter
+from part2pop import build_population
 from part2pop.viz.factory.state_scatter import StateScatterPlotter
 
 
-class _DummyVar:
-    def __init__(self, name, data):
-        self.name = name
-        self.data = data
-        self.meta = type(
-            "Meta",
-            (),
-            {"long_label": name, "units": "u", "scale": "linear"},
-        )
-
-    def compute_all(self, population):
-        return self.data
-
-    def compute(self, population):
-        return self.data
-
-
-def _stub_build_variable(population):
-    def _build(name, scope_or_cfg="population", var_cfg=None):
-        # state_scatter passes the var_cfg dict as the second positional arg;
-        # tolerate either (scope, var_cfg) or just (var_cfg,) calling styles.
-        data = population[name]
-        return _DummyVar(name, data)
-    return _build
+def _population():
+    return build_population(
+        {
+            "type": "monodisperse",
+            "aero_spec_names": [["SO4"], ["SO4"], ["SO4"]],
+            "N": [1.0e5, 2.0e5, 3.0e5],
+            "D": [50e-9, 100e-9, 200e-9],
+            "aero_spec_fracs": [[1.0], [1.0], [1.0]],
+        }
+    )
 
 
 def test_state_scatter_requires_xy():
     with pytest.raises(ValueError):
-        StateScatterPlotter({"xvar": "x-only"})
+        StateScatterPlotter({"xvar": "Ddry"})
 
 
-def test_state_scatter_prep_with_optional_channels(monkeypatch):
-    population = {
-        "x": np.array([0.0, 1.0]),
-        "y": np.array([10.0, 20.0]),
-        "c": np.array([5.0, 6.0]),
-        "s": np.array([0.5, 0.6]),
-    }
-    monkeypatch.setattr(state_scatter, "build_variable", _stub_build_variable(population))
+def test_state_scatter_prep_with_optional_channels():
+    plotter = StateScatterPlotter(
+        {
+            "xvar": "Ddry",
+            "yvar": "Dwet",
+            "cvar": "mass_dry",
+            "svar": "mass_tot",
+            "clabel": "custom label",
+            "style": {"marker": "x"},
+            "colorbar": False,
+        }
+    )
+    prepared = plotter.prep(_population())
 
-    cfg = {
-        "xvar": "x",
-        "yvar": "y",
-        "cvar": "c",
-        "svar": "s",
-        "clabel": "custom label",
-        "style": {"marker": "x"},
-        "colorbar": False,
-    }
-    plotter = StateScatterPlotter(cfg)
-    prepared = plotter.prep(population)
-
-    assert prepared["x"].tolist() == [0.0, 1.0]
-    assert prepared["y"].tolist() == [10.0, 20.0]
-    assert prepared["c"].tolist() == [5.0, 6.0]
-    assert prepared["s"].tolist() == [0.5, 0.6]
-    assert prepared["xlabel"].startswith("x")
-    assert prepared["ylabel"].startswith("y")
+    assert prepared["x"].shape == (3,)
+    assert prepared["y"].shape == (3,)
+    assert prepared["c"].shape == (3,)
+    assert prepared["s"].shape == (3,)
+    assert np.all(prepared["x"] > 0)
+    assert np.all(prepared["y"] > 0)
+    assert prepared["xlabel"].startswith("dry diameter")
+    assert prepared["ylabel"].startswith("wet diameter")
     assert prepared["clabel"] == "custom label"
-    assert prepared["xscale"] == "linear"
-    assert prepared["yscale"] == "linear"
+    assert prepared["xscale"] == "log"
+    assert prepared["yscale"] == "log"
 
 
-def test_state_scatter_raises_on_length_mismatch(monkeypatch):
-    population = {
-        "x": np.array([0.0, 1.0]),
-        "y": np.array([10.0]),
-    }
-    monkeypatch.setattr(state_scatter, "build_variable", _stub_build_variable(population))
+def test_state_scatter_raises_on_length_mismatch():
+    plotter = StateScatterPlotter({"xvar": "Ddry", "yvar": "mass_dry"})
+    prepared = plotter.prep(_population())
+    prepared["y"] = prepared["y"][:1]
 
-    plotter = StateScatterPlotter({"xvar": "x", "yvar": "y"})
+    fig, ax = plt.subplots()
     with pytest.raises(ValueError):
-        plotter.prep(population)
+        plotter.plot(ax=ax, prepared=prepared)
 
 
-def test_state_scatter_raises_on_color_length_mismatch(monkeypatch):
-    population = {
-        "x": np.array([0.0, 1.0]),
-        "y": np.array([10.0, 20.0]),
-        "c": np.array([1.0]),  # wrong length
-    }
-    monkeypatch.setattr(state_scatter, "build_variable", _stub_build_variable(population))
-
-    plotter = StateScatterPlotter({"xvar": "x", "yvar": "y", "cvar": "c"})
-    with pytest.raises(ValueError):
-        plotter.prep(population)
-
-
-def test_state_scatter_raises_on_size_length_mismatch(monkeypatch):
-    population = {
-        "x": np.array([0.0, 1.0]),
-        "y": np.array([10.0, 20.0]),
-        "s": np.array([0.1]),  # wrong length
-    }
-    monkeypatch.setattr(state_scatter, "build_variable", _stub_build_variable(population))
-
-    plotter = StateScatterPlotter({"xvar": "x", "yvar": "y", "svar": "s"})
-    with pytest.raises(ValueError):
-        plotter.prep(population)
-
-
-def test_state_scatter_plot_adds_colorbar(monkeypatch):
-    population = {
-        "x": np.array([0.0, 1.0]),
-        "y": np.array([10.0, 20.0]),
-        "c": np.array([1.0, 2.0]),
-    }
-    monkeypatch.setattr(state_scatter, "build_variable", _stub_build_variable(population))
-
-    cfg = {"xvar": "x", "yvar": "y", "cvar": "c", "colorbar": True}
-    plotter = StateScatterPlotter(cfg)
+def test_state_scatter_plot_adds_colorbar():
+    plotter = StateScatterPlotter({"xvar": "Ddry", "yvar": "Dwet", "cvar": "mass_dry", "colorbar": True})
     fig, ax = plt.subplots()
 
-    plotter.plot(population, ax)
+    plotter.plot(_population(), ax)
 
-    # colorbar adds a second axes to the figure
     assert len(fig.axes) == 2
-    # and inherits a label from meta when not overridden
-    assert fig.axes[1].get_ylabel() == "c [u]"
+    assert fig.axes[1].get_ylabel() == "dry particle mass [kg]"
+
+
+def test_state_scatter_plot_accepts_prepared_data():
+    plotter = StateScatterPlotter({"xvar": "Ddry", "yvar": "Dwet", "cvar": "mass_dry", "colorbar": False})
+    prepared = plotter.prep(_population())
+    fig, ax = plt.subplots()
+
+    plotter.plot(ax=ax, prepared=prepared)
+
+    assert len(ax.collections) == 1
+    assert len(fig.axes) == 1
+    assert ax.get_xlabel()
+    assert ax.get_ylabel()

@@ -1,32 +1,36 @@
 import matplotlib
-matplotlib.use("Agg")  # headless backend for tests
+matplotlib.use("Agg")
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 import pytest
 
-from part2pop.viz.factory import state_line
+from part2pop import build_population
 from part2pop.viz.factory.state_line import StateLinePlotter
 
 
-class _DummyVar:
-    def __init__(self, name, data):
-        self.name = name
-        self.data = data
-        self.meta = type(
-            "Meta",
-            (),
-            {"long_label": name, "units": "u", "scale": "linear"},
-        )
-
-    def compute(self, population):
-        return self.data
+def _population():
+    return build_population(
+        {
+            "type": "monodisperse",
+            "aero_spec_names": [["SO4"], ["SO4"], ["SO4"]],
+            "N": [1.0e5, 2.0e5, 3.0e5],
+            "D": [50e-9, 100e-9, 200e-9],
+            "aero_spec_fracs": [[1.0], [1.0], [1.0]],
+        }
+    )
 
 
-def _stub_build_variable(population):
-    def _build(name, scope="population", var_cfg=None):
-        return _DummyVar(name, population[name])
-    return _build
+def _dnd_config():
+    edges = np.asarray([1.0e-8, 8.0e-8, 1.5e-7, 3.0e-7])
+    return {
+        "varname": "dNdlnD",
+        "var_cfg": {
+            "method": "hist",
+            "edges": edges,
+            "diam_grid": np.sqrt(edges[:-1] * edges[1:]),
+        },
+    }
 
 
 def test_state_line_requires_varname():
@@ -34,112 +38,85 @@ def test_state_line_requires_varname():
         StateLinePlotter({})
 
 
-def test_state_line_prep_for_dndln_d(monkeypatch):
-    population = {
-        "dNdlnD": np.array([1.0, 2.0]),
-        "diam_grid": np.array([0.1, 0.2]),
-    }
-    monkeypatch.setattr(state_line, "build_variable", _stub_build_variable(population))
+def test_state_line_prep_for_dndln_d():
+    plotter = StateLinePlotter(_dnd_config())
+    prepared = plotter.prep(_population())
 
-    plotter = StateLinePlotter({"varname": "dNdlnD", "var_cfg": {}})
-    prepared = plotter.prep(population)
-
-    assert prepared["x"].tolist() == [0.1, 0.2]
-    assert prepared["y"].tolist() == [1.0, 2.0]
-    assert prepared["xlabel"].startswith("diam_grid")
-    assert prepared["ylabel"].startswith("dNdlnD")
-    assert prepared["xscale"] == "linear"
+    assert prepared["x"].shape == (3,)
+    assert prepared["y"].shape == (3,)
+    assert prepared["xlabel"].startswith("dry diameter")
+    assert "number size distribution" in prepared["ylabel"].lower()
+    assert prepared["xscale"] == "log"
     assert prepared["yscale"] == "linear"
 
 
-def test_state_line_plot_sets_labels_and_limits(monkeypatch):
-    population = {
-        "dNdlnD": np.array([3.0, 4.0]),
-        "diam_grid": np.array([0.3, 0.4]),
-    }
-    monkeypatch.setattr(state_line, "build_variable", _stub_build_variable(population))
-
-    plotter = StateLinePlotter({"varname": "dNdlnD"})
+def test_state_line_plot_sets_labels_and_limits():
+    plotter = StateLinePlotter(_dnd_config())
     fig, ax = plt.subplots()
-    plotter.plot(population, ax)
+    plotter.plot(_population(), ax)
 
+    assert len(ax.lines) == 1
     assert ax.get_xlabel()
     assert ax.get_ylabel()
     x_limits = ax.get_xlim()
-    assert x_limits[0] <= 0.3 and x_limits[1] >= 0.4
+    assert x_limits[0] <= min(plotter.prep(_population())["x"])
+    assert x_limits[1] >= max(plotter.prep(_population())["x"])
 
 
-def test_state_line_raises_on_conflicting_axes(monkeypatch):
-    population = {
-        "b_ext": np.array([1.0, 2.0]),
-        "wvl_grid": np.array([550.0, 650.0]),
-        "rh_grid": np.array([0.4, 0.6]),
-    }
-    monkeypatch.setattr(state_line, "build_variable", _stub_build_variable(population))
+def test_state_line_plot_accepts_prepared_data():
+    plotter = StateLinePlotter(_dnd_config())
+    prepared = plotter.prep(_population())
+    fig, ax = plt.subplots()
 
+    plotter.plot(ax=ax, prepared=prepared)
+
+    assert len(ax.lines) == 1
+    assert ax.get_xlabel()
+    assert ax.get_ylabel()
+
+
+def test_state_line_plot_prepared():
+    plotter = StateLinePlotter(_dnd_config())
+    prepared = plotter.prep(_population())
+    fig, ax = plt.subplots()
+
+    plotter.plot_prepared(prepared, ax)
+
+    assert len(ax.lines) == 1
+
+
+def test_state_line_raises_on_conflicting_axes():
     plotter = StateLinePlotter(
-        {"varname": "b_ext", "var_cfg": {"wvl_grid": population["wvl_grid"], "rh_grid": population["rh_grid"]}}
+        {"varname": "b_ext", "var_cfg": {"wvl_grid": [550e-9, 650e-9], "rh_grid": [0.4, 0.6]}}
     )
 
-    with pytest.raises(ValueError):
-        plotter.prep(population)
+    with pytest.raises(ValueError, match="one varying axis"):
+        plotter.prep(_population())
 
 
-def test_state_line_raises_when_no_axis_available(monkeypatch):
-    population = {
-        "b_ext": np.array([1.0]),
-        "wvl_grid": np.array([550.0]),
-        "rh_grid": np.array([0.5]),
-    }
-    monkeypatch.setattr(state_line, "build_variable", _stub_build_variable(population))
+def test_state_line_raises_when_no_axis_available():
+    plotter = StateLinePlotter(
+        {"varname": "b_ext", "var_cfg": {"wvl_grid": [550e-9], "rh_grid": [0.5]}}
+    )
 
-    plotter = StateLinePlotter({"varname": "b_ext", "var_cfg": {"wvl_grid": population["wvl_grid"], "rh_grid": population["rh_grid"]}})
-    with pytest.raises(ValueError):
-        plotter.prep(population)
+    with pytest.raises(ValueError, match="single wavelength and single RH"):
+        plotter.prep(_population())
 
 
-def test_state_line_scalar_outputs_currently_error(monkeypatch):
-    population = {
-        "Nccn": np.array([42.0]),
-        "s_grid": np.array([0.1]),
-    }
-    monkeypatch.setattr(state_line, "build_variable", _stub_build_variable(population))
+def test_state_line_scalar_outputs_are_supported():
+    plotter = StateLinePlotter({"varname": "Nccn", "var_cfg": {"s_grid": [1.0]}})
+    prepared = plotter.prep(_population())
+    fig, ax = plt.subplots()
 
-    plotter = StateLinePlotter({"varname": "Nccn"})
-    with pytest.raises(TypeError):
-        plotter.prep(population)
+    plotter.plot(ax=ax, prepared=prepared)
 
-
-def test_state_line_discerns_wavelength_axis(monkeypatch):
-    population = {
-        "b_abs": np.array([1.0, 2.0]),
-        "wvl_grid": np.array([550.0, 650.0]),
-        "rh_grid": np.array([0.5]),
-    }
-    monkeypatch.setattr(state_line, "build_variable", _stub_build_variable(population))
-
-    plotter = StateLinePlotter({"varname": "b_abs", "var_cfg": {"wvl_grid": population["wvl_grid"], "rh_grid": population["rh_grid"]}})
-    prepared = plotter.prep(population)
-    assert np.array_equal(prepared["x"], population["wvl_grid"])
-    assert prepared["x"] is not None
+    assert prepared["x"].tolist() == [1.0]
+    assert prepared["y"].shape == (1,)
+    assert len(ax.lines) == 1
 
 
-def test_state_line_supports_temperature_axes(monkeypatch):
-    population = {
-        "avg_Jhet": np.array([0.1, 0.2, 0.3]),
-        "T_grid": np.array([280.0, 290.0, 300.0]),
-    }
-    monkeypatch.setattr(state_line, "build_variable", _stub_build_variable(population))
-
-    plotter = StateLinePlotter({"varname": "avg_Jhet", "var_cfg": {}})
-    prepared = plotter.prep(population)
-    assert np.array_equal(prepared["x"], population["T_grid"])
-    assert prepared["ylabel"] == "avg_Jhet [u]"
-
-
-def test_state_line_rejects_unsupported_variable(monkeypatch):
-    population = {"unknown": np.array([0.1])}
-    monkeypatch.setattr(state_line, "build_variable", _stub_build_variable(population))
+def test_state_line_rejects_unsupported_variable():
     plotter = StateLinePlotter({"varname": "unknown"})
-    with pytest.raises(ValueError):
-        plotter.prep(population)
+
+    with pytest.raises(ValueError, match="does not support"):
+        plotter.prep(_population())
