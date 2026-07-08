@@ -8,7 +8,20 @@ from ...analysis import build_variable
 def _as_1d(value):
     if value is None:
         return None
-    return np.atleast_1d(value)
+
+    arr = np.asarray(value)
+    arr = np.squeeze(arr)
+
+    if arr.ndim == 0:
+        return arr.reshape(1)
+
+    if arr.ndim != 1:
+        raise ValueError(
+            f"state_line needs 1-D data after removing singleton dimensions; "
+            f"got shape {np.asarray(value).shape}."
+        )
+
+    return arr
 
 
 @register("state_line")
