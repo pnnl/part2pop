@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "part2pop"
-version = "1.0.0"
+version = "1.1.0"
 description = "A unified analysis framework for standardizing aerosol populations from models, observations, and parameterizations."
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.10"
