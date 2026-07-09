@@ -20,14 +20,13 @@ Optional external packages, including `PyMieScatt`, `pyBCabs`, and `netCDF4`, ar
 
 ## Installation
 
+Install the latest released version from PyPI:
+
 ```bash
-# After the 1.0.0 release is published on PyPI:
 pip install part2pop
 ```
 
-For reviewers/users who need the current repository state before (or independent of)
-the PyPI 1.0.0 release, install from source:
-
+For development or unreleased changes, install from source:
 ```bash
 git clone https://github.com/pnnl/part2pop.git
 cd part2pop
@@ -53,30 +52,30 @@ pop = build_population(config)
 print(pop.get_Ntot())
 print([species.name for species in pop.species])
 ```
+## Examples and viewer
+
+
 
 For end-to-end analysis and plotting workflows, see the notebooks in the [examples directory](https://github.com/pnnl/part2pop/tree/main/examples).
 
-## Interactive viewer
 
-An experimental Streamlit UI lets you build populations through the factory registries and render existing visualization builders.
 
-For a source checkout, run:
+A Streamlit viewer is available from a source checkout:
+
+
 
 ```bash
-pip install -e .
-streamlit run launch_viewer.py
-```
 
-The viewer source lives under `viewer/`. The sidebar lists registered population and plot types; choose a population and visualization workflow, adjust the metadata-driven controls, and render figures and diagnostics interactively.
+streamlit run launch_viewer.py
+
+```
 
 ## Contributing
 
-`part2pop` is designed so that new population types, optical morphologies, freezing parameterizations, diagnostics, and visualization types can be added through factory/registry modules without changing the core population representation.
-
-Please open an issue or pull request to discuss proposed additions.
+`part2pop` is designed so that new population types, optical morphologies, freezing parameterizations, diagnostics, and visualization types can be added through factory and registry modules.
 
 See the [contribution guidelines](https://github.com/pnnl/part2pop/blob/main/CONTRIBUTING.md) for contribution and support information.
 
 ## License
 
-See the [LICENSE](https://github.com/pnnl/part2pop/blob/main/LICENSE) file in the repository.
+See the [LICENSE](https://github.com/pnnl/part2pop/blob/main/LICENSE) file.
