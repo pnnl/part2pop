@@ -10,7 +10,7 @@ class NucleatingSites(PopulationVariable):
         name="nucleating_sites",
         description='Ice-nucleation active site density.',
         units = r'm$^{2}$/m$^{3}$',
-        axis_names=("T_grid"),
+        axis_names=("T_grid",),
         default_cfg={},
         aliases = ('n_s',),
         scale = 'log',
