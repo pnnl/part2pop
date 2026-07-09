@@ -30,4 +30,4 @@ from .optics.builder import build_optical_particle, build_optical_population
 try:
     __version__ = _pkg_version("part2pop")
 except PackageNotFoundError:
-    __version__ = "1.1.0"
+    __version__ = "1.0.0"
