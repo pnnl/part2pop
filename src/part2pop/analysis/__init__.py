@@ -15,6 +15,7 @@ for _, module_name, _ in pkgutil.iter_modules([_pkg_path]):
 
 __all__ = [
   "build_variable",
-  "compute_variable"
-  "lists_variables"
-  "describe_variable"]
+  # "compute_variable",
+  # "list_variables",
+  # "describe_variable"
+  ]

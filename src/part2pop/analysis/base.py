@@ -29,7 +29,7 @@ class Variable:
         # instances simply accept the already-merged config.
         self.cfg = cfg
     
-    def compute(self, population):  # pragma: no cover - interface
+    def compute(self, population, as_dict: bool = False):  # pragma: no cover - interface
         raise NotImplementedError
     
     def rescale(self, new_units):
