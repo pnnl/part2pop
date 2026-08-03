@@ -13,7 +13,6 @@ Note: functions use NumPy and SciPy for numerical operations.
 from .species.base import AerosolSpecies
 from .species.registry import get_species, retrieve_one_species
 # from . import data_path
-from dataclasses import dataclass
 from typing import Tuple, Optional
 import numpy as np
 from scipy.constants import R
@@ -37,8 +36,6 @@ class Particle:
     def __init__(self, species, masses):
         self.species=species 
         self.masses=np.array(masses, dtype=float)
-    
-    def __post_init__(self):
         assert(len(self.species) == len(self.masses) )
     
     def _equilibrate_h2o(
