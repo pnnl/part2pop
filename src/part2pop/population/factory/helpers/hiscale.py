@@ -531,7 +531,7 @@ def _read_beasd_avg_size_dist(
             dlog10 = dln / math.log(10.0)
             N_bin = avg_density * dlog10; N_bin_std = std_density * dlog10
         else:
-            raise ValueError(f"Unknown beasd_density_measure '{fims_density_measure}'")
+            raise ValueError(f"Unknown beasd_density_measure '{beasd_density_measure}'")
     return Dp_lo_nm, Dp_hi_nm, N_bin, N_bin_std
 
 
