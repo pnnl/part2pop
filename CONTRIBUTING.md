@@ -17,8 +17,9 @@ Thank you for your interest in improving `part2pop`.
 Before opening a pull request, run:
 
 ```bash
-pytest tests/unit -q
-pytest tests/integration -q
+python -m pip install -e ".[test]"
+python -m pytest tests/unit -q
+python -m pytest tests/integration -q
 ```
 
 For docs-only changes, also run:
