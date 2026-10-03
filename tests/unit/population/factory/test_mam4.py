@@ -68,8 +68,12 @@ def test_get_mam_input_reads_value(tmp_path):
     val = mam4.get_mam_input("numc1", fname)
     assert val == 3.5
 
-    # missing variable returns 0.0 (no error)
-    missing = mam4.get_mam_input("not_here", fname)
+    # A missing variable warns and retains the existing 0.0 fallback.
+    with pytest.warns(
+        UserWarning,
+        match=r"not_here is not a MAM input parameter; returning 0\.0",
+    ):
+        missing = mam4.get_mam_input("not_here", fname)
     assert missing == 0.0
 
 
@@ -183,7 +187,11 @@ def _write_mam_namelist(tmp_path, numcs, mass_fracs):
 def test_get_mam_input_defaults_to_zero(tmp_path):
     fname = _write_mam_namelist(tmp_path, [1.0, 2.0], [{"SO4": 0.2, "POM": 0.8}, {"SO4": 0.5, "POM": 0.5}])
     assert mam4.get_mam_input("numc1", fname) == 1.0
-    assert mam4.get_mam_input("missing", fname) == 0.0
+    with pytest.warns(
+        UserWarning,
+        match=r"missing is not a MAM input parameter; returning 0\.0",
+    ):
+        assert mam4.get_mam_input("missing", fname) == 0.0
 
 
 @pytest.mark.usefixtures("tmp_path")

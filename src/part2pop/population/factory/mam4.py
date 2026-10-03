@@ -11,6 +11,7 @@ from part2pop.species.registry import get_species
 
 import numpy as np
 import os
+import warnings
 from pathlib import Path
 from .registry import register
 from ...constants import MOLAR_MASS_DRY_AIR, R, DENSITY_LIQUID_WATER
@@ -194,7 +195,13 @@ def get_mam_input(varname,mam_input_filename):
     if yep == 0:
         # raise ValueError(varname,'is not a MAM input parameter')
         vardat = 0.0
-        print(varname,'is not a MAM input parameter; returning 0.0')    
+        warnings.warn(
+            f"{varname} is not a MAM input parameter; returning 0.0",
+            UserWarning,
+            stacklevel=2,
+        )
+
     elif yep > 1:
         raise ValueError('more than one line in ', mam_input_filename, 'starts with', varname)
+
     return vardat
