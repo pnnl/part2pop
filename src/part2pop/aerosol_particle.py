@@ -20,6 +20,7 @@ from scipy.constants import R
 import scipy.optimize as opt
 import warnings
 
+@dataclass(eq=False)
 class Particle:
     """Represent an aerosol particle by species composition and masses.
 
@@ -27,20 +28,31 @@ class Particle:
     ----------
     species : tuple[AerosolSpecies,...]
         Sequence of species objects that make up the particle.
-    masses : tuple[float,...]
-        Mass of each species in SI units (kg).
+    masses : numpy.ndarray
+        One-dimensional mass array in SI units (kg). Construction copies the
+        supplied mass values so later mutation of the input does not affect
+        the particle.
 
     Methods provide convenient accessors for dry/wet diameters, volumes,
     effective kappa, and critical supersaturation.
     """
+    species: Tuple[AerosolSpecies, ...]
+    masses: np.ndarray
 
-    def __init__(self, species, masses):
-        self.species=species 
-        self.masses=np.array(masses, dtype=float)
-    
     def __post_init__(self):
-        assert(len(self.species) == len(self.masses) )
-    
+        self.species = tuple(self.species)
+        self.masses = np.array(self.masses, dtype=float, copy=True)
+
+        if self.masses.ndim != 1:
+            raise ValueError(
+                f"masses must be one-dimensional, got shape {self.masses.shape}"
+            )
+        if len(self.species) != len(self.masses):
+            raise ValueError(
+                f"species and masses must have the same length, got "
+                f"{len(self.species)} and {len(self.masses)}"
+            )
+
     def _equilibrate_h2o(
             self, RH,T,maxRH=0.99,
             sigma_h2o=0.072, rho_h2o=1000., MW_h2o=18e-3):
