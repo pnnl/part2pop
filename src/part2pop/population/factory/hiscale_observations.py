@@ -53,6 +53,7 @@ from typing import Any, Dict
 
 import numpy as np
 
+from ..base import ParticlePopulation
 from ..utils import normalize_population_config
 from .helpers.assembly import assemble_population_from_mass_fractions
 from .helpers import hiscale as hiscale_helpers
