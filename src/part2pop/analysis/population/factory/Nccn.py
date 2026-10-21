@@ -13,7 +13,7 @@ class NccnVar(PopulationVariable):
         aliases=(),
         scale='linear',
         long_label = 'CCN number concentration',
-        short_label = '$N_{\mathrm{CCN}}(s)$',
+        short_label = '$N_{\\mathrm{CCN}}(s)$',
         # s-grid default centralized in analysis.defaults; keep other defaults
         default_cfg={"T": 298.15},
     )

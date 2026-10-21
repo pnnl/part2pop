@@ -13,7 +13,7 @@ class FracCCNVar(PopulationVariable):
         axis_names=("s",),
         description="fraction of particles that are CCN-activate at given supersaturation",
         units="",
-        short_label="$frac_{\mathrm{CCN}}$",
+        short_label="$frac_{\\mathrm{CCN}}$",
         long_label="fraction CCN-active",
         scale='linear',
         # s-grid default centralized in analysis.defaults; keep other defaults

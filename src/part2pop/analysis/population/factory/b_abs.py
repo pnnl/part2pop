@@ -11,7 +11,7 @@ class AbsCoeff(PopulationVariable):
             axis_names=("rh_grid", "wvls"),
         description="Absorption coefficient",
         units="m$^{-1}$",
-        short_label="$b_{\mathrm{abs}}$",
+        short_label="$b_{\\mathrm{abs}}$",
         long_label="absorption coefficient",
         scale='linear',
         aliases=("total_abs",),
