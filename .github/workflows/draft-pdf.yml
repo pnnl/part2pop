@@ -3,21 +3,36 @@ name: Build draft JOSS PDF
 on:
   workflow_dispatch:
   push:
-    branches: ["main"]
+    branches: [main]
     paths:
       - "paper/**"
+      - "!paper/paper.pdf"
       - ".github/workflows/draft-pdf.yml"
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: draft-pdf-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-draft-pdf:
+    name: Build and commit draft PDF
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    permissions:
+      contents: write
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The commit step rebases before pushing, so retain enough history
+          # to find a common ancestor if main advances while the PDF builds.
+          fetch-depth: 0
 
       - name: Build paper PDF
         run: |
@@ -31,8 +46,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          git add paper/paper.pdf
+          git add -- paper/paper.pdf
 
           if git diff --cached --quiet; then
             echo "No paper PDF changes to commit."
@@ -40,4 +54,19 @@ jobs:
           fi
 
           git commit -m "docs: update draft JOSS paper PDF"
-          git push
+          # Main may have advanced while the PDF was building.
+          git fetch --no-tags origin main
+
+          # If the paper sources changed, this PDF is already stale. Skip it:
+          # the push that changed them triggers a fresh build of its own.
+          if ! git diff --quiet "$GITHUB_SHA" origin/main -- paper ':(exclude)paper/paper.pdf'; then
+            echo "Paper sources changed on main during the build; not committing a stale PDF."
+            exit 0
+          fi
+
+          # Only other files moved. Rebase rather than force-pushing. If main
+          # also changed paper.pdf, keep this build's PDF: it was built from
+          # the same paper sources (in a rebase, -X theirs favours the commit
+          # being replayed).
+          git rebase -X theirs origin/main
+          git push origin HEAD:main
