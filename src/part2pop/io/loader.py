@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import json
 from pathlib import Path
 from typing import Any, Dict, Tuple, Union
@@ -8,6 +9,7 @@ import numpy as np
 
 from ..population.base import ParticlePopulation
 from ..species.registry import get_species
+from ._utils import _decode_population_metadata
 
 __all__ = ["load_population"]
 
@@ -50,6 +52,12 @@ def load_population(
             ids=list(ids),
             species_modifications=species_mods,
         )
+        if "population_metadata" in metadata:
+            population_metadata = _decode_population_metadata(metadata["population_metadata"], archive)
+            population.metadata = population_metadata
+            # Hand out an independent copy, so editing the returned metadata
+            # does not silently edit population.metadata (or vice versa).
+            metadata["population_metadata"] = copy.deepcopy(population_metadata)
 
         for attr in metadata.get("extra_attrs", []):
             key = f"extra__{attr}"
