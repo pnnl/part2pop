@@ -18,8 +18,26 @@ from part2pop.species.registry import get_species
 import numpy as np
 
 
+def _sample_count(value):
+    """Validate raw counts before the generic normalizer can truncate them."""
+    if np.ndim(value) != 0 or np.iscomplexobj(value):
+        raise ValueError("N_parts must contain finite positive integer sample counts.")
+    try:
+        numeric = value if isinstance(value, (int, np.integer)) else float(value)
+        count = int(numeric)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("N_parts must contain finite positive integer sample counts.") from exc
+    if (count <= 0 or count > np.iinfo(np.intp).max
+            or not np.isfinite(numeric) or numeric != count):
+        raise ValueError("N_parts must contain finite positive integer sample counts.")
+    return count
+
+
 @register("sampled_lognormals")
 def build(config):
+    raw_n_parts = config.get("N_parts", 100)
+    config = dict(config)
+    config.pop("N_parts", None)
     config = normalize_population_config(config)
     seed = config.get("seed", None)
     rng = np.random.default_rng(seed)
@@ -31,36 +49,46 @@ def build(config):
     # If N_parts is a list, treat as one entry per mode (backward-compatible).
     # If N_parts is a scalar, treat as total samples from the *mixture*
     # and allocate per mode in proportion to N_list.
-    N_parts_cfg = config.get("N_parts", 100)
+    if (isinstance(raw_n_parts, (str, bytes)) or np.isscalar(raw_n_parts)
+            or isinstance(raw_n_parts, np.ndarray) and raw_n_parts.ndim == 0):
+        N_parts_cfg = _sample_count(raw_n_parts)
+    else:
+        try:
+            N_parts_cfg = [_sample_count(value) for value in raw_n_parts]
+        except TypeError as exc:
+            raise ValueError("N_parts must be an integer or an iterable of integers.") from exc
     specdata_path = config.get("specdata_path", None)
 
-    if isinstance(N_parts_cfg, list) or isinstance(N_parts_cfg, tuple):
-        N_parts_list = np.array(N_parts_cfg, dtype=int)
+    # Finite entries can still overflow their sum. Reject that configuration
+    # rather than silently losing samples when normalized quotas become zero.
+    with np.errstate(over="ignore", invalid="ignore"):
+        total_concentration = float(np.sum(N_list))
+    if (not np.all(np.isfinite(N_list)) or np.any(N_list < 0)
+            or not np.isfinite(total_concentration) or total_concentration <= 0):
+        raise ValueError("Mode number concentrations must be finite, nonnegative, and have finite positive total.")
+
+    if isinstance(N_parts_cfg, (list, tuple)):
+        N_parts_list = np.asarray(N_parts_cfg, dtype=int)
+        if np.any(N_parts_list <= 0):
+            raise ValueError("Each mode must have a positive N_parts count.")
     else:
-        # scalar total samples
         N_parts_total = int(N_parts_cfg)
         if N_parts_total <= 0:
             raise ValueError("N_parts must be positive.")
+        n_modes = len(N_list)
+        if N_parts_total < n_modes:
+            raise ValueError("N_parts must be at least the number of modes so each mode has a sample.")
 
-        # probabilities per mode, proportional to mode number concentration
-        p = N_list / N_list.sum()
-        N_parts_list = np.round(p * N_parts_total).astype(int)
-
-        # Make sure we don't drop any modes and that the sum matches exactly
-        # (adjust by distributing the rounding error).
-        N_parts_list = np.maximum(N_parts_list, 1)
-        diff = N_parts_total - int(N_parts_list.sum())
-        # distribute diff one by one
-        i = 0
-        while diff != 0:
-            if diff > 0:
-                N_parts_list[i % len(N_parts_list)] += 1
-                diff -= 1
-            else:  # diff < 0
-                if N_parts_list[i % len(N_parts_list)] > 1:
-                    N_parts_list[i % len(N_parts_list)] -= 1
-                    diff += 1
-            i += 1
+        # Reserve one sample per mode, then apportion the remaining samples
+        # by largest remainder. This has a strict O(n_modes log n_modes) bound.
+        remaining = N_parts_total - n_modes
+        quotas = (N_list / total_concentration) * remaining
+        extra = np.floor(quotas).astype(int)
+        remainder = remaining - int(extra.sum())
+        if remainder:
+            priority = np.argsort(-(quotas - extra), kind="stable")
+            extra[priority[:remainder]] += 1
+        N_parts_list = extra + 1
 
     aero_spec_names_list = config["aero_spec_names"]
     aero_spec_fracs_list = config["aero_spec_fracs"]
