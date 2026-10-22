@@ -1,4 +1,5 @@
 from __future__ import annotations
+from dataclasses import replace
 import numpy as np
 from ..base import PopulationVariable, VariableMeta
 from .registry import register_variable
@@ -16,7 +17,7 @@ class InsaDistVar(PopulationVariable):
         name="INSA_distribution",
         axis_names=("INSA","dN/dlnINSA"),
         description="Ice nucleating surface area distribution dN/dlnINSA.",
-        units="m$^{-1}$",
+        units="m$^{-3}$",
         short_label="$INSA$",
         long_label="dN/dlnINSA",
         scale="linear",
@@ -144,6 +145,7 @@ class InsaDistVar(PopulationVariable):
 
 def build(cfg=None) -> InsaDistVar:
     var = InsaDistVar(cfg or {})
+    var.meta = replace(var.meta)
     norm = var.cfg.get("normalize", False)
     if norm:
         # Normalized so that max value = 1, so unitless.
