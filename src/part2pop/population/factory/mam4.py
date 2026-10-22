@@ -16,6 +16,52 @@ from .registry import register
 from ...constants import MOLAR_MASS_DRY_AIR, R, DENSITY_LIQUID_WATER
 from ...utilities import power_moments_from_lognormal
 from .binned_lognormals import build as build_binned_lognormals
+
+
+def _select_active_mode_values(values, indices, n_modes, name, allow_scalar=False):
+    """Select by original mode index; scalar bin counts apply to every mode."""
+    array = np.asarray(values)
+    if allow_scalar and array.ndim == 0:
+        return array.item()
+    if array.ndim != 1 or len(array) != n_modes:
+        raise ValueError(f"{name} must have one entry per original MAM mode ({n_modes}).")
+    return array[indices].tolist()
+
+
+def _validated_mode_values(values, name, *, positive=False):
+    """Reject missing or nonphysical MAM inputs before filtering/normalizing."""
+    array = np.ma.asarray(values, dtype=float)
+    if np.any(np.ma.getmaskarray(array)):
+        raise ValueError(f"{name} must not contain missing or masked values.")
+    array = np.asarray(array)
+    invalid = array <= 0 if positive else array < 0
+    if array.ndim != 1 or not np.all(np.isfinite(array)) or np.any(invalid):
+        constraint = "positive" if positive else "nonnegative"
+        raise ValueError(f"{name} must be a 1D array of finite {constraint} values.")
+    return array
+
+
+def _positive_scalar(value, name):
+    if np.ndim(value) != 0 or np.iscomplexobj(value):
+        raise ValueError(f"{name} must be a finite positive scalar.")
+    try:
+        value = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(f"{name} must be a finite positive scalar.") from exc
+    if not np.isfinite(value) or value <= 0:
+        raise ValueError(f"{name} must be a finite positive scalar.")
+    return value
+
+
+def _normalized_composition(values, name):
+    values = _validated_mode_values(values, name)
+    with np.errstate(over="ignore"):
+        total = np.sum(values)
+    if not np.isfinite(total) or total <= 0:
+        raise ValueError(f"{name} must have a finite positive total.")
+    return values / total
+
+
 try:
     import netCDF4
     _HAS_NETCDF4 = True
@@ -29,9 +75,10 @@ if _HAS_NETCDF4:
         timestep = config['timestep']
         GSDs = config['GSD']
         if config.get("D_is_wet", True):
-            aero_spec_names = [['SO4','OC','H2O'],['SO4','OC','H2O'],['SO4','OC','H2O'],['SO4','OC','H2O']]
+            mode_species = ['SO4', 'OC', 'H2O']
         else:
-            aero_spec_names = [['SO4','OC'],['SO4','OC'],['SO4','OC'],['SO4','OC']]
+            mode_species = ['SO4', 'OC']
+        aero_spec_names = [mode_species.copy() for _ in GSDs]
         
         N_bins = config['N_bins']
         
@@ -46,6 +93,7 @@ if _HAS_NETCDF4:
                 Ns[kk] = get_mam_input(
                     'numc' + str(kk+1),
                     mam_input)
+            Ns = _validated_mode_values(Ns, 'MAM number concentrations')
             
             # GMDs = np.zeros([len(GSDs)])
             # try:
@@ -59,8 +107,12 @@ if _HAS_NETCDF4:
             
             aero_spec_fracs = []
             for kk in range(len(Ns)):
+                if Ns[kk] == 0:
+                    # An inactive mode needs no composition; missing namelist
+                    # mass fractions retain the existing zero-mode behavior.
+                    aero_spec_fracs.append(np.zeros(len(aero_spec_names[kk])))
+                    continue
                 spec_frac = []
-                total_frac = 0.
                 for spec_name in aero_spec_names[kk]:
                     # fixme: come up with more elegant way to handle PartMC --> MAM4 species name mapping
                     if spec_name.lower() == 'oc':
@@ -75,11 +127,24 @@ if _HAS_NETCDF4:
                             mam_input)
                                         
                     spec_frac.append(frac)
-                    total_frac += frac
-                spec_frac = np.array(spec_frac)
-                spec_frac /= total_frac
-                aero_spec_fracs.append(spec_frac)
+                aero_spec_fracs.append(_normalized_composition(
+                    spec_frac, f"MAM initial composition for mode {kk}"
+                ))
             aero_spec_fracs = np.array(aero_spec_fracs)
+
+            # Drop inactive modes exactly as the output path does, selecting
+            # every per-mode input by the same original mode indices. An
+            # inactive mode would otherwise reach binned_lognormals as
+            # zero-concentration particles (and a 0/0 composition when the
+            # namelist gives it no mass fractions).
+            idx, = np.where(Ns > 0)
+            GSDs = _select_active_mode_values(GSDs, idx, len(Ns), 'GSD')
+            N_bins = _select_active_mode_values(
+                N_bins, idx, len(Ns), 'N_bins', allow_scalar=True)
+            GMDs = _select_active_mode_values(GMDs, idx, len(Ns), 'GMD_init')
+            Ns = Ns[idx]
+            aero_spec_names = [aero_spec_names[kk] for kk in idx]
+            aero_spec_fracs = [aero_spec_fracs[kk] for kk in idx]
 
             lognormals_cfg = {
                 'type': 'binned_lognormals',
@@ -99,55 +164,71 @@ if _HAS_NETCDF4:
             # fixme: make this +/- certain number of sigmas (rather than min/max diams)
             
             N_bins = config['N_bins']
-            species_modifications = config.get('species_modification',{}) # modify species properties during post-processing
             output_filename = mam4_dir / 'mam_output.nc'
-            currnc = netCDF4.Dataset(output_filename)
+            with netCDF4.Dataset(output_filename) as currnc:
+                num_aer = currnc['num_aer'][:, output_tt_idx]
+                so4_aer = currnc['so4_aer'][:, output_tt_idx]
+                soa_aer = currnc['soa_aer'][:, output_tt_idx]
+                dgn_a = currnc['dgn_a'][:, output_tt_idx]
+                dgn_awet = currnc['dgn_awet'][:, output_tt_idx]
 
-            num_aer = currnc['num_aer']
-            so4_aer = currnc['so4_aer']
-            soa_aer = currnc['soa_aer']
-            dgn_a = currnc['dgn_a']
-            dgn_awet = currnc['dgn_awet']
-
-            p = config['p']
-            T = config['T']
+            p = _positive_scalar(config['p'], 'MAM pressure p')
+            T = _positive_scalar(config['T'], 'MAM temperature T')
+            num_aer = _validated_mode_values(num_aer, 'MAM number concentrations')
             #from .binned_lognormals import build as build_binned_lognormals
             
             lognormals_cfg = config
 
             # fixme: make this right
-            rho_dry_air = MOLAR_MASS_DRY_AIR * p / (R * T)
-            Ns = num_aer[:,output_tt_idx] * rho_dry_air # N/m^3
+            with np.errstate(over="ignore", divide="ignore", invalid="ignore"):
+                rho_dry_air = np.float64(MOLAR_MASS_DRY_AIR) * p / (np.float64(R) * T)
+            rho_dry_air = _positive_scalar(rho_dry_air, 'MAM dry-air density')
+            with np.errstate(over="ignore", invalid="ignore"):
+                Ns = num_aer * rho_dry_air  # N/m^3
+            Ns = _validated_mode_values(Ns, 'Converted MAM number concentrations')
             idx, = np.where(Ns>0)
+            # Every per-mode input refers to the original file mode order.
+            # Apply the same indices before moments or population construction;
+            # truncating a prefix would misidentify modes after an inactive one.
+            GSDs = _select_active_mode_values(GSDs, idx, len(Ns), 'GSD')
+            N_bins = _select_active_mode_values(
+                N_bins, idx, len(Ns), 'N_bins', allow_scalar=True)
             Ns = Ns[idx]
             D_is_wet = config.get("D_is_wet", True)
-            GMDs_wet = dgn_awet[idx,output_tt_idx]
-            GMDs = dgn_a[idx,output_tt_idx]
-            
-            mass_so4 = so4_aer[idx,output_tt_idx] * rho_dry_air
-            mass_soa = soa_aer[idx,output_tt_idx] * rho_dry_air
-            # fixme: not actually sure what assumptions go into this for MAM4, assuming same GSD to compute mass H2O
-            mass_h2o = DENSITY_LIQUID_WATER * np.pi/6 * np.array(
-                    [
-                        (power_moments_from_lognormal(3,N,gmd_wet,gsd) 
-                        - power_moments_from_lognormal(3, N, gmd, gsd)) 
-                        for (N, gmd, gmd_wet, gsd) in zip(Ns, GMDs, GMDs_wet, GSDs)])
+            GMDs = _validated_mode_values(dgn_a[idx], 'MAM dry diameters', positive=True)
+            GSDs = _validated_mode_values(GSDs, 'MAM GSD', positive=True)
+            if np.any(GSDs <= 1):
+                raise ValueError('MAM GSD must be greater than 1 for active modes.')
+            GSDs = GSDs.tolist()
+
+            # Check the native component values before conversion or division.
+            mass_so4 = _validated_mode_values(so4_aer[idx], 'MAM sulfate masses')
+            mass_soa = _validated_mode_values(soa_aer[idx], 'MAM organic masses')
+            with np.errstate(over="ignore", invalid="ignore"):
+                mass_so4 = mass_so4 * rho_dry_air
+                mass_soa = mass_soa * rho_dry_air
             if D_is_wet:
-                aero_spec_names = [['SO4','OC','H2O'],['SO4','OC','H2O'],['SO4','OC','H2O'],['SO4','OC','H2O']]
-                aero_spec_fracs = []
-                for (m_so4,m_soa,m_h2o) in zip(mass_so4,mass_soa,mass_h2o):
-                    spec_frac = np.array([m_so4,m_soa,m_h2o])
-                    spec_frac /= np.sum(spec_frac)
-                    spec_frac[np.isnan(spec_frac)] = 0.
-                    aero_spec_fracs.append(spec_frac)
+                GMDs_wet = _validated_mode_values(
+                    dgn_awet[idx], 'MAM wet diameters', positive=True
+                )
+                if np.any(GMDs_wet < GMDs):
+                    raise ValueError('MAM wet diameters must be >= dry diameters.')
+                # Retain the same-GSD third-moment water reconstruction, with
+                # strict validation rather than clipping negative/missing water.
+                with np.errstate(over="ignore", invalid="ignore", under="ignore"):
+                    mass_h2o = DENSITY_LIQUID_WATER * np.pi / 6 * np.array([
+                        power_moments_from_lognormal(3, N, wet, gsd)
+                        - power_moments_from_lognormal(3, N, dry, gsd)
+                        for N, dry, wet, gsd in zip(Ns, GMDs, GMDs_wet, GSDs)
+                    ])
+                rows = zip(mass_so4, mass_soa, mass_h2o)
             else:
-                aero_spec_names = [['SO4','OC'],['SO4','OC'],['SO4','OC'],['SO4','OC']]
-                aero_spec_fracs = []
-                for (m_so4,m_soa) in zip(mass_so4,mass_soa):
-                    spec_frac = np.array([m_so4,m_soa])
-                    spec_frac /= np.sum(spec_frac)
-                    spec_frac[np.isnan(spec_frac)] = 0.
-                    aero_spec_fracs.append(spec_frac)
+                rows = zip(mass_so4, mass_soa)
+            aero_spec_names = [mode_species.copy() for _ in idx]
+            aero_spec_fracs = [
+                _normalized_composition(row, f"MAM output composition for mode {mode}")
+                for mode, row in zip(idx, rows)
+            ]
 
             if D_is_wet:
                 GMDs_cfg = GMDs_wet
@@ -166,6 +247,9 @@ if _HAS_NETCDF4:
                 "D_min": config.get('D_min', None),
                 "D_max": config.get('D_max', None),
             }
+        # Preserve explicit species properties and the overrides inherited by
+        # downstream optics/freezing, as the other population factories do.
+        lognormals_cfg['species_modifications'] = config.get('species_modifications', {})
         mam4_population = build_binned_lognormals(lognormals_cfg)
         return mam4_population
 

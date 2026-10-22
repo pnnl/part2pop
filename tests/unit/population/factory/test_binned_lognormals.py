@@ -17,6 +17,16 @@ def _base_cfg():
         "aero_spec_fracs": [[1.0]],
     }
 
+def _two_mode_cfg():
+    return {
+        "type": "binned_lognormals",
+        "GMD": [0.05e-6, 0.15e-6],
+        "GSD": [1.4, 1.7],
+        "N": [5e7, 2e8],
+        "N_bins": [20, 30],
+        "aero_spec_names": [["SO4"], ["OC"]],
+        "aero_spec_fracs": [[1.0], [1.0]],
+    }
 
 def test_binned_lognormals_single_mode_total_number_and_bins():
     """
@@ -149,3 +159,35 @@ def test_binned_lognormals_resolves_alias_species_names_to_canonical_species_nam
     assert alias_names == canonical_names
     assert alias_names[:4] == ["OIN", "BC", "OC", "SO4"]
     assert np.isclose(float(alias_pop.get_Ntot()), float(canonical_pop.get_Ntot()), rtol=0.02)
+
+@pytest.mark.parametrize(
+    ("field", "short_value"),
+    [
+        ("N", [5e7]),
+        ("GMD", [0.05e-6]),
+        ("GSD", [1.4]),
+        ("N_bins", [20]),
+        ("aero_spec_names", [["SO4"]]),
+        ("aero_spec_fracs", [[1.0]]),
+    ],
+)
+def test_binned_lognormals_rejects_mismatched_mode_lengths(field, short_value):
+    cfg = _two_mode_cfg()
+    cfg[field] = short_value
+
+    with pytest.raises(
+        ValueError,
+        match="Per-mode configuration fields must have the same number of modes",
+    ):
+        build_population(cfg)
+
+def test_binned_lognormals_rejects_mismatched_species_fraction_lengths():
+    cfg = _base_cfg()
+    cfg["aero_spec_names"] = [["SO4", "OC"]]
+    cfg["aero_spec_fracs"] = [[1.0]]
+
+    with pytest.raises(
+        ValueError,
+        match="aero_spec_names and aero_spec_fracs must have matching lengths",
+    ):
+        build_population(cfg)
