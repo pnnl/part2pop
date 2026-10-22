@@ -1,4 +1,5 @@
 from __future__ import annotations
+from dataclasses import replace
 import numpy as np
 from ..base import PopulationVariable, VariableMeta
 from .registry import register_variable
@@ -33,6 +34,8 @@ class TemperatureGridVar(PopulationVariable):
     
 def build(cfg=None):
     var = TemperatureGridVar(cfg or {})
+    # Labels belong to this variable, not the shared class metadata template.
+    var.meta = replace(var.meta)
     var.meta.units = "K"
     if var.cfg.get("T_units")=="C":
         var.meta.units = "C"
