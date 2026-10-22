@@ -8,6 +8,22 @@ import numpy as np
 from part2pop import Particle
 from part2pop import AerosolSpecies
 
+def _same_field_value(left, right):
+    """Compare species property values, treating two NaN values as equal.
+
+    A plain ``!=`` reports NaN as different from itself, so a species with an
+    unset (NaN) property would never match an identical copy of itself.
+    """
+    if left is right:
+        return True
+    if left == right:
+        return True
+    try:
+        return bool(np.isnan(left) and np.isnan(right))
+    except TypeError:
+        return False
+
+
 @dataclass
 class ParticlePopulation:
     """ParticlePopulation: the definition of a population of particles
@@ -39,6 +55,38 @@ class ParticlePopulation:
         else:
             raise ValueError(str(part_id) + ' not in ids')
 
+    def _aligned_particle_masses(self, particle):
+        """Validate and align an incoming row without changing population state."""
+        # Precision scope starts with values already in particle.masses.
+        # Particle.__init__ casts to float64, so bits lost there cannot be
+        # restored here. The extended-precision tests use particle-like objects
+        # to exercise population updates independently of that constructor.
+        masses = np.asarray(particle.masses)
+        masses = np.asarray(masses, dtype=np.result_type(masses.dtype, float))
+        incoming_names = [spec.name for spec in particle.species]
+        if masses.ndim != 1 or len(masses) != len(incoming_names):
+            raise ValueError("Particle masses must be a 1D row matching species")
+        if len(set(incoming_names)) != len(incoming_names):
+            raise ValueError("Particle species names must be unique")
+        if len(self.ids) == 0:
+            return masses.copy()
+        names = [spec.name for spec in self.species]
+        if len(set(names)) != len(names) or set(names) != set(incoming_names):
+            raise ValueError("Incoming particle must have the population species set")
+        indices = {name: i for i, name in enumerate(incoming_names)}
+        missing = object()
+        for spec in self.species:
+            incoming = particle.species[indices[spec.name]]
+            if spec is incoming:
+                continue
+            # Preserve name-only species objects; compare physical fields when present.
+            for field in ("density", "kappa", "molar_mass", "surface_tension"):
+                left = getattr(spec, field, missing)
+                right = getattr(incoming, field, missing)
+                if not _same_field_value(left, right):
+                    raise ValueError(f"Incompatible {field} for species {spec.name}")
+        return masses[[indices[name] for name in names]].copy()
+
     def set_particle(self, particle, part_id, num_conc, suppress_warning=True):
         part_id = int(part_id)
         if part_id not in self.ids:
@@ -46,23 +94,37 @@ class ParticlePopulation:
                 warn('part_id not in self.ids, adding ' + str(part_id))
             self.add_particle(particle, part_id, num_conc)
         else:
-            self.species = particle.species
+            masses = self._aligned_particle_masses(particle)
+            concentration = np.asarray(num_conc)
+            if concentration.ndim == 0 and np.issubdtype(concentration.dtype, np.floating):
+                num_conc = concentration[()]
+            else:
+                num_conc = float(num_conc)
             idx = self.find_particle(part_id)
-            self.spec_masses[idx,:] = particle.masses
+            # Integer-backed inputs must not silently truncate fractional updates.
+            self.spec_masses = np.asarray(
+                self.spec_masses, dtype=np.result_type(self.spec_masses.dtype, masses.dtype, float)
+            )
+            self.num_concs = np.asarray(
+                self.num_concs, dtype=np.result_type(self.num_concs.dtype, np.asarray(num_conc).dtype, float)
+            )
+            self.spec_masses[idx,:] = masses
             self.num_concs[idx] = num_conc
-            self.ids[idx] = part_id
 
     def add_particle(self, particle, part_id, num_conc):
+        masses = self._aligned_particle_masses(particle)
         if len(self.ids) == 0:
             self.species = particle.species
-            self.spec_masses = np.zeros([1,len(particle.species)])
-            self.spec_masses[0,:] = particle.masses
+            self.spec_masses = np.zeros([1,len(particle.species)], dtype=masses.dtype)
+            self.spec_masses[0,:] = masses
             self.num_concs = np.hstack([num_conc])
             self.ids = [part_id]
         else:
-            self.spec_masses = np.vstack([self.spec_masses, particle.masses.reshape(1,-1)])
-            self.num_concs = np.hstack([self.num_concs, num_conc])
-            self.ids.append(part_id)
+            # ids may be a tuple; build the new state before committing it.
+            spec_masses = np.vstack([self.spec_masses, masses.reshape(1,-1)])
+            num_concs = np.hstack([self.num_concs, num_conc])
+            ids = list(self.ids) + [part_id]
+            self.spec_masses, self.num_concs, self.ids = spec_masses, num_concs, ids
     
     def get_species_idx(self, spec_name):
         names = [spec.name for spec in self.species]
