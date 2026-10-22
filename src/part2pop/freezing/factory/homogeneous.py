@@ -114,6 +114,12 @@ class HomogeneousParticle(FreezingParticle):
             ln(aw) = -Mw * sum_i b_i
         where b_i are ion molalities (mol/kg water).
 
+        Legacy classification: a nonwater material is a solute only when
+        BOTH effective heterogeneous coefficients are NaN. Disabling one
+        coefficient removes activity but not this solute exclusion; disabling
+        both can lower water activity and change homogeneous freezing. Active
+        area fixes do not decouple solubility from freezing coefficients.
+
         Returns
         -------
         aw : float
@@ -136,14 +142,30 @@ class HomogeneousParticle(FreezingParticle):
         return aw
     
     def get_insoluble_radius(self, spec_modifications={}, specdata_path='species_data'):
+        """Radius (m) of the equivalent sphere of active-material volume.
+
+        Table species or custom species with complete, finite heterogeneous
+        coefficients contribute their aligned volumes. Nonfinite coefficients
+        disable a material, but a zero/zero coefficient pair remains valid.
+        """
         vks = []
-        for species in self.base_particle.species:
+        volumes = self.base_particle.get_vks()
+        for ii, species in enumerate(self.base_particle.species):
+            spec_mod = dict(spec_modifications.get(species.name, {}))
             try:
-                spec_mod = dict(spec_modifications.get(species.name, {}))
-                _, _ = retrieve_Jhet_val(species.name, spec_modifications=spec_mod, specdata_path=specdata_path)
-                vks.append(self.base_particle.get_spec_vol(species.name)[0])
-            except:
+                m_Jhet, b_Jhet = retrieve_Jhet_val(
+                    species.name, spec_modifications=spec_mod,
+                    specdata_path=specdata_path
+                )
+            except (ValueError, UnboundLocalError):
+                # Before PR #135, missing names can raise UnboundLocalError;
+                # the corrected exact-name reader raises ValueError.
+                m_Jhet = spec_mod.get("m_log10_Jhet", np.nan)
+                b_Jhet = spec_mod.get("b_log10_Jhet", np.nan)
+            if not (np.isfinite(float(m_Jhet)) and np.isfinite(float(b_Jhet))):
                 continue
+            if np.isfinite(volumes[ii]) and volumes[ii] > 0:
+                vks.append(volumes[ii])
         return ((3.0*np.sum(np.array(vks)))/(4.0*np.pi))**(1/3)
     
         
