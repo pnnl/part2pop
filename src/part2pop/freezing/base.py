@@ -123,10 +123,14 @@ def retrieve_Jhet_val(name, spec_modifications={}, specdata_path='species_data')
         for line in fh:
             if line.strip().startswith("#"):
                 continue
-            if line.upper().startswith(name.upper()):
-                _, m_Jhet, b_Jhet = line.split()
-                m_Jhet_val = spec_modifications.get('m_log10_Jhet', m_Jhet)
-                b_Jhet_val = spec_modifications.get('b_log10_Jhet', b_Jhet)
-           
-    return m_Jhet_val, b_Jhet_val
+            fields = line.split()
+            if not fields or fields[0].upper() != name.upper():
+                continue
+            _, m_Jhet, b_Jhet = fields
+            return (
+                spec_modifications.get('m_log10_Jhet', m_Jhet),
+                spec_modifications.get('b_log10_Jhet', b_Jhet),
+            )
+
+    raise ValueError(f"Freezing data for species {name!r} not found.")
     
