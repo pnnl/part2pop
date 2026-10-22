@@ -154,6 +154,7 @@ class DNdlnDVar(PopulationVariable):
                 D_grid,
                 measure=measure,
                 normalize=cfg.get("normalize", False),
+                point_mass_bounds=(edges[0], edges[-1]),
             )
 
         elif method == "provided":

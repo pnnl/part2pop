@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 
 _TRAPEZOID_FUNC = getattr(np, "trapezoid", None)
@@ -315,12 +317,92 @@ def density1d_cdf_map(
     return x_tgt_centers, dens_tgt, edges_tgt
 
 
+def _kde_integration_widths(query):
+    """Validate the quadrature grid used by normalization and point masses."""
+    with np.errstate(over="ignore", invalid="ignore"):
+        widths = np.diff(query)
+    if (query.size < 2 or not np.all(np.isfinite(widths))
+            or np.any(widths <= 0)):
+        raise ValueError("KDE integration needs at least two increasing nodes with finite widths")
+    return widths
+
+
+def _point_masses_density(locations, weights, query, bounds=None):
+    """Deposit weighted point masses on adjacent query nodes (linear binning).
+
+    Each point's weight is split between the two nodes around it in
+    proportion to proximity, then divided by those nodes' trapezoidal
+    quadrature weights. ``trapz(density, query)`` therefore equals the total
+    weight of the points inside ``bounds``, and interior first moments are
+    conserved. A point between an outer bound and the nearest node is placed
+    at that node (count conserved, first moment shifted). Points outside
+    ``bounds`` are dropped.
+
+    Returns ``(density, dropped_weight)``.
+    """
+    widths = _kde_integration_widths(query)
+    if bounds is None:
+        bounds = query[[0, -1]]
+    elif (bounds.shape != (2,) or not np.all(np.isfinite(bounds))
+            or bounds[0] > query[0] or bounds[1] < query[-1]):
+        raise ValueError("Point-mass bounds must be finite and enclose the query grid")
+    locations = np.atleast_1d(np.asarray(locations, dtype=float))
+    weights = np.broadcast_to(np.asarray(weights, dtype=float), locations.shape)
+    inside = (locations >= bounds[0]) & (locations <= bounds[1])
+    dropped = float(np.sum(weights[~inside]))
+    # A point within an outer half-bin is represented at its nearest endpoint.
+    kept = np.clip(locations[inside], query[0], query[-1])
+    kept_weights = weights[inside]
+    quadrature_weights = np.empty_like(query, dtype=float)
+    quadrature_weights[0] = widths[0] / 2
+    quadrature_weights[-1] = widths[-1] / 2
+    quadrature_weights[1:-1] = widths[:-1] / 2 + widths[1:] / 2
+    # Clipping guarantees a right-hand index of at least one.
+    right = np.minimum(np.searchsorted(query, kept, side="right"), query.size - 1)
+    left = right - 1
+    fraction = (kept - query[left]) / widths[left]
+    mass = np.zeros_like(query, dtype=float)
+    np.add.at(mass, left, kept_weights * (1 - fraction))
+    np.add.at(mass, right, kept_weights * fraction)
+    return mass / quadrature_weights, dropped
+
+
+def _point_mass_density(location, total, query, bounds=None):
+    """Deposit one point mass; see :func:`_point_masses_density`."""
+    density, _ = _point_masses_density([location], [total], query, bounds)
+    return density
+
+
+# A Gaussian sampled at uniform spacing d integrates (trapezoid rule) with
+# relative error of about 2*exp(-2*pi**2*(h/d)**2): 3e-4 at h = 2d/3, but 1.4%
+# at h = d/2 and 34% at h = 0.3d. Narrower kernels are deposited instead.
+_MIN_RESOLVED_BANDWIDTH = 2.0 / 3.0
+
+
+def _kernel_is_unresolved(bandwidth, query):
+    """Return True when a Gaussian kernel is too narrow for the query spacing.
+
+    Sampling such a kernel at the query nodes cannot represent its integral:
+    a node next to a sample sees the peak, and a sample between nodes is
+    missed. A kernel at least two thirds of the coarsest spacing integrates to
+    within about 3e-4 when sampled. Only increasing grids of two or more nodes
+    qualify; other query grids are sampled directly.
+    """
+    if query.size < 2:
+        return False
+    widths = np.diff(query)
+    if not np.all(np.isfinite(widths)) or np.any(widths <= 0):
+        return False
+    return bandwidth < _MIN_RESOLVED_BANDWIDTH * np.max(widths)
+
+
 def kde1d_in_measure(
     x: np.ndarray,
     weights: np.ndarray,
     xq: np.ndarray,
     measure: str = "ln",
     normalize: bool = False,
+    point_mass_bounds=None,
 ):
     """
     Smooth estimate of **number density** wrt the chosen measure using a KDE in u-space.
@@ -340,38 +422,99 @@ def kde1d_in_measure(
     normalize : bool
         If True, rescale dens so that the integral in u-space
         approximated by trapz(dens, u) is 1.
+    point_mass_bounds : pair of floats, optional
+        Outer bin edges enclosing xq, used when samples are deposited as point
+        masses (see Notes). Points within these bounds but beyond the query
+        nodes are deposited at the nearest endpoint. Without bounds, support
+        is the query interval.
 
     Returns
     -------
     dens : array
         KDE-evaluated number density per d(measure) at xq.
+
+    Notes
+    -----
+    When all samples share one value, or the fitted Gaussian bandwidth is
+    below two thirds of the largest spacing of the (sorted) query grid,
+    sampling the kernel at the nodes cannot represent its integral. Samples are then
+    deposited as point masses on their two neighbouring nodes (linear
+    binning): the trapezoidal integral over the query coordinates equals the
+    total weight inside the support, and interior first moments are kept.
+    Weight outside the support is dropped with a RuntimeWarning. Broader
+    kernels are sampled directly, as before.
     """
     try:
         from scipy.stats import gaussian_kde
     except Exception as e:
         raise RuntimeError("scipy is required for KDE") from e
 
-    x = np.asarray(x)
+    x = np.asarray(x, dtype=float)
     w = np.asarray(weights, dtype=float)
-    xq = np.asarray(xq)
-
-    # Work in u-space
-    u = _u_from_x(x, measure)
+    xq = np.asarray(xq, dtype=float)
+    if x.ndim != 1 or w.shape != x.shape or xq.ndim != 1:
+        raise ValueError("KDE samples/weights must match 1D arrays; query must be 1D")
+    if not np.all(np.isfinite(x)) or not np.all(np.isfinite(xq)):
+        raise ValueError("KDE sample and query coordinates must be finite")
+    if not np.all(np.isfinite(w)) or np.any(w < 0):
+        raise ValueError("KDE weights must be finite and nonnegative")
     u_q = _u_from_x(xq, measure)
+    if normalize:
+        _kde_integration_widths(u_q)
+    positive = w > 0
+    if not np.any(positive):
+        return np.zeros_like(xq)
+    u = _u_from_x(x[positive], measure)
+    w = w[positive]
+    total_weight = np.sum(w)
+    if not np.isfinite(total_weight):
+        raise ValueError("Total KDE weight must be finite")
 
-    # kde doesn't work on monodisperse populations
-    if len(u)==1 and len(w)==1:
-        dens = np.zeros(u_q.shape)
-        idx = np.argmin(np.abs(u_q - u[0]))
-        dens[idx]=w[0]
+    # Decide and deposit on the nodes in increasing order, so a raw KDE gives
+    # the same values whatever order the query nodes are supplied in.
+    order = np.argsort(u_q, kind="stable")
+    u_sorted = u_q[order]
+
+    # Weighted covariance divides by 1 - sum(p**2). A dominant weight can
+    # round this denominator to zero even with distinct samples. SciPy then
+    # raises ValueError for a nonfinite covariance, not LinAlgError. Detect
+    # that numerical degeneracy without swallowing unrelated ValueErrors.
+    scaled_weights = w / np.max(w)
+    probabilities = scaled_weights / np.sum(scaled_weights)
+    covariance_dof = 1.0 - np.sum(probabilities**2)
+    kde = None
+    if not np.all(u == u[0]) and covariance_dof > 8 * np.finfo(float).eps:
+        try:
+            kde = gaussian_kde(u, weights=probabilities)
+        except np.linalg.LinAlgError:
+            kde = None  # numerically singular spread: treat as point masses
+    if kde is None or _kernel_is_unresolved(float(np.sqrt(kde.covariance[0, 0])), u_sorted):
+        bounds = None if point_mass_bounds is None else _u_from_x(
+            np.asarray(point_mass_bounds, dtype=float), measure
+        )
+        # Unit total for a normalized estimate avoids scaling extreme weights.
+        deposit = w / total_weight if normalize else w
+        dens_sorted, dropped = _point_masses_density(u, deposit, u_sorted, bounds)
+        dens = np.empty_like(dens_sorted)
+        dens[order] = dens_sorted
+        if dropped > 0:
+            share = dropped / (1.0 if normalize else total_weight)
+            warnings.warn(
+                f"{share:.3g} of the KDE weight lies outside the distribution "
+                "support and is not represented.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
     else:
-        kde = gaussian_kde(u, weights=w)
-        dens = kde(u_q)  # dens(u) per du
+        # scipy normalizes weights: restore counts only for number density.
+        dens = kde(u_q)
+        if not normalize:
+            dens = dens * total_weight
 
     if normalize:
-       total = _trapezoid_integrate(dens, u_q)
-       if total > 0:
-           dens = dens / total
+        total = _trapezoid_integrate(dens, u_q)
+        if total > 0:
+            dens = dens / total
 
     return dens
 
