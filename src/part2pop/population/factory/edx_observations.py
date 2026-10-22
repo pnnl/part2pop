@@ -8,7 +8,12 @@ following columns:
 
 from .registry import register
 from .helpers.assembly import assemble_population_from_mass_fractions
-from .helpers.edx import read_edx_file, reconstruct_edx_species_mass_fractions
+from .helpers.edx import (
+    _DEFAULT_EDX_RECONSTRUCTION_SCHEME,
+    _DEFAULT_EDX_TARGET_SPECIES,
+    read_edx_file,
+    reconstruct_edx_species_mass_fractions,
+)
 from typing import Any, Dict
 from part2pop.population.base import ParticlePopulation
 import numpy as np
@@ -24,7 +29,7 @@ def build(config: Dict[str, Any]) -> ParticlePopulation:
     elements = config.get("elements", ['C','N','O','Na','Mg','Al','Si','P','S','Cl','K','Ca','Mn','Fe','Cu','Zn'])
 
     raw_population = read_edx_file(config, elements)
-    aero_spec_names = config.get("aerosol_species", ['SO4','OIN','OC','Na','Cl','biological'])
+    aero_spec_names = config.get("aerosol_species", list(_DEFAULT_EDX_TARGET_SPECIES))
     aero_spec_masses, particle_classes = reconstruct_edx_species_mass_fractions(raw_population, aero_spec_names)
 
     # make the particle population from explicit per-particle rows
@@ -42,5 +47,15 @@ def build(config: Dict[str, Any]) -> ParticlePopulation:
         D_is_wet=D_is_wet,
         specdata_path=specdata_path,
     )
+    metadata = dict(getattr(particle_population, "metadata", {}) or {})
+    metadata.update({
+        "source": "edx_observations",
+        "input_composition_basis": "elemental_mass_fraction",
+        "output_composition_basis": "aerosol_species_mass_fraction",
+        "edx_reconstruction_scheme": _DEFAULT_EDX_RECONSTRUCTION_SCHEME,
+        "edx_elements": raw_population.elements.tolist(),
+        "edx_target_species": list(aero_spec_names),
+    })
+    particle_population.metadata = metadata
     return particle_population
 
