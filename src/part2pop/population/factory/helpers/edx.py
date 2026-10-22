@@ -60,9 +60,7 @@ def _extract_element_mass_fractions(data: pd.DataFrame, elements: list[str], fil
             elif column == spec:
                 idx = ii
                 particle_massfracs[:, jj] = np.array(data[column])
-        if not idx:
-            # TODO: Preserve existing behavior for Issue #40 narrow pass; idx==0 quirk
-            # can be addressed in follow-up without scientific changes.
+        if idx is None:
             raise KeyError(f"Could not identify column for {spec} in {filename}")
     return particle_massfracs, elements
 
