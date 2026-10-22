@@ -11,7 +11,7 @@ Note: functions use NumPy and SciPy for numerical operations.
 """
 
 from .species.base import AerosolSpecies
-from .species.registry import get_species, retrieve_one_species
+from .species.registry import get_species, retrieve_one_species as retrieve_one_species
 # from . import data_path
 from dataclasses import dataclass
 from typing import Tuple, Optional
@@ -392,11 +392,12 @@ def make_particle_from_masses(
     for name in aero_spec_names:
         if name in species_modifications.keys():
             spec_modifications = species_modifications[name]
+            species = get_species(name, None, **spec_modifications)
         else:
-            spec_modifications = {}
-        AeroSpecs.append(retrieve_one_species(
-            name, #specdata_path=specdata_path, 
-            spec_modifications=spec_modifications))
+            species = get_species(name, None)
+            if species.name in species_modifications:
+                species = get_species(name, None, **species_modifications[species.name])
+        AeroSpecs.append(species)
     return Particle(species=AeroSpecs,masses=spec_masses)
     
 
