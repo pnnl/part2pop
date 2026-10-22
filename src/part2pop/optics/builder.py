@@ -62,36 +62,26 @@ def build_optical_population(base_population, config):
     # and centralizes the decision point where the wavelength grid is known.
     # Prefer species_modifications from optics config; if absent, fall back to
     # the base population's recorded modifications (set by population builders).
+    # A supplied mapping, including {}, is authoritative. An omitted or None
+    # mapping inherits the base population's species modifications, matching
+    # the freezing analyses. {} deliberately resets inherited optical
+    # overrides to species defaults.
     species_mods = config.get('species_modifications')
-    if not species_mods:
-        species_mods = getattr(base_population, 'species_modifications', {}) or {}
     if species_mods is None:
-        species_mods = {}
+        species_mods = getattr(base_population, 'species_modifications', None) or {}
     # (no debug printing)
     # specdata_path = config.get('specdata_path', None) or data_path / 'species_data'
     # specdata_path = '../species/species_data'
     # Import here to avoid circular imports at module import time
-    from .refractive_index import build_refractive_index
+    from .refractive_index import ensure_refractive_index
 
     for spec in base_population.species:
-        # Allow SOA envelope fallback (mirror logic used elsewhere)
         soa_names = {'MSA','ARO1','ARO2','ALK1','OLE1','API1','API2','LIM1','LIM2'}
         soa_mods = species_mods.get('SOA', {})
         mods = species_mods.get(spec.name, {})
         if not mods and spec.name in soa_names:
             mods = soa_mods
-        # no debug output
-        # Only attach if species doesn't already have a wavelength-aware RI
-        existing = getattr(spec, 'refractive_index', None)
-        try:
-            # If existing has functions for the requested grid we skip rebuild.
-            skip = False
-            if existing is not None and hasattr(existing, 'real_ri_fun') and hasattr(existing, 'imag_ri_fun'):
-                skip = True
-        except Exception:
-            skip = False
-        if not skip:
-            build_refractive_index(spec, wvl_grid, modifications=mods)
+        ensure_refractive_index(spec, wvl_grid, modifications=mods)
 
     # Pass the base population so OpticalPopulation can inherit ids/num_concs/etc.
     optical_population = OpticalPopulation(base_population, rh_grid, wvl_grid)
