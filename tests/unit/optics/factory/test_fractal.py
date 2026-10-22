@@ -28,7 +28,6 @@ def fractal_particle():
     cfg = {
         "wvl_grid": [400e-9, 600e-9],
         "rh_grid": [0.0, 0.7],
-        "single_scatter_albedo": 0.95,
     }
     with pytest.warns(UserWarning, match="fractal particles is not yet implemented"):
         return FractalParticle(base_particle, cfg)
@@ -39,7 +38,6 @@ def test_fractal_particle_compute_optics(fractal_particle):
     assert fp.Cext.shape == (len(fp.rh_grid), len(fp.wvl_grid))
     assert np.all(fp.Cext >= 0.0)
     assert np.all(np.isfinite(fp.Csca))
-    assert fp.single_scatter_albedo == pytest.approx(0.95)
     fp.h2o_vols[:] = 0.0
     fp.shell_dry_vol = 0.0
     assert fp._shell_ri(0, 0) == complex(1.0, 0.0)
@@ -67,3 +65,12 @@ def test_fractal_build_wrapper():
     with pytest.warns(UserWarning, match="fractal particles is not yet implemented"):
         fp = build(base_particle, cfg)
     assert isinstance(fp, FractalParticle)
+
+
+def test_removed_single_scatter_albedo_key_warns():
+    pop = _make_bc_rich_population()
+    base_particle = pop.get_particle(pop.ids[0])
+    cfg = {"wvl_grid": [550e-9], "rh_grid": [0.0], "single_scatter_albedo": 0.95}
+    with pytest.warns(UserWarning) as record:
+        FractalParticle(base_particle, cfg)
+    assert any("single_scatter_albedo is no longer used" in str(w.message) for w in record)

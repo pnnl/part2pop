@@ -30,19 +30,26 @@ class FractalParticle(OpticalParticle):
 
     Optional config (read by OpticalParticle or here):
       - rh_grid, wvl_grid, temp (K), specdata_path, species_modifications
-      - single_scatter_albedo (fallback SSA when PyMieScatt is unavailable; default: 0.9)
     """
 
     def __init__(self, base_particle, config):
         super().__init__(base_particle, config)
+        # single_scatter_albedo never affected the Mie or Rayleigh results and
+        # is no longer stored; warn rather than silently ignore a config that
+        # still passes it.
+        if "single_scatter_albedo" in config:
+            warnings.warn(
+                "single_scatter_albedo is no longer used and is ignored; "
+                "scattering and absorption come from the Mie calculation"
+                ".",
+                UserWarning,
+                stacklevel=2,
+            )
 
         # Refractive indices are attached at the population level by the
         # optics builder; the base class's _attach_refractive_indices is
         # guarded and will no-op if the species already have wavelength-aware
         # RIs. Keep the call to the base preparation intact.
-
-        # User-tunable fallback SSA (only used if PyMieScatt is missing)
-        self.single_scatter_albedo = float(config.get("single_scatter_albedo", 0.9))
 
         # Precompute geometry & per-wavelength dry/water RIs
         self._prepare_geometry_and_ris()
