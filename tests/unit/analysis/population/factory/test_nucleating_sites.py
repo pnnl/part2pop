@@ -7,7 +7,7 @@ class _StubFreezePop:
     def __init__(self, value):
         self.value = value
 
-    def get_nucleating_sites(self, cooling_rate):
+    def get_nucleating_sites(self, T_grid, cooling_rate, config, T_units="K"):
         return np.array([self.value * cooling_rate])
 
 

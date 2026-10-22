@@ -97,6 +97,47 @@ class FreezingPopulation(ParticlePopulation):
         weights = self.num_concs
         Jhets = self.compute_Jhets(T, config)
         return np.average(Jhets, weights=weights)
+
+    def get_nucleating_sites(self, T_grid, cooling_rate, config, T_units="K"):
+        """Integrate a cumulative mean heterogeneous nucleation-rate density.
+
+        Assumes a warm-to-cold T_grid and constant positive cooling_rate in K/s.
+        At each T, weight per-particle Jhet (m^-2 s^-1) by number concentration
+        and INSA; divide by total weighted area and integrate -dT/cooling_rate
+        with the trapezoidal rule. The warmest-grid value is zero. Output: m^-2.
+        This excludes homogeneous nucleation, site saturation, frozen-particle
+        removal, and feedback on the rate; this modeled integral is not a direct
+        measurement of unique surface sites.
+        """
+        temperatures = np.asarray(T_grid, dtype=float)
+        if temperatures.ndim != 1 or temperatures.size == 0:
+            raise ValueError("T_grid must be a nonempty one-dimensional array")
+        if T_units not in ("K", "C"):
+            raise ValueError("T_units must be 'K' or 'C'")
+        if T_units == "C":
+            temperatures = temperatures + 273.15
+        if not np.all(np.isfinite(temperatures)) or np.any(temperatures <= 0):
+            raise ValueError("T_grid temperatures must be finite and above 0 K")
+        if np.any(np.diff(temperatures) >= 0):
+            raise ValueError("T_grid must be strictly decreasing for cooling")
+        if not np.isfinite(cooling_rate) or cooling_rate <= 0:
+            raise ValueError("cooling_rate must be a finite positive K/s value")
+
+        area_weights = np.asarray(self.num_concs, dtype=float) * np.asarray(self.INSA, dtype=float)
+        total_area = float(np.sum(area_weights))
+        if total_area <= 0:
+            return np.zeros(len(temperatures), dtype=float)
+        rates = np.array([
+            np.average(self.compute_Jhets(float(T), config), weights=area_weights)
+            for T in temperatures
+        ], dtype=float)
+        if not np.all(np.isfinite(rates)) or np.any(rates < 0):
+            raise ValueError("Heterogeneous nucleation rates must be finite and nonnegative")
+        integrated = np.zeros(len(temperatures), dtype=float)
+        integrated[1:] = np.cumsum(
+            0.5 * (rates[:-1] + rates[1:]) * (-np.diff(temperatures)) / cooling_rate
+        )
+        return integrated
     
     def get_species_idx(self, spec_name):
         names = [spec.name for spec in self.species]
