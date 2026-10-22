@@ -105,8 +105,17 @@ class Particle:
             spec.name not in core_specs + ['H2O'] for spec in self.species])[0]
     
     def idx_spec(self, spec_name):
-        return np.where([
-            spec.name in spec_name for spec in self.species])
+        """Return indices of species whose names exactly match ``spec_name``.
+
+        A string selects one exact, case-sensitive name; any other iterable
+        selects every species named in it. Results follow the particle's
+        species order, and unknown names give an empty selection.
+        """
+        if isinstance(spec_name, str):
+            return np.where([spec.name == spec_name for spec in self.species])
+        # Materialize once: a generator would be exhausted by the first species.
+        names = frozenset(spec_name)
+        return np.where([spec.name in names for spec in self.species])
         
     def get_spec_rhos(self):
         spec_rhos = np.hstack([one_spec.density for one_spec in self.species])
