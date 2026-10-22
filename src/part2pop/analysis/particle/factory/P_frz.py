@@ -25,12 +25,13 @@ class FreezingProb(ParticleVariable):
         species_modifications = config.get("species_modifications", None)
         morphology = config.get("morphology", "homogeneous")
         T_units = config.get("T_units", "K")
-        if not T:
+        if T is None:
             raise ValueError("Need to specify temperature in cfg['var_cfg'] when plotting freezing probability.")
-        elif T_units not in ("C","K"):
+        if T_units not in ("C", "K"):
             raise ValueError(f"Unknown temperature unit: '{T_units}'.")
-        if T_units=="C":
-             T += 273.15
+        T = float(T) + (273.15 if T_units == "C" else 0.0)
+        if not np.isfinite(T) or T <= 0:
+            raise ValueError("Temperature must be finite and above 0 K.")
         population._equilibrate_h2o(RH, T)
 
         # override the underlying population species_modifications if one is supplied
