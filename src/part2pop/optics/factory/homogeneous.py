@@ -152,9 +152,9 @@ class HomogeneousParticle(OpticalParticle):
             arr = self.g
         else:
             raise ValueError(f"Unknown optics_type: {optics_type}")
-        if rh_idx is not None and wvl_idx is not None:
-            return arr[rh_idx, wvl_idx]
-        return arr
+        r = slice(None) if rh_idx is None else rh_idx
+        w = slice(None) if wvl_idx is None else wvl_idx
+        return arr[r, w]
 
 
 def build(base_particle, config):
