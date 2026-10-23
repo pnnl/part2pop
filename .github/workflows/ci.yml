@@ -2,81 +2,139 @@ name: CI
 
 on:
   push:
-    branches: ["main", "feature/**", "features/**", "debug/**"]
+    branches:
+      - main
+      - "feature/**"
+      - "features/**"
+      - "debug/**"
   pull_request:
-    branches: ["main"]
+    branches: [main]
+  schedule:
+    # Catch incompatibilities introduced by the project's unpinned dependencies.
+    - cron: "19 8 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  # Supersede only pull-request runs. Pushes, the weekly schedule and manual
+  # runs on a branch share one group; cancelling there would let a scheduled
+  # run drop the CI result for a pushed commit, or a push skip the scheduled
+  # dependency-drift check.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  MPLBACKEND: Agg
 
 jobs:
   unit-tests:
     name: Unit tests (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
 
-      - name: Install build and test dependencies
+      - name: Install part2pop and test dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install build pytest pytest-cov
+          python -m pip install -e ".[test]"
+          python -m pip check
 
-      - name: Install part2pop
-        run: |
-          python -m pip install -e .
+      - name: Run unit tests
+        if: matrix.python-version != '3.14'
+        run: python -m pytest tests/unit
 
       - name: Run unit tests with coverage
-        run: |
-          pytest tests/unit --cov=part2pop --cov-report=xml --cov-report=term
+        if: matrix.python-version == '3.14'
+        run: >-
+          python -m pytest tests/unit
+          --cov=part2pop
+          --cov-config=.coveragerc
+          --cov-report=xml
+          --cov-report=term-missing
 
       - name: Upload coverage to Codecov
-        if: ${{ matrix.python-version == '3.14' }}
-        uses: codecov/codecov-action@v5
-        with:                          
+        if: matrix.python-version == '3.14'
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
           files: ./coverage.xml
           flags: unittests
-          verbose: true
           token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
 
-  integration-tests:
-    name: Integration tests
+  distributions:
+    name: Build and test distributions
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs: unit-tests
-    if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/feature/') || startsWith(github.ref, 'refs/heads/features/')) || github.event_name == 'pull_request' }}
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
 
-      - name: Install build, test, and integration dependencies
+      - name: Install build and test tools
         run: |
           python -m pip install --upgrade pip
-          python -m pip install build pytest
+          python -m pip install build pytest twine
 
-      - name: Build and install part2pop
+      - name: Build and inspect distributions
         run: |
           python -m build
+          python -m twine check dist/*
+
+      - name: Install wheel
+        run: |
           python -m pip install dist/*.whl
+          python -m pip check
 
-      - name: Run integration tests
+      - name: Test installed wheel
         run: |
-          pytest tests/integration
+          # tests/conftest.py deliberately inserts ./src into sys.path when it
+          # exists. Move src aside only after source-tree unit tests have run,
+          # so these integration tests prove the built wheel is actually used.
+          mv src "${RUNNER_TEMP}/part2pop-src"
 
-      - name: Clean Python cache files
-        if: always()
-        run: |
-          find . -type d -name "__pycache__" -exec rm -r {} +
-          find . -type f -name "*.pyc" -delete
+          python - <<'PY'
+          from pathlib import Path
+          import part2pop
+
+          package_path = Path(part2pop.__file__).resolve()
+          repository_root = Path.cwd().resolve()
+
+          if package_path == repository_root or repository_root in package_path.parents:
+              raise SystemExit(
+                  "Expected installed wheel, but imported repository copy at "
+                  f"{package_path}"
+              )
+
+          print(f"Testing installed package at {package_path}")
+          PY
+
+          python -m pytest tests/integration
