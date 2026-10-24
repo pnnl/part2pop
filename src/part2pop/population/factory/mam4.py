@@ -11,6 +11,7 @@ from part2pop.species.registry import get_species
 
 import numpy as np
 import os
+import re
 from pathlib import Path
 from .registry import register
 from ...constants import MOLAR_MASS_DRY_AIR, R, DENSITY_LIQUID_WATER
@@ -23,6 +24,72 @@ except ModuleNotFoundError:
     netCDF4 = None
     _HAS_NETCDF4 = False
 if _HAS_NETCDF4:
+    _MAM4_AEROSOL_SPECIES = ("so4", "pom", "soa", "bc", "dst", "ncl")
+
+    def _read_namelist_values(filename):
+        """Read scalar ``name = value,`` entries from a MAM4 namelist."""
+        values = {}
+        with open(filename, "r") as stream:
+            for line in stream:
+                line = line.split("!", 1)[0]
+                match = re.match(r"\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([^,/]*)", line)
+                if match:
+                    raw = match.group(2).strip()
+                    try:
+                        values[match.group(1).lower()] = float(raw.replace("d", "e").replace("D", "E"))
+                    except ValueError:
+                        continue
+        return values
+
+    def _coagulation_only_pom_fractions(mam_input, numc):
+        """Return conserved SO4/POM fractions, or raise if they are unsafe."""
+        values = _read_namelist_values(mam_input)
+        required_flags = ("mdo_coag", "mdo_gaschem", "mdo_gasaerexch", "mdo_newnuc")
+        if any(key not in values for key in required_flags):
+            raise ValueError(
+                "Cannot infer conserved POM composition: MAM4 process flags are missing"
+            )
+        if not (
+            values["mdo_coag"] == 1
+            and values["mdo_gaschem"] == 0
+            and values["mdo_gasaerexch"] == 0
+            and values["mdo_newnuc"] == 0
+        ):
+            raise ValueError(
+                "Cannot infer conserved POM composition unless MAM4 is coagulation-only"
+            )
+
+        mode_fracs = []
+        for mode_idx, mode_num in enumerate(numc, start=1):
+            raw = np.array([
+                values.get(f"mf{species}{mode_idx}", 0.0)
+                for species in _MAM4_AEROSOL_SPECIES
+            ], dtype=float)
+            if mode_num <= 1e-20 or np.sum(raw) <= 1e-20:
+                mode_fracs.append(None)
+                continue
+            unsupported = raw[2:]
+            if np.any(np.abs(unsupported) > 1e-14):
+                raise ValueError(
+                    "Cannot infer conserved POM composition when populated MAM4 "
+                    "modes contain species other than SO4 and POM"
+                )
+            dry_total = raw[0] + raw[1]
+            if dry_total <= 0 or raw[0] <= 0:
+                raise ValueError("Coagulation-only POM inference requires positive SO4")
+            mode_fracs.append(raw[:2] / dry_total)
+
+        populated = [frac for frac in mode_fracs if frac is not None]
+        if not populated:
+            raise ValueError("Cannot infer conserved POM composition: no populated modes")
+        reference = populated[0]
+        if any(not np.allclose(frac, reference, rtol=0, atol=1e-12) for frac in populated[1:]):
+            raise ValueError(
+                "Cannot infer conserved POM composition when populated MAM4 modes "
+                "have different initial SO4/POM ratios"
+            )
+        return np.array([reference if frac is None else frac for frac in mode_fracs])
+
     @register("mam4") # only registers if netCDF4 is available
     def build(config):
         mam4_dir = Path(config['mam4_dir'])
@@ -103,11 +170,15 @@ if _HAS_NETCDF4:
             output_filename = mam4_dir / 'mam_output.nc'
             currnc = netCDF4.Dataset(output_filename)
 
-            num_aer = currnc['num_aer']
-            so4_aer = currnc['so4_aer']
-            soa_aer = currnc['soa_aer']
-            dgn_a = currnc['dgn_a']
-            dgn_awet = currnc['dgn_awet']
+            # Copy the selected record before closing the file.  Keeping all
+            # fields on the same mode/time index is important: MAM4's modal
+            # diagnostics are records, not independently shifted arrays.
+            num_aer = np.asarray(currnc['num_aer'][:, output_tt_idx])
+            so4_aer = np.asarray(currnc['so4_aer'][:, output_tt_idx])
+            soa_aer = np.asarray(currnc['soa_aer'][:, output_tt_idx])
+            dgn_a = np.asarray(currnc['dgn_a'][:, output_tt_idx])
+            dgn_awet = np.asarray(currnc['dgn_awet'][:, output_tt_idx])
+            currnc.close()
 
             p = config['p']
             T = config['T']
@@ -117,15 +188,38 @@ if _HAS_NETCDF4:
 
             # fixme: make this right
             rho_dry_air = MOLAR_MASS_DRY_AIR * p / (R * T)
-            Ns = num_aer[:,output_tt_idx] * rho_dry_air # N/m^3
+            Ns = num_aer * rho_dry_air # N/m^3
             idx, = np.where(Ns>0)
             Ns = Ns[idx]
             D_is_wet = config.get("D_is_wet", True)
-            GMDs_wet = dgn_awet[idx,output_tt_idx]
-            GMDs = dgn_a[idx,output_tt_idx]
+            GMDs_wet = dgn_awet[idx]
+            GMDs = dgn_a[idx]
             
-            mass_so4 = so4_aer[idx,output_tt_idx] * rho_dry_air
-            mass_soa = soa_aer[idx,output_tt_idx] * rho_dry_air
+            mass_so4 = so4_aer[idx] * rho_dry_air
+            mass_soa = soa_aer[idx] * rho_dry_air
+            mam_input = mam4_dir / "namelist"
+
+            # MAM4 does not expose POM in mam_output.nc.  In a strictly
+            # coagulation-only run, a common initial SO4/POM ratio is conserved,
+            # so recover the missing species fraction from the namelist.  This
+            # changes composition only; particle masses remain diameter-derived.
+            namelist_values = _read_namelist_values(mam_input) if mam_input.exists() else {}
+            numc_initial = np.array([
+                namelist_values.get(f"numc{mode_idx}", 0.0)
+                for mode_idx in range(1, len(GSDs) + 1)
+            ])
+            initial_pom = np.array([
+                namelist_values.get(f"mfpom{mode_idx}", 0.0)
+                for mode_idx in range(1, len(GSDs) + 1)
+            ])
+            if mam_input.exists() and np.any((numc_initial > 1e-20) & (initial_pom > 1e-20)):
+                conserved_dry_fracs = _coagulation_only_pom_fractions(mam_input, numc_initial)
+                if np.max(np.abs(mass_soa)) > 1e-10 * max(np.max(np.abs(mass_so4)), 1e-30):
+                    raise ValueError(
+                        "MAM4 output contains SOA in a reconstruction requiring conserved SO4/POM"
+                    )
+            else:
+                conserved_dry_fracs = None
             
             # fixme: not actually sure what assumptions go into this for MAM4, assuming same GSD to compute mass H2O
             mass_h2o = DENSITY_LIQUID_WATER * np.pi/6 * np.array(
@@ -136,27 +230,36 @@ if _HAS_NETCDF4:
             if D_is_wet:
                 aero_spec_names = [['SO4','OC','H2O'],['SO4','OC','H2O'],['SO4','OC','H2O'],['SO4','OC','H2O']]
                 aero_spec_fracs = []
-                for (m_so4,m_soa,m_h2o) in zip(mass_so4,mass_soa,mass_h2o):
+                for mode_idx, (m_so4,m_soa,m_h2o) in enumerate(zip(mass_so4,mass_soa,mass_h2o)):
             
                     # temporary patch to avoid 0 mass fraction for empty modes
                     # excluding water in check to avoid zero mass for dry radius calculations
                     if m_so4 + m_soa <= 0:
                         m_so4 = 1
 
-                    spec_frac = np.array([m_so4,m_soa,m_h2o])
+                    dry_frac = (
+                        conserved_dry_fracs[idx[mode_idx]]
+                        if conserved_dry_fracs is not None
+                        else np.array([m_so4, m_soa]) / max(m_so4 + m_soa, 1e-300)
+                    )
+                    spec_frac = np.array([dry_frac[0], dry_frac[1], m_h2o])
                     spec_frac /= np.sum(spec_frac)
                     spec_frac[np.isnan(spec_frac)] = 0.
                     aero_spec_fracs.append(spec_frac)
             else:
                 aero_spec_names = [['SO4','OC'],['SO4','OC'],['SO4','OC'],['SO4','OC']]
                 aero_spec_fracs = []
-                for (m_so4,m_soa) in zip(mass_so4,mass_soa):
+                for mode_idx, (m_so4,m_soa) in enumerate(zip(mass_so4,mass_soa)):
             
                     # temporary patch to avoid 0 mass fraction for empty modes
                     if m_so4 + m_soa <= 0:
                         m_so4 = 1
 
-                    spec_frac = np.array([m_so4,m_soa])
+                    spec_frac = (
+                        conserved_dry_fracs[idx[mode_idx]]
+                        if conserved_dry_fracs is not None
+                        else np.array([m_so4, m_soa]) / max(m_so4 + m_soa, 1e-300)
+                    )
                     spec_frac /= np.sum(spec_frac)
                     spec_frac[np.isnan(spec_frac)] = 0.
                     aero_spec_fracs.append(spec_frac)

@@ -53,6 +53,10 @@ MAM4_EXAMPLE_DIR = (
 )
 MAM_OUTPUT_PATH = MAM4_EXAMPLE_DIR / "mam_output.nc"
 NAMELIST_PATH = MAM4_EXAMPLE_DIR / "namelist"
+AMBRS_MAM4_DIRS = [
+    REPO_ROOT / "tests" / "data" / "mam4" / "coagulation-only-base-case",
+    REPO_ROOT / "tests" / "data" / "mam4" / "coagulation-only-high-particle-count",
+]
 
 
 # ---------------------------------------------------------------------------
@@ -368,3 +372,29 @@ def test_mam4_build_conserves_number_and_composition(tmp_path):
     #  exact mass conservation).
     assert np.isclose(f_so4_pop, f_so4_expected, rtol=0.1)
     assert np.isclose(f_soa_pop, f_soa_expected, rtol=0.1)
+
+
+@pytest.mark.parametrize("mam_dir", AMBRS_MAM4_DIRS)
+def test_ambrs_coagulation_output_uses_same_record_and_retains_pom(mam_dir):
+    """Regression coverage using the raw AMBRS tutorial MAM4 outputs."""
+    p, T = _parse_p_T_from_namelist(mam_dir / "namelist")
+    with Dataset(mam_dir / "mam_output.nc") as ds:
+        tt = 1
+        n = np.asarray(ds["num_aer"][0, tt])
+        d = np.asarray(ds["dgn_a"][0, tt])
+        n_previous = np.asarray(ds["num_aer"][0, tt - 1])
+    cfg = {
+        "mam4_dir": str(mam_dir), "timestep": tt + 2,
+        "GSD": [1.6] * 4, "N_bins": [40] * 4,
+        "N_sigmas": 5, "p": p, "T": T, "D_is_wet": False,
+    }
+    pop = build_mam4(cfg)
+    assert np.isclose(pop.get_Ntot(), n * MOLAR_MASS_DRY_AIR * p / (R * T), rtol=1e-10)
+    diam = pop.get_particle_var("Ddry")
+    assert np.isclose(np.exp(np.sum(pop.num_concs * np.log(diam)) / pop.get_Ntot()), d, rtol=0.02)
+    # The values must come from this record, rather than an adjacent record.
+    assert not np.isclose(n, n_previous)
+    names = [sp.name.upper() for sp in pop.species]
+    masses = {name: np.sum(pop.num_concs * pop.spec_masses[:, i]) for i, name in enumerate(names)}
+    assert "OC" in masses and masses["OC"] > 0
+    assert np.isclose(masses["SO4"] / (masses["SO4"] + masses["OC"]), 0.45, rtol=0.02)
