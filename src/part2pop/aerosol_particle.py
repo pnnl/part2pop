@@ -72,7 +72,7 @@ class Particle:
         elif varname == 'tkappa':
             return self.get_tkappa()
         elif varname == 'critical_supersaturation' or varname == 's_c':
-            return self.get_critical_supersaturation(T, return_D_crit=False, sigma_h2o=0.072)
+            return self.get_critical_supersaturation(*kwargs)
         elif varname == 'vol_tot':
             return self.get_vol_tot()
         elif varname == 'vol_dry':
