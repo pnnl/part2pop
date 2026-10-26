@@ -11,7 +11,7 @@ class ExtinctionCoeff(PopulationVariable):
         axis_names=("rh_grid", "wvls"),
         description="Extinction coefficient",
         units="m$^{-1}$",
-        short_label="$b_{\mathrm{text}}$",
+        short_label="$b_{\\mathrm{ext}}$",
         long_label="extinction coefficient",
         scale='linear',
         # axis/grid defaults are centralized in analysis.defaults; keep other defaults
