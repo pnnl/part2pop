@@ -118,18 +118,23 @@ class InsaDistVar(PopulationVariable):
         elif method == "kde":
             # KDE in ln-space using the helper.  INSA_grid must already be defined.
             INSA_grid = np.asarray(INSA_grid, dtype=float)
+            # Zero area is valid for inactive particles, but has no logarithm.
+            nonzero = INSAs != 0
             dens = kde1d_in_measure(
-                INSAs,
-                weights,
+                INSAs[nonzero],
+                weights[nonzero],
                 INSA_grid,
                 measure=measure,
                 normalize=normalize,
+                point_mass_bounds=(edges[0], edges[-1]),
             )
         else:
             raise ValueError(f"Unknown dNdlnINSA method '{method}'")
         
         if normalize:
-            dens/=np.max(dens)
+            peak = np.max(dens)
+            if peak > 0:
+                dens /= peak
         
         # ------------------------------------------------------------------
         # 4. Return in the standard analysis-variable structure
