@@ -7,7 +7,7 @@ from typing import Any, Dict, Mapping, Union
 import numpy as np
 
 from ..population.base import ParticlePopulation
-from ._utils import ensure_path, make_json_safe, serialize_metadata
+from ._utils import _encode_population_metadata, ensure_path, make_json_safe, serialize_metadata
 
 __all__ = ["save_population"]
 
@@ -28,7 +28,7 @@ def save_population(
     data_store["num_concs"] = np.asarray(population.num_concs, dtype=float)
     data_store["ids"] = np.asarray(population.ids, dtype=int)
 
-    base_keys = {"species", "spec_masses", "num_concs", "ids", "species_modifications"}
+    base_keys = {"species", "spec_masses", "num_concs", "ids", "species_modifications", "metadata"}
     extra_attrs: list[str] = []
     for key, value in population.__dict__.items():
         if key in base_keys or value is None:
@@ -86,6 +86,10 @@ def save_population(
         "particle_variables": particle_info,
         "user_metadata": make_json_safe(dict(metadata)) if metadata else {},
     }
+
+    population_metadata = getattr(population, "metadata", None)
+    if population_metadata is not None:
+        payload["population_metadata"] = _encode_population_metadata(population_metadata, data_store)
 
     data_store["metadata"] = serialize_metadata(payload)
     np.savez_compressed(path, **data_store)
