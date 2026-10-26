@@ -19,7 +19,6 @@ class ExtCrossSect(ParticleVariable):
             "RH": None,
             "T": 293.15,
             "wvl": 550e-9,
-            "species_modifications": {},
         },
         aliases=("Cext", "ext_cross_section"),
         scale="log",
@@ -45,13 +44,18 @@ class ExtCrossSect(ParticleVariable):
         else:
             wvl_grid = [float(wvl)]
 
-        return {
+        ocfg = {
             "rh_grid": rh_grid,
             "wvl_grid": wvl_grid,
             "type": morph,
             "temp": float(cfg.get("T", 293.15)),
-            "species_modifications": cfg.get("species_modifications", {}),
         }
+        # Forward overrides only when the caller set them. With the key absent
+        # (or None) the optics builder inherits the population's overrides; an
+        # explicit {} would reset them to species defaults.
+        if cfg.get("species_modifications") is not None:
+            ocfg["species_modifications"] = cfg["species_modifications"]
+        return ocfg
 
     def compute_one(self, population, part_id):
         values = self.compute_all(population)

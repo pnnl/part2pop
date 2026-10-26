@@ -124,6 +124,33 @@ def build_refractive_index(spec, wvl_grid, modifications=None):
     return spec
 
 
+def ensure_refractive_index(spec, wvl_grid, modifications=None):
+    """Reuse a mutable species RI when its wavelength grid and effective
+    supported parameters match. Grid equality is exact, not approximate.
+    Nonwater supported parameters are n_550, k_550, alpha_n, and alpha_k.
+    Water uses its tabulated RI and ignores these nonwater parameter overrides.
+    The returned species may be mutated in place; this is not a global cache.
+    """
+    modifications = modifications or {}
+    existing = getattr(spec, "refractive_index", None)
+    # Copy: the stored grid must not alias the caller's array, or editing that
+    # array in place would make a stale RI look current.
+    grid = np.array(wvl_grid, dtype=float)
+    if (existing is not None
+            and callable(getattr(existing, "real_ri_fun", None))
+            and callable(getattr(existing, "imag_ri_fun", None))
+            and getattr(existing, "wvls", None) is not None
+            and np.array_equal(np.asarray(existing.wvls), grid)):
+        if spec.name.upper() == "H2O":
+            return spec
+        desired = get_RI_params(spec.name)
+        desired.update({k: v for k, v in modifications.items() if k in desired})
+        current = getattr(existing, "RI_params", None)
+        if current == desired:
+            return spec
+    return build_refractive_index(spec, grid, modifications=modifications)
+
+
 # # optics/refractive_index.py
 # from functools import lru_cache
 # import numpy as np
