@@ -371,16 +371,29 @@ def make_particle(
         AeroSpecs.append(get_species(name, specdata_path, **mods))
     
     assert(len(aero_spec_frac) == len(AeroSpecs))
-    if D_is_wet:# or 'H2O' not in aero_spec_names or 'h2o' not in aero_spec_names:
-        vol = np.pi/6.*D**3.
-        mass = effective_density(aero_spec_frac,AeroSpecs)*vol
-        spec_masses = mass*aero_spec_frac
+    if D_is_wet:
+        vol = np.pi / 6. * D**3
+        mass = effective_density(aero_spec_frac, AeroSpecs) * vol
+        spec_masses = mass * aero_spec_frac
     else:
-        dryvol = np.pi/6.*D**3.
-        drymass = effective_density(aero_spec_frac[:-1],AeroSpecs[:-1])*dryvol
-        massfrac_h2o = aero_spec_frac[-1]
-        mass_h2o = massfrac_h2o * drymass/(1. - massfrac_h2o)
-        spec_masses = np.hstack([drymass*aero_spec_frac[:-1], mass_h2o])
+        # Fractions describe total mass, whereas D describes dry volume.
+        # Normalize only the dry fractions when calculating dry density.
+        water_indices = [i for i, s in enumerate(aero_spec_names) if s.upper() == "H2O"]
+        if len(water_indices) != 1:
+            raise ValueError("Exactly one H2O species is required")
+        water_idx = water_indices[0]
+        dry_indices = [i for i in range(len(AeroSpecs)) if i != water_idx]
+        dry_fraction = float(np.sum(aero_spec_frac[dry_indices]))
+        if dry_fraction <= 0 or not np.isfinite(dry_fraction):
+            raise ValueError("Dry particle must have a positive dry mass fraction")
+        dry_fracs_normalized = aero_spec_frac[dry_indices] / dry_fraction
+        dry_specs = [AeroSpecs[i] for i in dry_indices]
+        dry_volume = np.pi / 6. * D**3
+        dry_mass = effective_density(dry_fracs_normalized, dry_specs) * dry_volume
+        spec_masses = np.zeros(len(AeroSpecs), dtype=float)
+        spec_masses[dry_indices] = dry_mass * dry_fracs_normalized
+        water_fraction = float(aero_spec_frac[water_idx])
+        spec_masses[water_idx] = dry_mass * water_fraction / dry_fraction
     
     return Particle(species=AeroSpecs,masses=spec_masses)
 
