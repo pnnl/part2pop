@@ -5,8 +5,8 @@ from typing import Tuple, Dict, Optional
 from warnings import warn
 import numpy as np
 
-from part2pop import Particle
-from part2pop import AerosolSpecies
+from part2pop.aerosol_particle import Particle
+from part2pop.species.base import AerosolSpecies
 
 @dataclass
 class ParticlePopulation:
