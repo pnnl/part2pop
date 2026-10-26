@@ -37,20 +37,32 @@ def build(config):
         for spec_name in pop_species_names
     )
 
+    if len(D) != len(N) or len(aero_spec_fracs) != len(N):
+        raise ValueError("D, N, and aero_spec_fracs must have one entry per particle")
+    if len(aero_spec_names) == 1 and len(N) > 1:
+        # Preserve the historical shorthand of one shared species-name row.
+        name_rows = [aero_spec_names[0] for _ in N]
+    elif len(aero_spec_names) == len(N):
+        name_rows = aero_spec_names
+    else:
+        raise ValueError("aero_spec_names must have one row or one row per particle")
+
     monodisp_population = ParticlePopulation(
         species=species_list, spec_masses=[], num_concs=[], ids=[],
         classes=classes, species_modifications=species_modifications)
-    for i in range(len(N)):
+    for i, (names, fractions) in enumerate(zip(name_rows, aero_spec_fracs)):
+        if len(names) != len(fractions) or len(set(names)) != len(names):
+            raise ValueError(f"Particle {i} has mismatched or duplicate species names/fractions")
+        # Fractions are positional within each particle's resolved species row,
+        # not within the population-wide species ordering. Map by canonical name;
+        # absent species contribute zero mass fraction for that particle.
+        fraction_by_name = dict(zip(names, fractions))
+        aligned_fractions = [fraction_by_name.get(name, 0.0) for name in pop_species_names]
         particle = make_particle(
-            D[i],
-            species_list,
-            aero_spec_fracs[i].copy(),
+            D[i], species_list, aligned_fractions,
             species_modifications=species_modifications,
-            specdata_path=specdata_path,
-            D_is_wet=D_is_wet)
-        part_id = i
-        monodisp_population.set_particle(
-            particle, part_id, N[i])
+            specdata_path=specdata_path, D_is_wet=D_is_wet)
+        monodisp_population.set_particle(particle, i, N[i])
     return monodisp_population
 
 # #!/usr/bin/env python3
