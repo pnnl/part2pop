@@ -2,6 +2,7 @@ from __future__ import annotations
 from ..base import PopulationVariable, VariableMeta
 from .registry import register_variable
 from part2pop.freezing.builder import build_freezing_population
+from part2pop.analysis._freezing import resolve_freezing_config
 import numpy as np
 
 @register_variable("nucleating_sites")
@@ -19,7 +20,7 @@ class NucleatingSites(PopulationVariable):
     )
 
     def compute(self, population, as_dict=False):
-        cfg = self.cfg
+        cfg = resolve_freezing_config(population, self.cfg)
         units = cfg.get("T_units", "K")
         freezing_cfg = {
             "T_grid": list(cfg["T_grid"]),

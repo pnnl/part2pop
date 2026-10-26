@@ -2,6 +2,7 @@ from __future__ import annotations
 from ..base import PopulationVariable, VariableMeta
 from .registry import register_variable
 from part2pop.freezing.builder import build_freezing_population
+from part2pop.analysis._freezing import resolve_freezing_config
 import numpy as np
 
 @register_variable("frozen_frac")
@@ -20,32 +21,34 @@ class FrozenFraction(PopulationVariable):
     
     def compute(self, population, as_dict=False):
         cfg = self.cfg
-        species_modifications = cfg.get("species_modifications", None)
+        species_modifications = resolve_freezing_config(population, cfg)["species_modifications"]
         morphology = cfg.get("morphology", "homogeneous")
         T = cfg.get("T", None)
         RH = cfg.get("RH", None)
         T_units = cfg.get("T_units", "K")
-        if not T:
-            raise ValueError("Need to specify T in cfg['var_cfg'] when plotting unfrozen fraction.")
-        if T_units not in ("C","K"):
+        if T is None:
+            raise ValueError("Need to specify T in cfg['var_cfg'] when plotting freezing fraction.")
+        if T_units not in ("C", "K"):
             raise ValueError(f"Unknown temperature unit: '{T_units}'.")
-        if T <= 0 and T_units == "K":
-             raise ValueError(f"T provided is <= 0 K.")
-        if T_units == "C":
-             T += 273.15
+        T = float(T) + (273.15 if T_units == "C" else 0.0)
+        if T <= 0 or not np.isfinite(T):
+            raise ValueError("T must be finite and above 0 K.")
+        if RH is not None:
+            RH = float(RH)
+            # Validate before equilibration mutates water masses. Values above
+            # 0.99 used to be clipped silently, so a percent input of 85 ran
+            # at RH = 0.99.
+            if not np.isfinite(RH) or RH < 0 or RH > 1:
+                raise ValueError(
+                    f"RH must be a fraction between 0 and 1, got {RH!r}; "
+                    "give 85% as 0.85."
+                )
 
-        # override the underlying population species_modifications if one is supplied
-        if species_modifications:
-            population.species_modifications = species_modifications
-        else:
-            species_modifications = population.species_modifications
+        # Species overrides apply to this calculation, not population defaults.
 
-        # equilibrate population to RH if provided
-        if RH:
-            if T_units=="C":
-                 population._equilibrate_h2o(RH, T+273.15)
-            else:
-                population._equilibrate_h2o(RH, T)
+        # T has already been converted to Kelvin (if necessary).
+        if RH is not None:
+            population._equilibrate_h2o(RH, T)
 
         # make freezing population
         freezing_config={"morphology": morphology,

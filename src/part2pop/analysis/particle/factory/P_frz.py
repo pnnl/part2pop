@@ -2,7 +2,9 @@ from __future__ import annotations
 from ..base import ParticleVariable, VariableMeta
 from .registry import register_particle_variable
 from part2pop.freezing.builder import build_freezing_population
+from part2pop.analysis._freezing import resolve_freezing_config
 import numpy as np
+from part2pop.analysis._humidity import validate_equilibration_rh
 
 @register_particle_variable("P_frz")
 class FreezingProb(ParticleVariable):
@@ -19,25 +21,22 @@ class FreezingProb(ParticleVariable):
     )
     
     def compute_all(self, population):
-        config = self.cfg        
+        config = self.cfg
         T = config.get("T", None)
-        RH = config.get("RH", 0.85)
-        species_modifications = config.get("species_modifications", None)
+        RH = validate_equilibration_rh(config.get("RH", 0.85))
+        species_modifications = resolve_freezing_config(population, config)["species_modifications"]
         morphology = config.get("morphology", "homogeneous")
         T_units = config.get("T_units", "K")
-        if not T:
+        if T is None:
             raise ValueError("Need to specify temperature in cfg['var_cfg'] when plotting freezing probability.")
-        elif T_units not in ("C","K"):
+        if T_units not in ("C", "K"):
             raise ValueError(f"Unknown temperature unit: '{T_units}'.")
-        if T_units=="C":
-             T += 273.15
+        T = float(T) + (273.15 if T_units == "C" else 0.0)
+        if not np.isfinite(T) or T <= 0:
+            raise ValueError("Temperature must be finite and above 0 K.")
         population._equilibrate_h2o(RH, T)
 
-        # override the underlying population species_modifications if one is supplied
-        if species_modifications:
-            population.species_modifications = species_modifications
-        else:
-            species_modifications = population.species_modifications
+        # Species overrides apply to this calculation, not population defaults.
 
         # make freezing population
         freezing_config={"morphology": morphology,
