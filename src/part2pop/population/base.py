@@ -1,6 +1,7 @@
 # src/part2pop/population/base.py
 
 from dataclasses import dataclass, field
+from copy import deepcopy
 from typing import Tuple, Dict, Optional
 from warnings import warn
 import numpy as np
@@ -130,8 +131,21 @@ class ParticlePopulation:
         )
             
     def clone_detached(self):
-        """Return a copy that shares immutable data but has detached numeric arrays."""
+        """Return a base ParticlePopulation with detached standard mutable fields.
+
+        Deep-copy species, identifiers, classes and species modifications, and copy
+        numeric arrays. Dynamic attributes, arbitrary metadata and subclass fields
+        are not copied; the returned object is a ParticlePopulation, not necessarily
+        the same subclass as the source. Built-in power-law refractive-index
+        callables carry detached parameter state. User-supplied callbacks must
+        manage their own captured mutable state: deepcopy does not copy Python
+        function closures.
+        """
         return ParticlePopulation(
-            species=self.species, spec_masses=self.spec_masses.copy(),
-            num_concs=self.num_concs.copy(), ids=self.ids, classes=self.classes, species_modifications=self.species_modifications
+            species=deepcopy(self.species),
+            spec_masses=np.array(self.spec_masses, copy=True),
+            num_concs=np.array(self.num_concs, copy=True),
+            ids=deepcopy(self.ids),
+            classes=deepcopy(self.classes),
+            species_modifications=deepcopy(self.species_modifications),
         )

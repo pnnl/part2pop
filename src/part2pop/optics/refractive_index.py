@@ -92,6 +92,22 @@ def _pwr(lam, v550, alpha):
     return v550 * (lam / 550e-9)**alpha
 
 
+@dataclass
+class _PowerLawRI:
+    """Callable parameter state that follows deepcopy's memoized dictionary copy.
+
+    Both components and RefractiveIndex.RI_params share one dictionary within
+    an instance. Unlike a lambda closure, deepcopy detaches this state.
+    """
+    parameters: dict
+    amplitude_key: str
+    exponent_key: str
+
+    def __call__(self, wavelength):
+        return _pwr(wavelength, self.parameters[self.amplitude_key],
+                    self.parameters[self.exponent_key])
+
+
 def build_refractive_index(spec, wvl_grid, modifications=None):
     """Attach a RefractiveIndex to `spec` that matches the provided `wvl_grid`."""
     modifications = modifications or {}
@@ -111,8 +127,8 @@ def build_refractive_index(spec, wvl_grid, modifications=None):
     for k in ('n_550','k_550','alpha_n','alpha_k'):
         if k in modifications:
             params[k] = modifications[k]
-    f_n = lambda lam: _pwr(lam, params['n_550'], params['alpha_n'])
-    f_k = lambda lam: _pwr(lam, params['k_550'], params['alpha_k'])
+    f_n = _PowerLawRI(params, "n_550", "alpha_n")
+    f_k = _PowerLawRI(params, "k_550", "alpha_k")
     spec.refractive_index = RefractiveIndex(
         wvls=wvl_grid,
         real_ris=f_n(wvl_grid),
