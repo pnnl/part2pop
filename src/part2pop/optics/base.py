@@ -16,6 +16,12 @@ from ..population.base import ParticlePopulation
 from .refractive_index import build_refractive_index
 
 
+# Requested wavelengths must match a wvl_grid value (meters) to this relative
+# tolerance. It absorbs float round-off only: distinct grid wavelengths, even
+# 1 nm apart in the visible, never match each other.
+_WAVELENGTH_RTOL = 1e-7
+
+
 class OpticalParticle(Particle):
     """
     Base class for all optical particle morphologies.
@@ -212,9 +218,16 @@ class OpticalPopulation(ParticlePopulation):
             wvl_idx = slice(None)
         else:
             arr = np.asarray(self.wvl_grid)
-            hits = np.where(np.isclose(arr, wvl))[0]
+            # Default np.isclose(atol=1e-8) treats distinct visible
+            # wavelengths less than 10 nm apart as interchangeable.
+            hits = np.where(np.isclose(arr, wvl, rtol=_WAVELENGTH_RTOL, atol=0.0))[0]
             if len(hits) == 0:
-                raise ValueError(f"Wavelength {wvl} not found in wvl_grid {self.wvl_grid}")
+                raise ValueError(
+                    f"Wavelength {wvl} m is not on wvl_grid {self.wvl_grid} (meters). "
+                    f"Wavelengths are matched to a relative tolerance of "
+                    f"{_WAVELENGTH_RTOL:g}, with no interpolation; pass a grid value "
+                    f"in meters (for example 550e-9, not 550 or 0.55)."
+                )
             wvl_idx = int(hits[0])
 
         return rh_idx, wvl_idx
