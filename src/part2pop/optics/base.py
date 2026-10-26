@@ -124,13 +124,11 @@ class OpticalParticle(Particle):
         else:
             raise ValueError(f"Unknown per-particle optics_type: {optics_type}")
 
-        # Fancy indexing guards
-        arr = src
-        if rh_idx is not None:
-            arr = arr[rh_idx, :]
-        if wvl_idx is not None:
-            arr = arr[:, wvl_idx]
-        return arr
+        # Slice both axes at once: selecting a scalar RH first would
+        # otherwise collapse the array to 1D before wavelength indexing.
+        r = slice(None) if rh_idx is None else rh_idx
+        w = slice(None) if wvl_idx is None else wvl_idx
+        return src[r, w]
 
 
 class OpticalPopulation(ParticlePopulation):
