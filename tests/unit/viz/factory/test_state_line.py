@@ -43,7 +43,7 @@ def test_state_line_prep_for_dndln_d():
 
     assert prepared["x"].shape == (3,)
     assert prepared["y"].shape == (3,)
-    assert prepared["xlabel"].startswith("dry diameter")
+    assert prepared["xlabel"].startswith("wet diameter")
     assert "number size distribution" in prepared["ylabel"].lower()
     assert prepared["xscale"] == "log"
     assert prepared["yscale"] == "linear"

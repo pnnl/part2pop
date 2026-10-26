@@ -23,6 +23,32 @@ def _get_registry_builder(scope: str) -> Callable[[str], Callable]:
 		return _g
 	raise ValueError(f"Unknown scope '{scope}'")
 
+def _merge_grid_layer(merged, layer, name):
+    """Apply aliases at this layer's priority, without changing explicit ties."""
+    layer = dict(layer)
+    for canonical, alias in (("s_grid", "s_eval"), ("wvl_grid", "wvls")):
+        if canonical in layer:
+            layer.setdefault(alias, layer[canonical])
+        elif alias in layer:
+            layer[canonical] = layer[alias]
+    distributions = {
+        "dNdlnD": ("diam_grid", {"N_bins", "D_min", "D_max"}),
+        "INSA_distribution": ("insa_grid", {"N_bins", "INSA_min", "INSA_max"}),
+    }
+    if name in distributions:
+        centers, controls = distributions[name]
+        has_centers = layer.get(centers) is not None
+        has_edges = layer.get("edges") is not None
+        if has_centers and not has_edges:
+            merged.pop("edges", None)
+        elif has_edges and not has_centers:
+            merged.pop(centers, None)
+        elif controls.intersection(layer) and not has_centers and not has_edges:
+            merged.pop(centers, None)
+            merged.pop("edges", None)
+    merged.update(layer)
+
+
 class VariableBuilder:
 	"""Unified VariableBuilder that can build population or particle variables.
 
@@ -47,6 +73,10 @@ class VariableBuilder:
 		self.scope = scope
 
 	def modify(self, **k):
+		# Policy decision deferred: repeated calls share one runtime layer.
+		# Same-layer precedence still applies, so a later alias/bin request
+		# need not replace an earlier canonical/center grid. Clear obsolete
+		# grid keys explicitly; last-call-wins across keys needs an API decision.
 		self._mods.update(k)
 		return self
 
@@ -64,23 +94,22 @@ class VariableBuilder:
 			except Exception:
 				defaults = {}
 
-		merged = dict(defaults)
 		# Merge order (lowest -> highest precedence):
 		# 1) canonical defaults for this variable name (from analysis.defaults)
 		# 2) builder/variable meta.default_cfg (variable-local defaults)
 		# 3) user-supplied cfg passed to the builder
 		# 4) runtime modifications via .modify()
-		merged = {}
 		# fetch defaults for the canonical variable name
 		try:
-			merged.update(_get_defaults_for_var(self.name))
+			canonical_defaults = _get_defaults_for_var(self.name)
+			if canonical_defaults is None:
+				canonical_defaults = {}
 		except Exception:
 			# be conservative: ignore defaults lookup failures
-			pass
-		# overlay variable-local defaults then user cfg and runtime mods
-		merged.update(defaults)
-		merged.update(self.cfg)
-		merged.update(self._mods)
+			canonical_defaults = {}
+		merged = {}
+		for layer in (canonical_defaults, defaults, self.cfg, self._mods):
+			_merge_grid_layer(merged, layer, self.name)
 
 		# Call the builder with merged cfg
 		obj = builder(merged)

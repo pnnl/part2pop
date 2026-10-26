@@ -69,15 +69,29 @@ class StateLinePlotter(StatePlotter):
             raise ValueError(f"State line does not support '{self.varname}'.")
 
         yvar = build_variable(name=self.varname, scope="population", var_cfg=self.var_cfg)
-        x = _as_1d(xvar.compute(population))
-        y = _as_1d(yvar.compute(population))
+        distribution_keys = {
+            "dNdlnD": ("D", "dNdlnD"),
+            "INSA_distribution": ("INSA", "dNdlnINSA"),
+        }
+        if self.varname in distribution_keys:
+            result = yvar.compute(population, as_dict=True)
+            xkey, ykey = distribution_keys[self.varname]
+            x = _as_1d(result[xkey])
+            y = _as_1d(result[ykey])
+        else:
+            x = _as_1d(xvar.compute(population))
+            y = _as_1d(yvar.compute(population))
 
         if x is not None and len(x) != len(y):
             raise ValueError(f"x and y must be same length, got {len(x)} vs {len(y)}.")
 
+        xlabel = xvar.meta.long_label
+        if self.varname == "dNdlnD":
+            xlabel = "wet diameter" if yvar.cfg.get("wetsize", True) else "dry diameter"
+
         return {
             "x": x, "y": y,
-            "xlabel": self._fmt_label(xvar.meta.long_label, getattr(xvar.meta, "units", "")),
+            "xlabel": self._fmt_label(xlabel, getattr(xvar.meta, "units", "")),
             "ylabel": self._fmt_label(yvar.meta.long_label, getattr(yvar.meta, "units", "")),
             "xscale": xvar.meta.scale, "yscale": yvar.meta.scale,
         }
