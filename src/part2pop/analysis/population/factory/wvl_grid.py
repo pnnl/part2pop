@@ -12,7 +12,7 @@ class WvlGridVar(PopulationVariable):
         axis_names=(),
         description="Wavelength",
         units="m",
-        short_label = '$\lambda$',
+        short_label = '$\\lambda$',
         long_label = 'wavelength',
         scale='linear',
         # axis/grid defaults are centralized in analysis.defaults
