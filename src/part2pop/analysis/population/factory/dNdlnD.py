@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 import numpy as np
 
 from ..base import PopulationVariable, VariableMeta
@@ -214,6 +216,7 @@ def build(cfg=None) -> DNdlnDVar:
     dN/dlnD rather than dN per bin in ln(D).
     """
     var = DNdlnDVar(cfg or {})
+    var.meta = replace(var.meta)
 
     # Preserve your original meta semantics:
     if var.cfg.get("normalize"):
