@@ -487,6 +487,80 @@ def test_set_and_add_particle_stub(monkeypatch):
     assert pop.num_concs[-1] == 1.0
 
 
+@pytest.mark.parametrize(
+    "varname",
+    ["critical_supersaturation", "s_c"],
+)
+def test_get_variable_forwards_critical_supersaturation_arguments(
+    monkeypatch, varname
+):
+    particle = _make_simple_particle()
+    calls = []
+
+    def fake_get_critical_supersaturation(T, return_D_crit=False):
+        calls.append((T, return_D_crit))
+        if return_D_crit:
+            return 0.5, 1.2e-6
+        return 0.5
+
+    monkeypatch.setattr(
+        particle,
+        "get_critical_supersaturation",
+        fake_get_critical_supersaturation,
+    )
+
+    result = particle.get_variable(varname, 298.15, True)
+
+    assert result == (0.5, 1.2e-6)
+    assert calls == [(298.15, True)]
+
+
+@pytest.mark.parametrize(
+    "varname",
+    ["critical_supersaturation", "s_c"],
+)
+def test_get_variable_critical_supersaturation_matches_direct_call(
+    monkeypatch, varname
+):
+    particle = _make_simple_particle()
+
+    # Avoid the unrelated default-surface-tension warning in this test.
+    monkeypatch.setattr(
+        particle,
+        "get_surface_tension",
+        lambda: 0.072,
+    )
+
+    expected = particle.get_critical_supersaturation(298.15)
+    actual = particle.get_variable(varname, 298.15)
+
+    assert np.isclose(actual, expected)
+
+
+@pytest.mark.parametrize(
+    "varname",
+    ["critical_supersaturation", "s_c"],
+)
+def test_get_variable_critical_supersaturation_can_return_critical_diameter(
+    monkeypatch, varname
+):
+    particle = _make_simple_particle()
+
+    monkeypatch.setattr(
+        particle,
+        "get_surface_tension",
+        lambda: 0.072,
+    )
+
+    s_crit, d_crit = particle.get_variable(
+        varname,
+        298.15,
+        True,
+    )
+
+    assert s_crit >= 0.0
+    assert d_crit > particle.get_Ddry()
+
 def test_population_mass_and_radius_stub(monkeypatch):
     pop = _make_stub_population(monkeypatch)
     # effective radius uses get_Dwet / 2 averaged by num_concs
