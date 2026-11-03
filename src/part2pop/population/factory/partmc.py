@@ -108,23 +108,21 @@ def map_camp_specs(camp_spec_names):
 
 def get_ncfile(partmc_output_dir, timestep, repeat):
 
-    if not os.path.exists(partmc_output_dir):
+    """Find exactly one PartMC NetCDF file under the given directory.
+
+    Recursively accept any prefix followed by ``_{repeat:04d}_{timestep:08d}.nc``.
+    Raise FileNotFoundError if absent and ValueError if multiple matches exist;
+    never infer which duplicate is the intended output.
+    """
+    partmc_output_dir = Path(partmc_output_dir)
+    if not partmc_output_dir.is_dir():
         raise FileNotFoundError(f"PartMC output directory {partmc_output_dir} does not exist.")
-    for root, dirs, files in os.walk(partmc_output_dir):
-        f = files[0]
-    if f.startswith('urban_plume_wc_'):
-        preface_string = 'urban_plume_wc_'
-    elif f.startswith('urban_plume_'):
-        preface_string = 'urban_plume_'
-    else:
-        try:
-            idx = partmc_output_dir[(partmc_output_dir.find('/')+1):].find('/')
-            prefix_str = partmc_output_dir[(partmc_output_dir.find('/')+1):][:idx] + '_'
-        except:
-            try:
-                preface_string, repeat2, timestep2 = f.split('_')
-                preface_string += '_'
-            except:
-                preface_string = 'YOU_NEED_TO_CHANGE_preface_string_'
-    ncfile = partmc_output_dir / (preface_string + str(int(repeat)).zfill(4) + '_' + str(int(timestep)).zfill(8) + '.nc')
-    return ncfile
+    suffix = f"_{int(repeat):04d}_{int(timestep):08d}.nc"
+    candidates = sorted(
+        p for p in partmc_output_dir.rglob(f"*{suffix}") if p.is_file()
+    )
+    if not candidates:
+        raise FileNotFoundError(f"No PartMC file ending with {suffix} in {partmc_output_dir}")
+    if len(candidates) > 1:
+        raise ValueError(f"Ambiguous PartMC output for {suffix}: {candidates}")
+    return candidates[0]
