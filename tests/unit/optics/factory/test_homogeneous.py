@@ -148,3 +148,11 @@ def test_mixture_ri_handles_zero_volumes():
     assert np.isfinite(arr)
     with pytest.raises(ValueError):
         hp.get_cross_section("unknown")
+
+
+def test_removed_single_scatter_albedo_key_warns():
+    with pytest.warns(UserWarning, match="single_scatter_albedo is no longer used"):
+        HomogeneousParticle(
+            _base_particle(diameter_m=10e-9),
+            {"wvl_grid": [550e-9], "rh_grid": [0.0], "single_scatter_albedo": 0.9},
+        )
