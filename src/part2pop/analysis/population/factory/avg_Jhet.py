@@ -20,6 +20,11 @@ class avgJhetVar(PopulationVariable):
     )
 
     def compute(self, population, as_dict=False):
+        """Evaluate a finite 1-D temperature grid above absolute zero.
+
+        Validate and convert the entire grid before equilibrating water. This
+        input check does not define an empirical nucleation-fit validity range.
+        """
         cfg = self.cfg
         morphology = cfg.get("morphology", "homogeneous")
         species_modifications = cfg.get("species_modifications", None)
@@ -29,15 +34,20 @@ class avgJhetVar(PopulationVariable):
         if T_grid is None and T_units is None:
             T_grid = np.linspace(233.15, 273.15, 50)
             T_units = "K"
-        if T_units=="K" and np.min(T_grid)<=0:
-            raise ValueError(f"One or more temperatures in T_grid is < 0.0 K when plotting avg_Jhet.")
-        elif T_units not in ("K", "C"):
-            raise ValueError(f"Unrecognized temperature units: {T_units}.")       
-        
-        # equilibrate population to RH
-        T_grid = np.asarray(T_grid)
-        if T_units=="C":
-            T_grid = T_grid+273.15
+        if T_units not in ("K", "C"):
+            raise ValueError(f"Unrecognized temperature units: {T_units}.")
+        try:
+            T_grid = np.asarray(T_grid, dtype=float)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("T_grid must be a nonempty one-dimensional numeric grid.") from exc
+        if T_grid.ndim != 1 or T_grid.size == 0:
+            raise ValueError("T_grid must be a nonempty one-dimensional numeric grid.")
+        if T_units == "C":
+            T_grid = T_grid + 273.15
+        if not np.all(np.isfinite(T_grid)) or np.any(T_grid <= 0):
+            raise ValueError("T_grid must contain only finite temperatures > 0 K.")
+
+        # Equilibrate only after every temperature has passed validation.
         population._equilibrate_h2o(RH, T_grid[0])
 
         # override the underlying population species_modifications if one is supplied
@@ -54,7 +64,7 @@ class avgJhetVar(PopulationVariable):
         for ii, T in enumerate(T_grid):
             arr[ii] = freezing_pop.get_avg_Jhet(T, freezing_config)
         if as_dict:
-            return {"T_grid": np.asarray(T_grid), "T_units": T_grid, "avg_Jhet": arr}
+            return {"T_grid": np.asarray(T_grid), "T_units": "K", "avg_Jhet": arr}
         return arr
 
 
