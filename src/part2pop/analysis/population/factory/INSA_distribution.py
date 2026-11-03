@@ -51,9 +51,13 @@ class InsaDistVar(PopulationVariable):
         method = cfg.get("method", "kde")
         measure = "ln"  # this variable is per dlnD by definition
         morphology = cfg.get("morphology", "homogeneous")
+        species_modifications = cfg.get("species_modifications")
+        if species_modifications is None:
+            species_modifications = population.species_modifications
         
         # temperature does not matter for this plot, default to 253 K
         freezing_config={"morphology": morphology,
+                         "species_modifications": species_modifications,
                          "T_grid": [253],
                          "T_units": "K"}
         freezing_pop = build_freezing_population(population, freezing_config)
