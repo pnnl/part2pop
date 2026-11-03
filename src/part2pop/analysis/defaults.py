@@ -86,7 +86,6 @@ _DEFAULTS_BY_VAR: Dict[str, Dict[str, Any]] = {
         "wvls": [550e-9],
         "rh_grid": [0.0, 0.5, 0.9],
         "morphology": "core-shell",
-        "species_modifications": {},
         "T": 298.15,
     },
     "b_abs": {
@@ -94,7 +93,6 @@ _DEFAULTS_BY_VAR: Dict[str, Dict[str, Any]] = {
         "wvls": [550e-9],
         "rh_grid": [0.0, 0.5, 0.9],
         "morphology": "core-shell",
-        "species_modifications": {},
         "T": 298.15,
     },
     "b_ext": {
@@ -102,7 +100,6 @@ _DEFAULTS_BY_VAR: Dict[str, Dict[str, Any]] = {
         "wvls": [550e-9],
         "rh_grid": [0.0, 0.5, 0.9],
         "morphology": "core-shell",
-        "species_modifications": {},
         "T": 298.15,
     },
 

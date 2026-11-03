@@ -27,8 +27,12 @@ class AbsCoeff(PopulationVariable):
             "wvl_grid": list(cfg.get("wvl_grid", cfg.get("wvls", []))),
             "type": morph,
             "temp": cfg["T"],
-            "species_modifications": cfg.get("species_modifications", {}),
         }
+        # Forward overrides only when the caller set them. With the key absent
+        # (or None) the optics builder inherits the population's overrides; an
+        # explicit {} would reset them to species defaults.
+        if cfg.get("species_modifications") is not None:
+            ocfg["species_modifications"] = cfg["species_modifications"]
         optical_pop = build_optical_population(population, ocfg)
         arr = optical_pop.get_optical_coeff("b_abs", rh=None, wvl=None)
         if as_dict:
