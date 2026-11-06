@@ -41,6 +41,50 @@ def test_make_json_safe_handles_custom_objects():
     assert safe["custom"] == "custom"
 
 
+def test_population_metadata_codec_preserves_array_dtype_and_shape():
+    array_store = {}
+    payload = {
+        "nested": {
+            "array": np.arange(6, dtype=np.float32).reshape(2, 3),
+        },
+    }
+
+    encoded = _utils._encode_population_metadata(payload, array_store)
+    decoded = _utils._decode_population_metadata(encoded, array_store)
+
+    restored = decoded["nested"]["array"]
+    assert isinstance(restored, np.ndarray)
+    assert restored.dtype == np.dtype(np.float32)
+    assert restored.shape == (2, 3)
+    np.testing.assert_array_equal(restored, payload["nested"]["array"])
+
+
+def test_population_metadata_codec_does_not_confuse_user_mappings_with_tags():
+    array_store = {}
+    payload = {
+        "array_like_mapping": {
+            "__part2pop_ndarray__": "user-value",
+            "dtype": "user-dtype",
+            "shape": ["user-shape"],
+        },
+        "mapping_like_mapping": {
+            "__part2pop_mapping__": [["user-key", "user-value"]],
+        },
+    }
+
+    encoded = _utils._encode_population_metadata(payload, array_store)
+    decoded = _utils._decode_population_metadata(encoded, array_store)
+
+    assert decoded == payload
+
+
+def test_population_metadata_scalar_tag_does_not_capture_user_mapping():
+    payload = {"__part2pop_numpy_scalar__": {"user": "data"}}
+    arrays = {}
+    encoded = _utils._encode_population_metadata(payload, arrays)
+    assert _utils._decode_population_metadata(encoded, arrays) == payload
+
+
 def test_serialize_metadata_emits_numpy_string():
     metadata = {"tag": "roundtrip", "value": 42}
     serialized = _utils.serialize_metadata(metadata)
