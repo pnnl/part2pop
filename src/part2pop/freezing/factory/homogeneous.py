@@ -128,7 +128,10 @@ class HomogeneousParticle(FreezingParticle):
             water_mass = water_mass.item()
         for species, mass, m_Jhet, b_Jhet in zip(self.base_particle.species, self.base_particle.masses, self.m_log10_Jhet, self.b_log10_Jhet):
             if np.isnan(m_Jhet) and np.isnan(b_Jhet) and not species.name == "H2O":
-                n_mol = mass / species.molar_mass
+                # Ideal fully dissolved NaCl has two ions per formula unit.
+                # Already represented Na/Cl ions must each be counted once.
+                dissociation = 2.0 if species.name.upper() == "NACL" else 1.0
+                n_mol = dissociation * mass / species.molar_mass
                 b_molal = n_mol / water_mass # mol/kg
                 sum_b += b_molal
         ln_aw = -0.01801528 * sum_b
