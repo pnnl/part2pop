@@ -49,10 +49,17 @@ def test_rayleigh_domain_boundaries_and_interior_match_mie(x, n, k):
     mie = homogeneous.MieQ(m, 550., 2 * radius * 1e9, asDict=True)
     area = math.pi * radius ** 2
     noise = 128 * np.finfo(float).eps * area
-    if m == 1 + 0j:
-        assert ext == scat == absorption == 0.
-        assert abs(mie["Qext"] * area) <= noise
-        assert abs(mie["Qsca"] * area) <= noise
+    # At m = 1 the Mie series cancels to round-off: PyMieScatt returns Qsca up to ~1e-11
+    # (numpy 2.5, scipy 1.18) where Rayleigh scattering is 0 or ~1e-17. Compare those
+    # index-matched cases against a floor far below the smallest scattering compared
+    # relatively below (Qsca ~ 4e-8 for n = 1.2, x = 0.03).
+    mie_floor = 1e-10 * area
+    if n == 1. and k <= 1e-6:
+        if k == 0:
+            assert ext == scat == absorption == 0.
+        assert scat <= mie_floor
+        assert abs(mie["Qsca"] * area) <= mie_floor
+        assert ext == pytest.approx(mie["Qext"] * area, rel=.02, abs=mie_floor)
     else:
         assert scat == pytest.approx(mie["Qsca"] * area, rel=.02, abs=0)
         assert ext == pytest.approx(mie["Qext"] * area, rel=.02, abs=0)
