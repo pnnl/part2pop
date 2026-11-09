@@ -210,6 +210,37 @@ def test_make_particle_applies_species_modifications():
     assert particle_mod.get_trho() == new_density
     assert particle_mod.get_tkappa() == new_kappa
 
+
+@pytest.mark.parametrize(
+    "names,fracs",
+    [
+        (["SO4", "H2O"], [0.5, 0.5]),
+        (["H2O", "SO4"], [0.5, 0.5]),
+        (["OC", "H2O", "SO4"], [0.2, 0.5, 0.3]),
+    ],
+)
+def test_make_particle_dry_diameter_and_requested_water_mass_fraction(names, fracs):
+    D_dry = 140e-9
+
+    p = make_particle(D=D_dry, aero_spec_names=names, aero_spec_frac=fracs, D_is_wet=False)
+
+    assert p.get_Ddry() == pytest.approx(D_dry, rel=1e-10)
+    water = next(i for i, s in enumerate(p.species) if s.name == "H2O")
+    assert p.masses[water] / p.masses.sum() == pytest.approx(fracs[names.index("H2O")])
+
+
+def test_make_particle_dry_diameter_unchanged_without_water():
+    p = make_particle(D=100e-9, aero_spec_names=["SO4"], aero_spec_frac=[1.0], D_is_wet=False)
+
+    assert p.get_Ddry() == pytest.approx(100e-9)
+    assert p.get_mass_h2o() == 0
+
+
+def test_make_particle_rejects_pure_water_as_dry_particle():
+    with pytest.raises(ValueError, match="positive dry mass fraction"):
+        make_particle(D=100e-9, aero_spec_names=["H2O"], aero_spec_frac=[1.0], D_is_wet=False)
+
+
 def _species_pair():
     return (
         retrieve_one_species("SO4"),
