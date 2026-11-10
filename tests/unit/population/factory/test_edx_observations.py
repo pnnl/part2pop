@@ -48,6 +48,18 @@ def test_edx_observations_smoke_build_population(tmp_path):
     assert np.all(np.isfinite(d))
     assert np.all(d > 0)
 
+    assert pop.metadata["source"] == "edx_observations"
+    assert pop.metadata["input_composition_basis"] == "elemental_mass_fraction"
+    assert pop.metadata["output_composition_basis"] == "aerosol_species_mass_fraction"
+    assert pop.metadata["edx_reconstruction_scheme"] == "sulfate_oxide_organic_allocation"
+    assert pop.metadata["edx_elements"] == [
+        "C", "N", "O", "Na", "Mg", "Al", "Si", "P",
+        "S", "Cl", "K", "Ca", "Mn", "Fe", "Cu", "Zn",
+    ]
+    assert pop.metadata["edx_target_species"] == [
+        "SO4", "OIN", "OC", "Na", "Cl", "biological",
+    ]
+
 
 def test_edx_observations_calls_assembly_helper_directly(tmp_path, monkeypatch):
     edx_csv = _write_edx_csv(tmp_path)
@@ -61,7 +73,9 @@ def test_edx_observations_calls_assembly_helper_directly(tmp_path, monkeypatch):
     def _capture_and_build(**kwargs):
         captured["count"] += 1
         captured["kwargs"] = kwargs
-        return real_assemble_population_from_mass_fractions(**kwargs)
+        population = real_assemble_population_from_mass_fractions(**kwargs)
+        population.metadata = {"existing_metadata": "preserved"}
+        return population
 
     monkeypatch.setattr(
         edx_observations,
@@ -74,6 +88,8 @@ def test_edx_observations_calls_assembly_helper_directly(tmp_path, monkeypatch):
     assert captured["count"] == 1
     assert isinstance(pop, ParticlePopulation)
     assert pop.spec_masses.ndim == 2
+    assert pop.metadata["existing_metadata"] == "preserved"
+    assert pop.metadata["source"] == "edx_observations"
 
     kwargs = captured["kwargs"]
     diameters = kwargs["diameters"]
