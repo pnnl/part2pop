@@ -853,8 +853,8 @@ def test_get_variable_critical_supersaturation_can_return_critical_diameter(
 
 def test_population_mass_and_radius_stub(monkeypatch):
     pop = _make_stub_population(monkeypatch)
-    # effective radius uses get_Dwet / 2 averaged by num_concs
-    eff_r = pop.get_effective_radius()
+    with pytest.warns(DeprecationWarning, match="effective_radius"):
+        eff_r = pop.get_effective_radius()
     expected = (pop.get_particle(1).get_Dwet() / 2.0)
     assert eff_r == expected
 
