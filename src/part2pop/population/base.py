@@ -79,25 +79,16 @@ class ParticlePopulation:
     # fixme: add "equilibrate" for other species, too.
 
     def get_effective_radius(self):
-        """Return the area-weighted effective radius in meters.
-
-        Computed as ``sum(N * r**3) / sum(N * r**2)`` from each particle's wet
-        radius at its *current* water content; no humidity equilibration is
-        done here, so equilibrate the population first for a given RH. Returns
-        NaN when the total particle area is zero (an empty or
-        zero-concentration population). Releases before this change returned
-        the number-mean radius instead.
-        """
-        rs = []
-        for part_id in self.ids:
-            particle = self.get_particle(part_id)
-            rs.append(particle.get_Dwet()/2.)
-        rs = np.asarray(rs)
-        Ns = np.asarray(self.num_concs, dtype=float)
-        area_moment = np.sum(Ns * rs**2)
-        if area_moment == 0:
-            return np.nan
-        return np.sum(Ns * rs**3) / area_moment
+        """Deprecated: use ``build_variable("effective_radius").compute(population)``."""
+        warn(
+            "ParticlePopulation.get_effective_radius() is deprecated; use "
+            "part2pop.analysis.build_variable('effective_radius').compute(population).",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        # Imported here because part2pop.analysis imports the population package.
+        from part2pop.analysis.population.factory.effective_radius import EffectiveRadiusVar
+        return EffectiveRadiusVar({}).compute(self)
 
     def get_Ntot(self):
         return np.sum(self.num_concs)
