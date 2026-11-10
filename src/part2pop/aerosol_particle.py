@@ -11,7 +11,7 @@ Note: functions use NumPy and SciPy for numerical operations.
 """
 
 from .species.base import AerosolSpecies
-from .species.registry import get_species, retrieve_one_species
+from .species.registry import get_species, retrieve_one_species as retrieve_one_species
 # from . import data_path
 from dataclasses import dataclass
 from typing import Tuple, Optional
@@ -117,8 +117,17 @@ class Particle:
             spec.name not in core_specs + ['H2O'] for spec in self.species])[0]
     
     def idx_spec(self, spec_name):
-        return np.where([
-            spec.name in spec_name for spec in self.species])
+        """Return indices of species whose names exactly match ``spec_name``.
+
+        A string selects one exact, case-sensitive name; any other iterable
+        selects every species named in it. Results follow the particle's
+        species order, and unknown names give an empty selection.
+        """
+        if isinstance(spec_name, str):
+            return np.where([spec.name == spec_name for spec in self.species])
+        # Materialize once: a generator would be exhausted by the first species.
+        names = frozenset(spec_name)
+        return np.where([spec.name in names for spec in self.species])
         
     def get_spec_rhos(self):
         spec_rhos = np.hstack([one_spec.density for one_spec in self.species])
@@ -417,11 +426,12 @@ def make_particle_from_masses(
     for name in aero_spec_names:
         if name in species_modifications.keys():
             spec_modifications = species_modifications[name]
+            species = get_species(name, None, **spec_modifications)
         else:
-            spec_modifications = {}
-        AeroSpecs.append(retrieve_one_species(
-            name, #specdata_path=specdata_path, 
-            spec_modifications=spec_modifications))
+            species = get_species(name, None)
+            if species.name in species_modifications:
+                species = get_species(name, None, **species_modifications[species.name])
+        AeroSpecs.append(species)
     return Particle(species=AeroSpecs,masses=spec_masses)
     
 
