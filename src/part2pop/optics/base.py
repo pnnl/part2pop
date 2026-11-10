@@ -13,7 +13,7 @@ from ..population.base import ParticlePopulation
 # from .. import data_path
 
 # NEW: use the refactored RI helper
-from .refractive_index import build_refractive_index
+from .refractive_index import ensure_refractive_index
 
 
 class OpticalParticle(Particle):
@@ -39,6 +39,10 @@ class OpticalParticle(Particle):
         # FIXME: include this in config or make species_modification an optional input?
         # store species_modifications for possible per-morphology overrides
         self.species_modifications = config.get("species_modifications", {}) or {}
+        # An explicit mapping (including {}) is authoritative; omission or None
+        # may reuse the RI already attached by the population builder on this
+        # same grid.
+        self._species_modifications_supplied = config.get("species_modifications") is not None
 
         # Allocate per-particle cross-section cubes (m²), shape (N_rh, N_wvl)
         N_rh = len(self.rh_grid)
@@ -68,20 +72,20 @@ class OpticalParticle(Particle):
         soa_mods = self.species_modifications.get('SOA', {})
 
         for spec in self.species:
-            # If species already has a wavelength-aware refractive_index attached
-            # with the expected callables, don't rebuild it here.
-            existing = getattr(spec, 'refractive_index', None)
-            if existing is not None and hasattr(existing, 'real_ri_fun') and hasattr(existing, 'imag_ri_fun'):
-                continue
-
+            # Population construction may have attached inherited RI overrides
+            # not repeated in per-particle morphology configuration.
+            if not self._species_modifications_supplied:
+                existing = getattr(spec, "refractive_index", None)
+                if (existing is not None
+                        and callable(getattr(existing, "real_ri_fun", None))
+                        and callable(getattr(existing, "imag_ri_fun", None))
+                        and getattr(existing, "wvls", None) is not None
+                        and np.array_equal(np.asarray(existing.wvls), self.wvl_grid)):
+                    continue
             mods = self.species_modifications.get(spec.name, {})
             if not mods and spec.name in soa_names:
                 mods = soa_mods  # inherit SOA envelope if specific override missing
-            build_refractive_index(
-                spec,
-                self.wvl_grid,
-                modifications=mods,
-            )
+            ensure_refractive_index(spec, self.wvl_grid, modifications=mods)
 
     # --- abstract compute hook ---
 
