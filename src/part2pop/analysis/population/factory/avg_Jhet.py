@@ -1,8 +1,10 @@
 from __future__ import annotations
 import numpy as np
+from part2pop.analysis._humidity import validate_equilibration_rh
 from ..base import PopulationVariable, VariableMeta
 from .registry import register_variable
 from part2pop.freezing.builder import build_freezing_population
+from part2pop.analysis._freezing import resolve_freezing_config
 
 @register_variable("avg_Jhet")
 class avgJhetVar(PopulationVariable):
@@ -27,10 +29,10 @@ class avgJhetVar(PopulationVariable):
         """
         cfg = self.cfg
         morphology = cfg.get("morphology", "homogeneous")
-        species_modifications = cfg.get("species_modifications", None)
+        species_modifications = resolve_freezing_config(population, cfg)["species_modifications"]
         T_grid = cfg.get("T_grid", None)
         T_units = cfg.get("T_units", None)
-        RH = cfg.get("RH", 0.85)
+        RH = validate_equilibration_rh(cfg.get("RH", 0.85))
         if T_grid is None and T_units is None:
             T_grid = np.linspace(233.15, 273.15, 50)
             T_units = "K"
@@ -50,11 +52,7 @@ class avgJhetVar(PopulationVariable):
         # Equilibrate only after every temperature has passed validation.
         population._equilibrate_h2o(RH, T_grid[0])
 
-        # override the underlying population species_modifications if one is supplied
-        if species_modifications:
-            population.species_modifications = species_modifications
-        else:
-            species_modifications = population.species_modifications
+        # Species overrides apply to this calculation, not population defaults.
 
         # make freezing population
         freezing_config={"morphology": morphology,
