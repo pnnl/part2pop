@@ -184,6 +184,75 @@ def test_get_ncfile_detects_known_prefix(tmp_path):
     assert result.name == "urban_plume_0001_00000001.nc"
 
 
+def _touch(folder, *names):
+    folder.mkdir(parents=True, exist_ok=True)
+    for name in names:
+        (folder / name).write_text("data")
+
+
+def test_get_ncfile_accepts_run_names_with_underscores(tmp_path):
+    _touch(tmp_path, "my_long_run_0001_00000003.nc")
+    result = get_ncfile(tmp_path, timestep=3, repeat=1)
+    assert result.name == "my_long_run_0001_00000003.nc"
+
+
+def test_get_ncfile_ignores_files_that_are_not_partmc_output(tmp_path):
+    # Several strays, so the real file is rarely the first one a folder lists.
+    _touch(
+        tmp_path,
+        ".DS_Store",
+        "._run_0001_00000001.nc",
+        "notes.txt",
+        "summary.nc",
+        "run_0001_00000001.nc",
+    )
+    assert get_ncfile(tmp_path, timestep=1, repeat=1).name == "run_0001_00000001.nc"
+
+
+def test_get_ncfile_selects_the_requested_repeat_and_timestep(tmp_path):
+    _touch(
+        tmp_path,
+        "run_0001_00000001.nc",
+        "run_0001_00000002.nc",
+        "run_0002_00000001.nc",
+    )
+    assert get_ncfile(tmp_path, timestep=2, repeat=1).name == "run_0001_00000002.nc"
+    assert get_ncfile(tmp_path, timestep=1, repeat=2).name == "run_0002_00000001.nc"
+
+
+def test_get_ncfile_lists_available_timesteps_when_one_is_missing(tmp_path):
+    _touch(tmp_path, "run_0001_00000001.nc", "run_0001_00000002.nc")
+    with pytest.raises(FileNotFoundError, match=r"available for this repeat: \[1, 2\]"):
+        get_ncfile(tmp_path, timestep=5, repeat=1)
+
+
+def test_get_ncfile_rejects_two_runs_in_one_folder(tmp_path):
+    _touch(tmp_path, "run_a_0001_00000001.nc", "run_b_0001_00000001.nc")
+    with pytest.raises(ValueError, match="Keep one run per folder"):
+        get_ncfile(tmp_path, timestep=1, repeat=1)
+
+
+def test_get_ncfile_accepts_a_string_path(tmp_path):
+    _touch(tmp_path, "run_0001_00000001.nc")
+    result = get_ncfile(str(tmp_path), timestep=1, repeat=1)
+    assert result.name == "run_0001_00000001.nc"
+
+
+def test_partmc_build_ignores_stray_files_and_underscored_run_names(tmp_path):
+    out_dir, _ = _create_partmc_nc(tmp_path, prefix="my_run_", n_particles=3)
+    (out_dir / ".DS_Store").write_text("not a netCDF file")
+    pop = build_partmc(
+        {
+            "partmc_dir": str(tmp_path),
+            "timestep": 1,
+            "repeat": 1,
+            "N_tot": 1e6,
+            "n_particles": 2,
+        }
+    )
+    assert len(pop.ids) == 2
+
+
 def test_partmc_build_raises_when_too_many_particles(tmp_path):
     partmc_dir, _ = _create_partmc_nc(tmp_path, n_particles=2)
     with pytest.raises(IndexError):
