@@ -10,7 +10,7 @@ from part2pop import make_particle_from_masses
 from part2pop.species.registry import get_species
 import numpy as np
 import netCDF4
-import os
+import re
 from pathlib import Path
 from .registry import register
 
@@ -106,25 +106,39 @@ def map_camp_specs(camp_spec_names):
     return spec_names
 
 
-def get_ncfile(partmc_output_dir, timestep, repeat):
+# PartMC names its snapshots <run name>_<repeat>_<timestep>.nc. The run name can
+# be anything, including names that contain underscores.
+_NCFILE_PATTERN = re.compile(r"^(?P<prefix>.+)_(?P<repeat>\d+)_(?P<timestep>\d+)\.nc$")
 
-    if not os.path.exists(partmc_output_dir):
+
+def get_ncfile(partmc_output_dir, timestep, repeat):
+    """Return the PartMC output file for one repeat and output timestep.
+
+    Files are matched by name, so any run name works and other files in the folder
+    (a macOS ``.DS_Store``, ``._*`` copy artifacts, notes) are ignored.
+    """
+    partmc_output_dir = Path(partmc_output_dir)
+    if not partmc_output_dir.exists():
         raise FileNotFoundError(f"PartMC output directory {partmc_output_dir} does not exist.")
-    for root, dirs, files in os.walk(partmc_output_dir):
-        f = files[0]
-    if f.startswith('urban_plume_wc_'):
-        preface_string = 'urban_plume_wc_'
-    elif f.startswith('urban_plume_'):
-        preface_string = 'urban_plume_'
-    else:
-        try:
-            idx = partmc_output_dir[(partmc_output_dir.find('/')+1):].find('/')
-            prefix_str = partmc_output_dir[(partmc_output_dir.find('/')+1):][:idx] + '_'
-        except:
-            try:
-                preface_string, repeat2, timestep2 = f.split('_')
-                preface_string += '_'
-            except:
-                preface_string = 'YOU_NEED_TO_CHANGE_preface_string_'
-    ncfile = partmc_output_dir / (preface_string + str(int(repeat)).zfill(4) + '_' + str(int(timestep)).zfill(8) + '.nc')
-    return ncfile
+    repeat, timestep = int(repeat), int(timestep)
+
+    matches, timesteps = [], set()
+    for path in sorted(partmc_output_dir.glob("*.nc")):
+        match = _NCFILE_PATTERN.match(path.name)
+        if match is None or path.name.startswith(".") or int(match["repeat"]) != repeat:
+            continue
+        timesteps.add(int(match["timestep"]))
+        if int(match["timestep"]) == timestep:
+            matches.append(path)
+
+    if len(matches) > 1:
+        raise ValueError(
+            f"More than one PartMC file matches repeat {repeat}, timestep {timestep} "
+            f"in {partmc_output_dir}: {[p.name for p in matches]}. Keep one run per folder."
+        )
+    if not matches:
+        raise FileNotFoundError(
+            f"No PartMC file for repeat {repeat}, timestep {timestep} in {partmc_output_dir}; "
+            f"timesteps available for this repeat: {sorted(timesteps)}"
+        )
+    return matches[0]
