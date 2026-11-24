@@ -43,7 +43,7 @@ class Population_MassFracs:
 def _validate_csv_extension(filename: str) -> None:
     extension = filename.split('.')[-1]
     if extension != 'csv':
-        raise ValueError(f"edx_file must be .csv format supplied format is .{extension}")
+        raise ValueError(f"edx_file must be .csv format but supplied format is .{extension}")
 
 
 def _extract_element_mass_fractions(data: pd.DataFrame, elements: list[str], filename: str):
